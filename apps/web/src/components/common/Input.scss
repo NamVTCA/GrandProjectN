@@ -1,0 +1,19 @@
+@use '../../styles/index' as *; // Sửa lỗi: Dùng đường dẫn tương đối
+
+.custom-input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid $surface-color;
+  border-radius: $border-radius-md;
+  font-size: 16px;
+  background-color: $background-component-light;
+  color: $text-light;
+  transition: all 0.3s ease;
+
+  &::placeholder { color: $text-secondary; }
+  &:focus {
+    outline: none;
+    border-color: $primary-accent;
+    box-shadow: 0 0 0 3px rgba($primary-accent, 0.3);
+  }
+}

@@ -1,0 +1,28 @@
+@use '../../../styles/index' as *;
+
+.post-card {
+  background-color: $background-component;
+  border: 1px solid $surface-color;
+  border-radius: $border-radius-lg;
+  padding: 20px;
+  margin-bottom: 20px;
+
+  .post-header .author-info { /* ... (giữ nguyên) */ }
+  .post-content { /* ... (giữ nguyên) */ }
+  .post-stats { /* ... (giữ nguyên) */ }
+  .post-actions {
+    display: flex;
+    justify-content: space-around;
+    padding-top: 10px;
+
+    .action-button {
+      background: none; border: none; color: $text-secondary; font-weight: 600;
+      cursor: pointer; padding: 8px 12px; border-radius: $border-radius-md;
+      transition: all 0.2s; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+
+      .icon { font-size: 18px; }
+      &:hover { background-color: $surface-color; color: $text-light; }
+      &.liked { color: $primary-accent; font-weight: 700; }
+    }
+  }
+}

@@ -1,0 +1,72 @@
+@use '../styles/index' as *; // Sửa lỗi: Dùng đường dẫn tương đối
+
+.chat-page-layout {
+background-color: $background-component; // Sửa lỗi
+  display: flex;
+  height: calc(100vh - 60px); // Giả sử header cao 60px
+  .sidebar {
+    width: 320px;
+    border-right: 1px solid $surface-color;
+    display: flex;
+    flex-direction: column;
+    h2 { padding: 20px; border-bottom: 1px solid $surface-color; }
+  }
+  .room-list {
+    overflow-y: auto;
+    .room-item {
+      padding: 15px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid $surface-color;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      &:hover { background-color: $surface-color; }
+      &.active { background-color: $primary-dark; }
+      .unread-badge {
+        background-color: $primary-accent;
+        color: $background-body;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 2px 8px;
+        border-radius: 10px;
+      }
+    }
+  }
+  .main-chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    .messages-container {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .message {
+      padding: 10px 15px;
+      border-radius: $border-radius-lg;
+      max-width: 70%;
+      &.sent {
+        background-color: $primary-main;
+        align-self: flex-end;
+        border-bottom-right-radius: $border-radius-sm;
+      }
+      &.received {
+        background-color: $surface-color;
+        align-self: flex-start;
+        border-bottom-left-radius: $border-radius-sm;
+      }
+    }
+    .message-input-area {
+      padding: 20px;
+      border-top: 1px solid $surface-color;
+      form {
+        display: flex;
+        gap: 10px;
+        input { flex-grow: 1; }
+      }
+    }
+  }
+}

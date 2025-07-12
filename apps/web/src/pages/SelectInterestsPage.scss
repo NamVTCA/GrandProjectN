@@ -1,0 +1,45 @@
+@use '../styles/index' as *;
+
+.select-interests-page {
+  @include flex-center;
+  min-height: 100vh;
+  padding: 20px;
+  background: $background-body;
+
+  .container {
+    text-align: center;
+    max-width: 700px;
+    h1 { font-size: 36px; margin-bottom: 15px; }
+    p { color: $text-secondary; margin-bottom: 40px; }
+  }
+
+  .interests-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 40px;
+  }
+
+  .interest-tag {
+    padding: 10px 20px;
+    border: 1px solid $surface-color;
+    background-color: $background-component;
+    color: $text-secondary;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: $surface-color;
+      color: $text-light;
+    }
+
+    &.selected {
+      background-color: $primary-accent;
+      color: $primary-dark;
+      border-color: $primary-accent;
+      font-weight: 600;
+    }
+  }
+}

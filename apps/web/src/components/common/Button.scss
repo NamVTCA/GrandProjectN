@@ -1,0 +1,27 @@
+@use '../../styles/index' as *; // Sửa lỗi: Dùng đường dẫn tương đối
+
+.custom-button {
+  padding: 14px;
+  background: linear-gradient(45deg, $primary-main, $primary-accent);
+  color: $text-light;
+  border: none;
+  border-radius: $border-radius-md;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba($primary-main, 0.4);
+  }
+
+  &:disabled {
+    background: $surface-color;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}

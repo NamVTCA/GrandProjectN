@@ -1,0 +1,46 @@
+@use '../../../styles/index' as *;
+
+.notification-bell {
+  position: relative;
+
+  button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: $text-secondary;
+    position: relative;
+    &:hover { color: $text-light; }
+  }
+
+  .badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background-color: $error-color;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  .notification-dropdown {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    width: 350px;
+    background-color: $background-component-light;
+    border: 1px solid $surface-color;
+    border-radius: $border-radius-lg;
+    box-shadow: $card-shadow;
+    max-height: 400px;
+    overflow-y: auto;
+
+    .notification-item {
+      padding: 15px;
+      border-bottom: 1px solid $surface-color;
+      &:last-child { border-bottom: none; }
+    }
+  }
+}

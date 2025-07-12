@@ -1,0 +1,44 @@
+@use '../../../styles/index' as *;
+
+.group-card {
+  background-color: $background-component;
+  border: 1px solid $surface-color;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $card-shadow-hover;
+  }
+
+  .group-card-header {
+    height: 120px;
+    background: linear-gradient(45deg, $primary-main, $primary-accent);
+  }
+
+  .group-card-body {
+    padding: 20px;
+    flex-grow: 1;
+    h3 { font-size: 18px; margin-bottom: 10px; }
+    p { font-size: 14px; color: $text-secondary; margin-bottom: 15px; }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      .tag {
+        background-color: $surface-color;
+        padding: 4px 8px;
+        border-radius: $border-radius-sm;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .group-card-footer {
+    padding: 0 20px 20px 20px;
+    button { width: 100%; }
+  }
+}

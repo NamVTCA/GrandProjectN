@@ -1,0 +1,18 @@
+@use '../styles/index' as *; // Sửa lỗi: Dùng đường dẫn tương đối
+
+.shop-page {
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: $text-light;
+    margin-bottom: 30px;
+    border-bottom: 1px solid $surface-color;
+    padding-bottom: 15px;
+  }
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 25px;
+}

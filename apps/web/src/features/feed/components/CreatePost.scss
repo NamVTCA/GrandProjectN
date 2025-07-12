@@ -1,0 +1,30 @@
+@use '../../../styles/index' as *;
+
+.create-post-card {
+  background-color: $background-component;
+  padding: 20px;
+  border-radius: $border-radius-lg;
+  margin-bottom: 25px;
+  border: 1px solid $surface-color;
+
+  textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    resize: none;
+    color: $text-light;
+    font-size: 18px;
+    font-family: inherit;
+    outline: none;
+    &::placeholder {
+      color: $text-secondary;
+    }
+  }
+
+  .actions {
+    margin-top: 15px;
+    text-align: right;
+    border-top: 1px solid $surface-color;
+    padding-top: 15px;
+  }
+}

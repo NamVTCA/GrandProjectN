@@ -1,0 +1,46 @@
+@use '../../styles/variables' as *;
+
+.sidebar {
+  width: 240px;
+  background-color: $background-component;
+  border-right: 1px solid $surface-color;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+
+  .logo {
+    margin-bottom: 40px;
+    h1 {
+      font-size: 24px;
+      color: $primary-accent;
+      text-align: center;
+      font-weight: 700;
+    }
+  }
+
+  .main-nav ul {
+    list-style: none;
+    li a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px 15px;
+      margin-bottom: 5px;
+      border-radius: $border-radius-md;
+      color: $text-secondary;
+      font-weight: 500;
+      transition: all 0.2s ease-in-out;
+
+      &:hover {
+        background-color: $surface-color;
+        color: $text-light;
+      }
+
+      &.active {
+        background-color: $primary-main;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba($primary-main, 0.3);
+      }
+    }
+  }
+}

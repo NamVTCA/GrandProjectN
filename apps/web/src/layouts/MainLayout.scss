@@ -1,0 +1,35 @@
+@use '../styles/variables' as *;
+
+.main-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar { // Giả sử chúng ta có một component Sidebar
+  width: 240px;
+  background-color: $background-light;
+  padding: 20px;
+  border-right: 1px solid $surface-color;
+  // Thêm style cho các link điều hướng ở đây
+}
+
+.content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; // Cho phép cuộn nội dung
+}
+
+.header { // Giả sử có component Header
+   padding: 15px 30px;
+   background-color: $background-light;
+   border-bottom: 1px solid $surface-color;
+   display: flex;
+   justify-content: flex-end;
+   align-items: center;
+}
+
+.main-content {
+  padding: 30px;
+  flex: 1;
+}

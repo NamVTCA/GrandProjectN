@@ -1,0 +1,79 @@
+@use '../styles/index' as *; // Sửa lỗi: Dùng đường dẫn tương đối
+@use 'sass:color'; // <<-- THÊM DÒNG NÀY
+
+.auth-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Sửa lỗi: Dùng cú pháp hiện đại
+  background: linear-gradient(135deg, $background-body, color.adjust($primary-dark, $lightness: -10%));
+  padding: 20px;
+}
+
+.card {
+  width: 90%;
+  max-width: 900px;
+  min-height: 600px;
+  display: flex;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  box-shadow: $card-shadow;
+  background-color: $background-component;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.left {
+  flex: 1;
+  background: linear-gradient(rgba($primary-main, 0.8), rgba($primary-dark, 0.95)),
+    url("https://images.pexels.com/photos/4881619/pexels-photo-4881619.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
+      center / cover no-repeat;
+  padding: 50px;
+  color: $text-light;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 30px;
+
+  h1 { font-size: 48px; line-height: 1.2; font-weight: 700; }
+  p { font-size: 16px; }
+  button {
+    padding: 12px 25px;
+    border: 2px solid $accent-light;
+    background-color: transparent;
+    color: $accent-light;
+    font-weight: bold;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    &:hover {
+      background-color: $accent-light;
+      color: $primary-dark;
+      transform: scale(1.05);
+    }
+  }
+}
+
+.right {
+  flex: 1;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 40px;
+
+  h2 { color: $text-light; font-size: 32px; font-weight: 600; }
+  form { display: flex; flex-direction: column; gap: 25px; }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .card { flex-direction: column; min-height: auto; width: 95%; max-width: 500px; }
+  .left { display: none; }
+  .right { flex: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}

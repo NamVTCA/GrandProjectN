@@ -1,0 +1,53 @@
+@use '../../../styles/index' as *;
+
+.chat-message-wrapper {
+  display: flex;
+  gap: 10px;
+  max-width: 75%;
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  .message-bubble {
+    padding: 10px 15px;
+    border-radius: $border-radius-lg;
+    position: relative;
+
+    .sender-name {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 5px;
+      color: $primary-accent;
+    }
+    .message-content {
+      line-height: 1.5;
+    }
+    .timestamp {
+      font-size: 10px;
+      color: $text-secondary;
+      display: block;
+      text-align: right;
+      margin-top: 5px;
+    }
+  }
+
+  &.sent {
+    align-self: flex-end;
+    .message-bubble {
+      background-color: $primary-main;
+      border-bottom-right-radius: $border-radius-sm;
+    }
+  }
+
+  &.received {
+    align-self: flex-start;
+    .message-bubble {
+      background-color: $surface-color;
+      border-bottom-left-radius: $border-radius-sm;
+    }
+  }
+}
