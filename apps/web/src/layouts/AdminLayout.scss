@@ -1,0 +1,50 @@
+/* File: src/layouts/AdminLayout.scss */
+@use 'src/styles/index' as *;
+
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  background-color: $background-body;
+}
+
+.admin-sidebar {
+  width: 250px;
+  background-color: $background-component;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid $surface-color;
+
+  .logo h2 {
+    font-size: 24px;
+    color: $primary-accent;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  nav ul {
+    list-style: none;
+    li a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: $border-radius-md;
+      color: $text-secondary;
+      font-weight: 500;
+      margin-bottom: 5px;
+      transition: all 0.2s;
+
+      &:hover, &.active {
+        background-color: $primary-main;
+        color: white;
+      }
+    }
+  }
+}
+
+.admin-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}

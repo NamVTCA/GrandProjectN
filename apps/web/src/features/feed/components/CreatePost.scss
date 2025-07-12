@@ -1,14 +1,27 @@
+/* File: src/features/feed/components/CreatePost.scss */
 @use '../../../styles/index' as *;
 
 .create-post-card {
   background-color: $background-component;
-  padding: 20px;
   border-radius: $border-radius-lg;
+  padding: 20px;
   margin-bottom: 25px;
-  border: 1px solid $surface-color;
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
 
   textarea {
-    width: 100%;
+    flex: 1;
     background: transparent;
     border: none;
     resize: none;
@@ -16,15 +29,18 @@
     font-size: 18px;
     font-family: inherit;
     outline: none;
+    padding-top: 10px;
+    line-height: 1.5;
     &::placeholder {
       color: $text-secondary;
     }
   }
 
-  .actions {
+  .card-footer {
     margin-top: 15px;
-    text-align: right;
-    border-top: 1px solid $surface-color;
     padding-top: 15px;
+    border-top: 1px solid $surface-color;
+    display: flex;
+    justify-content: flex-end;
   }
 }

@@ -1,3 +1,4 @@
+/* File: src/features/groups/components/GroupCard.scss */
 @use '../../../styles/index' as *;
 
 .group-card {
@@ -17,28 +18,48 @@
   .group-card-header {
     height: 120px;
     background: linear-gradient(45deg, $primary-main, $primary-accent);
+    // A placeholder pattern
+    background-image: 
+      linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.05) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.05) 75%);
+    background-size: 20px 20px;
   }
 
   .group-card-body {
     padding: 20px;
     flex-grow: 1;
-    h3 { font-size: 18px; margin-bottom: 10px; }
-    p { font-size: 14px; color: $text-secondary; margin-bottom: 15px; }
+    h3 { 
+      font-size: 18px; 
+      margin-bottom: 10px; 
+      font-weight: 600;
+    }
+    p { 
+      font-size: 14px; 
+      color: $text-secondary; 
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
     .tags {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       .tag {
         background-color: $surface-color;
-        padding: 4px 8px;
-        border-radius: $border-radius-sm;
+        padding: 4px 10px;
+        border-radius: 12px;
         font-size: 12px;
+        font-weight: 500;
       }
     }
   }
 
   .group-card-footer {
     padding: 0 20px 20px 20px;
-    button { width: 100%; }
+    button { 
+      width: 100%; 
+      font-size: 14px;
+    }
   }
 }

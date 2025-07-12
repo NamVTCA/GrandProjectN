@@ -1,5 +1,4 @@
-@use 'variables' as *;
-
+/* File: src/styles/_reset.scss */
 * {
   margin: 0;
   padding: 0;
@@ -10,8 +9,7 @@ body {
   font-family: 'Inter', sans-serif;
   background-color: $background-body;
   color: $text-light;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 a {
@@ -19,6 +17,7 @@ a {
   color: inherit;
 }
 
-button, input, textarea {
-  font-family: inherit;
+button {
+    font-family: inherit;
+    cursor: pointer;
 }

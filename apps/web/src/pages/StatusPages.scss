@@ -1,0 +1,32 @@
+/* File: src/pages/StatusPages.scss (Mới) */
+@use '../styles/index' as *;
+
+.status-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: $background-body;
+
+  .status-card {
+    background-color: $background-component;
+    padding: 40px;
+    border-radius: $border-radius-lg;
+    text-align: center;
+    max-width: 500px;
+    border-top: 5px solid $surface-color;
+
+    &.success { border-top-color: $success-color; }
+    &.error { border-top-color: $error-color; }
+
+    h2 {
+      font-size: 28px;
+      margin-bottom: 15px;
+    }
+    p {
+      color: $text-secondary;
+      margin-bottom: 30px;
+    }
+  }
+}

@@ -1,0 +1,32 @@
+/* File: src/pages/InventoryPage.scss (Mới) */
+@use '../styles/index' as *;
+
+.inventory-page {
+  h1 { /* ... style tương tự ShopPage ... */ }
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.inventory-item-card {
+  background-color: $background-component;
+  border: 1px solid $surface-color;
+  border-radius: $border-radius-lg;
+  padding: 15px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: $border-radius-md;
+    background-color: $background-body;
+  }
+  h4 { font-weight: 600; }
+}

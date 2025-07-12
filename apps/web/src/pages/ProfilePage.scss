@@ -1,10 +1,18 @@
+/* File: src/pages/ProfilePage.scss */
+@use '../styles/index' as *;
+
 .profile-page {
-  max-width: 990px;
-  margin: 20px auto; // Căn giữa trang
-  padding: 0 15px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-.profile-content {
-  // Phần này sẽ chứa danh sách các bài post của người dùng
-  margin-top: -30px; // Kéo phần nội dung lên một chút cho đẹp
+.page-status {
+  text-align: center;
+  margin-top: 50px;
+  font-size: 18px;
+  color: $text-secondary;
+
+  &.error {
+    color: $error-color;
+  }
 }

@@ -1,0 +1,41 @@
+/* File: src/features/shop/components/ShopItemCard.scss (Mới) */
+@use '../../../styles/index' as *;
+
+.shop-item-card {
+  background-color: $background-component;
+  border: 1px solid $surface-color;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $card-shadow-hover;
+  }
+
+  .item-preview {
+    height: 200px;
+    background-color: $background-body;
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  .item-details {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    
+    h4 { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+    p { font-size: 14px; color: $text-secondary; flex-grow: 1; margin-bottom: 20px; }
+  }
+  
+  .item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .price { font-size: 18px; font-weight: bold; color: $accent-light; }
+    button { font-size: 14px; }
+  }
+}

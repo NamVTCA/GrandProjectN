@@ -1,0 +1,20 @@
+/* File: src/features/profile/components/UserPostList.scss (Cập nhật) */
+@use '../../../styles/index' as *;
+
+.user-post-list {
+  display: grid;
+  // Tạo ra các cột có chiều rộng tối thiểu 280px, tự động lấp đầy không gian
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px; // Khoảng cách giữa các bài đăng
+
+  // Responsive cho màn hình nhỏ hơn
+  @media (max-width: 768px) {
+    gap: 15px;
+  }
+
+  @media (max-width: 576px) {
+    // Trên màn hình rất nhỏ, chỉ hiển thị 1 cột
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}

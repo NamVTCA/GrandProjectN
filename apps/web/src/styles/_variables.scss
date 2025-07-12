@@ -1,18 +1,28 @@
-// src/styles/_variables.scss
+/* File: src/styles/_variables.scss */
+// Tông màu "Vibrant Vitality" - Phiên bản chuyên nghiệp
+$primary-dark: #1f5e47;
+$primary-main: #2c7d5f;
+$primary-accent: #6abf92;
+$secondary-light: #a8d8a2;
+$accent-light: #e3f2a5;
+$accent-lighter: #f1f8c9;
 
-// Tông màu "Vibrant Vitality"
-$primary-color: #FF4E50;   // Một màu đỏ cam rực rỡ
-$secondary-color: #FC913A; // Một màu cam vàng năng động
-
-// Màu nền
-$background-dark: #1a1a1a;
-$background-light: #2c2c2c;
-$surface-color: #383838;
+// Màu hệ thống cho giao diện tối
+$background-body: #1a1d21;
+$background-component: #25282e;
+$surface-color: #363a41;
 
 // Màu chữ
-$text-primary: #FFFFFF;
-$text-secondary: #a7a7a7;
+$text-light: #f0f2f5;
+$text-secondary: #a9b3c1;
 
-// Các màu khác
-$success-color: #4CAF50;
-$error-color: #F44336;
+// Màu chức năng
+$error-color: #e53e3e;
+$success-color: #38a169;
+
+// Các biến dùng chung
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+$card-shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.15);

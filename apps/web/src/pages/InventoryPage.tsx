@@ -1,47 +1,62 @@
-import React, { useEffect, useState } from 'react';
+// File: src/pages/InventoryPage.tsx (Mới)
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
-import { useToast } from '../components/common/Toast/ToastContext';
+import type { InventoryItem } from '../features/inventory/types/Inventory';
+import { useAuth } from '../features/auth/AuthContext';
 import Button from '../components/common/Button';
-
-interface InventoryItem {
-  _id: string;
-  item: {
-    _id: string;
-    name: string;
-    assetUrl?: string;
-  };
-}
+import './InventoryPage.scss';
 
 const InventoryPage: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const { fetchUser } = useAuth(); // Lấy hàm để cập nhật lại thông tin user
 
-  const fetchInventory = () => {
-    api.get('/inventory/me').then(res => setInventory(res.data));
-  };
+  const fetchInventory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/inventory/me');
+      setInventory(response.data);
+    } catch (error) {
+      console.error("Lỗi khi tải kho đồ:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(fetchInventory, []);
+  useEffect(() => {
+    fetchInventory();
+  }, [fetchInventory]);
 
   const handleEquip = async (inventoryId: string) => {
     try {
       await api.post('/inventory/equip', { inventoryId });
-      addToast('Trang bị thành công!', 'success');
+      alert('Trang bị thành công!');
+      fetchUser(); // Cập nhật lại thông tin user để hiển thị vật phẩm đã trang bị
     } catch (error) {
-      addToast('Trang bị thất bại.', 'error');
+      alert('Trang bị thất bại.');
     }
   };
 
   return (
     <div className="inventory-page">
       <h1>Kho đồ của bạn</h1>
-      <div className="inventory-grid">
-        {inventory.map(invItem => (
-          <div key={invItem._id} className="inventory-item">
-            <p>{invItem.item.name}</p>
-            <Button onClick={() => handleEquip(invItem._id)}>Trang bị</Button>
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <p className="page-status">Đang tải kho đồ...</p>
+      ) : (
+        <div className="inventory-grid">
+          {inventory.length > 0 ? (
+            inventory.map(invItem => (
+              <div key={invItem._id} className="inventory-item-card">
+                <img src={invItem.item.assetUrl || '[https://via.placeholder.com/150](https://via.placeholder.com/150)'} alt={invItem.item.name} />
+                <h4>{invItem.item.name}</h4>
+                <Button onClick={() => handleEquip(invItem._id)}>Trang bị</Button>
+              </div>
+            ))
+          ) : (
+            <p className="page-status">Kho đồ của bạn trống.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

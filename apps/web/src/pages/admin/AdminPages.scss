@@ -1,0 +1,65 @@
+/* File: src/pages/admin/AdminPages.scss (Mới) */
+@use 'src/styles/index' as *;
+
+.admin-page {
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 30px;
+  }
+}
+
+.admin-table-container {
+  background-color: $background-component;
+  border-radius: $border-radius-lg;
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid $surface-color;
+    }
+
+    thead th {
+      background-color: $surface-color;
+      font-weight: 600;
+      color: $text-secondary;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    tbody tr:hover {
+      background-color: lighten($background-component, 3%);
+    }
+    
+    .role-badge, .status-badge {
+      padding: 4px 8px;
+      border-radius: $border-radius-md;
+      font-size: 12px;
+      font-weight: 600;
+      
+      &.user, &.active { background-color: rgba($success-color, 0.2); color: $success-color; }
+      &.moderator { background-color: rgba($primary-accent, 0.2); color: $primary-accent; }
+      &.admin { background-color: rgba($error-color, 0.2); color: $error-color; }
+      &.suspended { background-color: rgba(orange, 0.2); color: orange; }
+      &.banned { background-color: rgba($error-color, 0.4); color: $error-color; }
+    }
+    
+    .actions-cell button {
+      background: none;
+      border: 1px solid $surface-color;
+      color: $text-secondary;
+      padding: 5px 10px;
+      border-radius: $border-radius-sm;
+      margin-right: 5px;
+      &:hover {
+        background-color: $surface-color;
+        color: $text-light;
+      }
+    }
+  }
+}

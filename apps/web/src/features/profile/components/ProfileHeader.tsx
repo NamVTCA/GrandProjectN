@@ -1,55 +1,65 @@
+// File: src/features/profile/components/ProfileHeader.tsx (Không đổi)
 import React from 'react';
+import type { UserProfile } from '../types/UserProfile';
+import { useAuth } from '../../auth/AuthContext';
 import Button from '../../../components/common/Button';
 import './ProfileHeader.scss';
-import { useAuth } from '../../../features/auth/AuthContext';
-import api from '../../../services/api';
-import { useToast } from '../../../components/common/Toast/ToastContext';
 
-// Định nghĩa đầy đủ interface UserProfile
-export interface UserProfile {
-  _id: string;
-  username: string;
-  avatar: string;
-  coverImage: string;
-  bio: string;
-  followers: string[];
-  following: string[];
+interface ProfileHeaderProps {
+  userProfile: UserProfile;
+  isFollowing: boolean;
+  onFollowToggle: () => void;
 }
 
-interface ProfileHeaderProps { userProfile: UserProfile; }
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, isFollowing, onFollowToggle }) => {
+  const { user } = useAuth();
+  const isMyProfile = user?._id === userProfile._id;
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile }) => {
-  const { user: currentUser, fetchUser } = useAuth();
-  const { addToast } = useToast();
-
-  // Kiểm tra xem user hiện tại có đang follow profile này không
-  const isFollowing = currentUser?.following.includes(userProfile._id);
-
-  const handleFollowToggle = async () => {
-    const method = isFollowing ? 'delete' : 'post';
-
-    try {
-      await api[method](`/users/${userProfile._id}/follow`);
-      addToast(`${isFollowing ? 'Bỏ theo dõi' : 'Theo dõi'} thành công!`, 'success');
-      fetchUser(); // Cập nhật lại thông tin user để nút bấm thay đổi
-      // (Nâng cao) Cần một cách để cập nhật lại profile đang xem
-    } catch (error) {
-      addToast('Đã có lỗi xảy ra', 'error');
-    }
-  };
+  const handleEditProfile = () => console.log('Edit Profile');
 
   return (
     <header className="profile-header">
-      {/* ... (Phần hiển thị thông tin giữ nguyên) */}
-      <div className="profile-actions">
-        {currentUser?._id !== userProfile._id && (
-          <Button onClick={handleFollowToggle}>
-            {isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
-          </Button>
-        )}
+      <div className="cover-image-container">
+        <img 
+          src={userProfile.coverImage || 'https://images.pexels.com/photos/1631677/pexels-photo-1631677.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'} 
+          alt="Cover" 
+          className="cover-image" 
+        />
       </div>
+      <div className="profile-info-bar">
+        <div className="avatar-section">
+          <img 
+            src={userProfile.avatar || 'https://via.placeholder.com/150'} 
+            alt={userProfile.username} 
+            className="profile-avatar" 
+          />
+          <div className="name-section">
+            <h2>{userProfile.name || userProfile.username}</h2>
+            <p>@{userProfile.username}</p>
+          </div>
+        </div>
+        <div className="stats-section">
+          <div className="stat">
+            <strong>{userProfile.following.length}</strong>
+            <span>Đang theo dõi</span>
+          </div>
+          <div className="stat">
+            <strong>{userProfile.followers.length}</strong>
+            <span>Người theo dõi</span>
+          </div>
+        </div>
+        <div className="action-section">
+          {isMyProfile ? (
+            <Button onClick={handleEditProfile} variant="secondary">Chỉnh sửa hồ sơ</Button>
+          ) : (
+            <Button onClick={onFollowToggle} variant={isFollowing ? 'secondary' : 'primary'}>
+              {isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
+            </Button>
+          )}
+        </div>
+      </div>
+      {userProfile.bio && <p className="profile-bio">{userProfile.bio}</p>}
     </header>
   );
 };
-
 export default ProfileHeader;

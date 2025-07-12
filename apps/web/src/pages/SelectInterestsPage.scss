@@ -1,7 +1,10 @@
+/* File: src/pages/SelectInterestsPage.scss */
 @use '../styles/index' as *;
 
 .select-interests-page {
-  @include flex-center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
   padding: 20px;
   background: $background-body;
@@ -29,6 +32,7 @@
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: 15px;
 
     &:hover {
       background-color: $surface-color;

@@ -1,19 +1,22 @@
-// src/layouts/MainLayout.tsx
+// File: src/layouts/MainLayout.tsx
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-// import Header from '../components/common/Header'; // Sẽ tạo sau
-// import Sidebar from '../components/common/Sidebar'; // Sẽ tạo sau
+import Sidebar from '../components/layout/Sidebar';
+import Rightbar from '../components/layout/Rightbar';
+import Header from '../components/layout/Header';
+import './MainLayout.scss';
 
 const MainLayout: React.FC = () => {
   return (
     <div className="main-layout">
-      {/* <Sidebar /> */}
+      <Sidebar />
       <div className="content-wrapper">
-        {/* <Header /> */}
+        <Header />
         <main className="main-content">
-          <Outlet /> {/* Đây là nơi nội dung của các trang con sẽ được hiển thị */}
+          <Outlet />
         </main>
       </div>
+      <Rightbar />
     </div>
   );
 };

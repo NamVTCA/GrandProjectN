@@ -1,92 +1,100 @@
-// Biến màu để dễ dàng thay đổi theme
-$primary-text-color: #1a1a1a;
-$secondary-text-color: #657786;
-$border-color: #e1e8ed;
-$placeholder-bg: #f5f8fa;
-$avatar-border-color: #ffffff;
+/* File: src/features/profile/components/ProfileHeader.scss */
+@use '../../../styles/index' as *;
 
 .profile-header {
-  width: 100%;
-  background-color: #fff;
-  border-bottom: 1px solid $border-color;
+  background-color: $background-component;
+  border-radius: $border-radius-lg;
   margin-bottom: 20px;
+  overflow: hidden;
 
   .cover-image-container {
-    position: relative;
-    width: 100%;
-    height: 200px; // Chiều cao cố định cho ảnh bìa
-
+    height: 250px;
+    background-color: $surface-color;
     .cover-image {
       width: 100%;
       height: 100%;
-      object-fit: cover; // Đảm bảo ảnh bìa lấp đầy không bị méo
-    }
-
-    .cover-image-placeholder {
-      width: 100%;
-      height: 100%;
-      background-color: $placeholder-bg;
-      border-bottom: 1px solid $border-color;
+      object-fit: cover;
     }
   }
 
-  .profile-details {
+  .profile-info-bar {
     display: flex;
     align-items: flex-end;
-    padding: 0 20px;
-    // Dịch chuyển phần details lên trên để chồng lên ảnh bìa một chút
-    transform: translateY(-50px); 
-  }
-
-  .avatar-container {
-    margin-right: 20px;
-    
-    .avatar, .avatar-placeholder {
-      width: 134px;
-      height: 134px;
-      border-radius: 50%; // Bo tròn avatar
-      border: 4px solid $avatar-border-color;
-      background-color: $placeholder-bg;
-    }
-
-    .avatar-placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      font-weight: bold;
-      color: $secondary-text-color;
-    }
-  }
-
-  .user-info {
-    h2 {
-      font-size: 24px;
-      font-weight: bold;
-      margin: 0 0 4px 0;
-      color: $primary-text-color;
-    }
-    .username {
-      font-size: 16px;
-      color: $secondary-text-color;
-      margin-bottom: 8px;
-    }
-    .bio {
-      font-size: 16px;
-      color: $primary-text-color;
-    }
-  }
-
-  .stats {
-    display: flex;
-    margin-left: auto; // Đẩy phần stats sang bên phải
-    align-self: center; // Căn giữa theo chiều dọc
+    padding: 0 30px;
+    position: relative;
+    margin-top: -75px; // Kéo avatar lên
     gap: 20px;
-    font-size: 16px;
-    color: $secondary-text-color;
+  }
 
-    strong {
-      color: $primary-text-color;
+  .avatar-section {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    flex-shrink: 0;
+
+    .profile-avatar {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 5px solid $background-component;
+      object-fit: cover;
+    }
+
+    .name-section {
+      margin-bottom: 15px;
+      h2 {
+        font-size: 24px;
+        font-weight: 700;
+      }
+      p {
+        color: $text-secondary;
+      }
+    }
+  }
+
+  .stats-section {
+    display: flex;
+    gap: 30px;
+    margin-left: auto;
+    margin-bottom: 20px;
+    .stat {
+      text-align: center;
+      strong {
+        font-size: 18px;
+        font-weight: 600;
+        display: block;
+      }
+      span {
+        font-size: 14px;
+        color: $text-secondary;
+      }
+    }
+  }
+
+  .action-section {
+    margin-bottom: 20px;
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+    }
+  }
+  
+  .profile-bio {
+    padding: 20px 30px;
+    line-height: 1.6;
+    color: $text-secondary;
+  }
+
+  @media (max-width: 768px) {
+    .profile-info-bar {
+      flex-direction: column;
+      align-items: center;
+      margin-top: -75px;
+      text-align: center;
+    }
+    .stats-section, .action-section {
+      margin-left: 0;
+      margin-bottom: 15px;
     }
   }
 }

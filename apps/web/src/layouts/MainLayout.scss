@@ -1,35 +1,52 @@
-@use '../styles/variables' as *;
+/* File: src/layouts/MainLayout.scss */
+@use '../styles/index' as *;
 
 .main-layout {
   display: flex;
   height: 100vh;
-}
-
-.sidebar { // Giả sử chúng ta có một component Sidebar
-  width: 240px;
-  background-color: $background-light;
-  padding: 20px;
-  border-right: 1px solid $surface-color;
-  // Thêm style cho các link điều hướng ở đây
+  max-width: 1400px; // Giới hạn chiều rộng tối đa cho màn hình lớn
+  margin: 0 auto;
+  background-color: $background-body;
 }
 
 .content-wrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto; // Cho phép cuộn nội dung
-}
+  overflow-y: auto;
+  border-left: 1px solid $surface-color;
+  border-right: 1px solid $surface-color;
 
-.header { // Giả sử có component Header
-   padding: 15px 30px;
-   background-color: $background-light;
-   border-bottom: 1px solid $surface-color;
-   display: flex;
-   justify-content: flex-end;
-   align-items: center;
+  // Thanh cuộn tùy chỉnh
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $surface-color;
+    border-radius: 4px;
+  }
 }
 
 .main-content {
-  padding: 30px;
-  flex: 1;
+  padding: 20px;
+}
+
+// Responsive: Ẩn Rightbar trên màn hình tablet trở xuống
+@media (max-width: 1024px) {
+  .main-layout .rightbar {
+    display: none;
+  }
+}
+
+// Responsive: Ẩn Sidebar trên màn hình mobile
+@media (max-width: 768px) {
+  .main-layout .sidebar {
+    display: none; // Sau này sẽ thay bằng menu hamburger
+  }
+  .main-content {
+    padding: 15px;
+  }
 }

@@ -1,31 +1,32 @@
-import React, { useEffect, useState } from 'react';
+// File: src/pages/ChatPage.tsx (Đã sửa lỗi)
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useSocket } from '../hooks/useSocket';
+import type { ChatRoom, ChatMessage } from '../features/chat/types/Chat';
+import ChatMessageComponent from '../features/chat/components/ChatMessage';
 import { useAuth } from '../features/auth/AuthContext';
-import './ChatPage.scss'; // Import your styles here
-
-// Cập nhật các kiểu dữ liệu để khớp với Backend
-interface Message {
-  _id: string;
-  sender: { _id: string; username: string; avatar: string };
-  content: string;
-  createdAt: string;
-  chatroom: string; // <-- Thêm trường này
-}
-interface ChatRoom {
-  _id: string;
-  name?: string;
-  isGroupChat: boolean; // <-- Thêm trường này
-  members: { user: { _id: string; username: string; avatar: string }, unreadCount?: number }[]; // unreadCount có thể undefined
-}
+import './ChatPage.scss';
 
 const ChatPage: React.FC = () => {
+  const { user } = useAuth();
+  const chatSocket = useSocket('chat');
+
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const chatSocket = useSocket('chat');
-  const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const getRoomDetails = (room: ChatRoom) => {
+    if (room.isGroupChat) {
+      return { name: room.name || 'Nhóm chat', avatar: 'https://via.placeholder.com/48' };
+    }
+    const otherMember = room.members.find(m => m.user._id !== user?._id);
+    return { 
+      name: otherMember?.user.username || 'Người dùng không xác định',
+      avatar: otherMember?.user.avatar || 'https://via.placeholder.com/48'
+    };
+  };
 
   useEffect(() => {
     api.get('/chat/rooms').then(res => setRooms(res.data));
@@ -33,7 +34,7 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     if (!chatSocket) return;
-    const handleNewMessage = (message: Message) => {
+    const handleNewMessage = (message: ChatMessage) => {
       if (message.chatroom === selectedRoom?._id) {
         setMessages(prev => [...prev, message]);
       }
@@ -42,31 +43,26 @@ const ChatPage: React.FC = () => {
     return () => { chatSocket.off('newMessage', handleNewMessage); };
   }, [chatSocket, selectedRoom]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const handleSelectRoom = async (room: ChatRoom) => {
     setSelectedRoom(room);
     const response = await api.get(`/chat/rooms/${room._id}/messages`);
     setMessages(response.data);
-    if (chatSocket) {
-      chatSocket.emit('mark_room_as_read', { chatroomId: room._id });
-    }
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() && selectedRoom && chatSocket) {
-      chatSocket.emit('sendMessage', {
-        chatroomId: selectedRoom._id,
-        content: newMessage,
-      });
-      setNewMessage('');
-    }
+    if (!newMessage.trim() || !chatSocket || !selectedRoom) return;
+    
+    chatSocket.emit('sendMessage', {
+      chatroomId: selectedRoom._id,
+      content: newMessage,
+    });
+    setNewMessage('');
   };
-
-  const getRoomName = (room: ChatRoom) => {
-    if (room.isGroupChat) return room.name;
-    const otherMember = room.members.find(m => m.user._id !== user?._id);
-    return otherMember?.user.username || 'Phòng chat';
-  }
 
   return (
     <div className="chat-page-layout">
@@ -74,15 +70,14 @@ const ChatPage: React.FC = () => {
         <h2>Tin nhắn</h2>
         <div className="room-list">
           {rooms.map(room => {
-            const memberInfo = room.members.find(m => m.user._id === user?._id);
-            const unreadCount = memberInfo?.unreadCount ?? 0;
-
+            const details = getRoomDetails(room);
             return (
-              <div key={room._id} className="room-item" onClick={() => handleSelectRoom(room)}>
-                {getRoomName(room)}
-                {unreadCount > 0 && 
-                  <span className="unread-badge">{unreadCount}</span>
-                }
+              <div key={room._id} className={`room-item ${selectedRoom?._id === room._id ? 'active' : ''}`} onClick={() => handleSelectRoom(room)}>
+                <img src={details.avatar} alt={details.name} className="room-avatar" />
+                <div className="room-info">
+                  <span className="room-name">{details.name}</span>
+                  <p className="last-message">{room.lastMessage?.content}</p>
+                </div>
               </div>
             );
           })}
@@ -91,26 +86,22 @@ const ChatPage: React.FC = () => {
       <div className="main-chat-area">
         {selectedRoom ? (
           <>
-            <h3>{getRoomName(selectedRoom)}</h3>
+            <header className="chat-header">
+              <h3>{getRoomDetails(selectedRoom).name}</h3>
+            </header>
             <div className="messages-container">
-              {messages.map(msg => (
-                <div key={msg._id} className={`message ${msg.sender._id === user?._id ? 'sent' : 'received'}`}>
-                  <p>{msg.content}</p>
-                </div>
-              ))}
+              {messages.map(msg => <ChatMessageComponent key={msg._id} message={msg} />)}
+              <div ref={messagesEndRef} />
             </div>
-            <form onSubmit={handleSendMessage} className="message-input-area">
-              <input 
-                type="text" 
-                placeholder="Nhập tin nhắn..." 
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
+            <form className="message-input-area" onSubmit={handleSendMessage}>
+              <input type="text" placeholder="Nhập tin nhắn..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} />
               <button type="submit">Gửi</button>
             </form>
           </>
         ) : (
-          <div className="no-chat-selected"><p>Chọn một cuộc trò chuyện để bắt đầu</p></div>
+          <div className="no-chat-selected">
+            <p>Chọn một cuộc trò chuyện để bắt đầu</p>
+          </div>
         )}
       </div>
     </div>

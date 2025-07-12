@@ -1,45 +1,53 @@
-@use '../../styles/variables' as *;
+/* File: src/components/layout/Sidebar.scss */
+@use '../../styles/index' as *;
 
 .sidebar {
-  width: 240px;
-  background-color: $background-component;
-  border-right: 1px solid $surface-color;
-  padding: 20px;
+  width: 250px;
+  padding: 25px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
 
-  .logo {
-    margin-bottom: 40px;
-    h1 {
-      font-size: 24px;
-      color: $primary-accent;
-      text-align: center;
-      font-weight: 700;
-    }
-  }
+  .logo { /* ... */ }
+  .main-nav ul { /* ... */ }
 
-  .main-nav ul {
-    list-style: none;
-    li a {
+  .sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 20px;
+    border-top: 1px solid $surface-color;
+
+    .user-profile-link {
       display: flex;
       align-items: center;
-      gap: 15px;
-      padding: 12px 15px;
-      margin-bottom: 5px;
-      border-radius: $border-radius-md;
-      color: $text-secondary;
-      font-weight: 500;
-      transition: all 0.2s ease-in-out;
-
-      &:hover {
-        background-color: $surface-color;
+      gap: 10px;
+      flex-grow: 1;
+      text-decoration: none;
+      
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      .username {
+        font-weight: 600;
         color: $text-light;
       }
+    }
 
-      &.active {
-        background-color: $primary-main;
-        color: #fff;
-        box-shadow: 0 4px 10px rgba($primary-main, 0.3);
+    .logout-button {
+      background: none;
+      border: none;
+      color: $text-secondary;
+      font-size: 20px;
+      padding: 8px;
+      border-radius: $border-radius-md;
+      transition: all 0.2s;
+      &:hover {
+        background-color: $surface-color;
+        color: $error-color;
       }
     }
   }

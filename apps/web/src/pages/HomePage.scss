@@ -1,0 +1,14 @@
+/* File: src/pages/HomePage.scss */
+@use '../styles/index' as *;
+
+.home-page {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.page-status {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 16px;
+    color: $text-secondary;
+}
