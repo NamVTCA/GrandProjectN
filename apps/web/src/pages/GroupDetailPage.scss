@@ -1,0 +1,22 @@
+/* File: src/pages/GroupDetailPage.scss (Mới) */
+@use 'src/styles/index' as *;
+
+.group-detail-page {
+  max-width: 900px;
+  margin: 0 auto;
+
+  .group-content {
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .placeholder-text {
+      color: $text-secondary;
+      text-align: center;
+      padding: 40px;
+      background-color: $background-component;
+      border-radius: $border-radius-md;
+    }
+  }
+}

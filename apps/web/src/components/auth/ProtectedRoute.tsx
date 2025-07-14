@@ -3,23 +3,24 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 
 const ProtectedRoute: React.FC = () => {
-  const { token, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Đang tải...</div>; // Hoặc một component Spinner đẹp hơn
+    // Hiển thị một màn hình chờ đơn giản trong khi xác thực
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Đang tải...</div>;
   }
 
-  if (!token) {
-    // Nếu không có token, chuyển hướng về trang đăng nhập
+  if (!isAuthenticated) {
+    // Nếu chưa đăng nhập, chuyển hướng về trang login
     return <Navigate to="/login" replace />;
   }
 
+  // Nếu đã đăng nhập nhưng chưa chọn sở thích, chuyển hướng
   if (!user?.hasSelectedInterests) {
-    // Nếu đã đăng nhập nhưng chưa chọn sở thích, chuyển hướng
     return <Navigate to="/select-interests" replace />;
   }
 
-  // Nếu mọi thứ ổn, hiển thị nội dung của route được yêu cầu
+  // Nếu mọi thứ ổn, cho phép truy cập vào các trang con
   return <Outlet />;
 };
 

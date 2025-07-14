@@ -1,4 +1,5 @@
-@use '../../../styles/index' as *;
+/* File: src/components/common/Toast/Toast.scss (Mới) */
+@use 'src/styles/index' as *;
 
 .toast-container {
   position: fixed;
@@ -19,6 +20,7 @@
   align-items: center;
   min-width: 250px;
   box-shadow: $card-shadow;
+  animation: slideIn 0.3s ease-out forwards;
 
   button {
     background: none;
@@ -41,7 +43,17 @@
     background-color: $error-color;
   }
   &.toast-info {
-    // Sửa lỗi: dùng biến đã được định nghĩa
     background-color: $primary-main;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }

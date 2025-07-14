@@ -1,10 +1,14 @@
+
+// File: src/components/common/Toast/ToastContainer.tsx (Mới)
 import React from 'react';
-import { useToast } from './ToastContext';
 import './Toast.scss';
 
-const ToastContainer: React.FC = () => {
-  const { toasts, removeToast } = useToast();
+interface ToastContainerProps {
+    toasts: { id: number; message: string; type: string }[];
+    removeToast: (id: number) => void;
+}
 
+const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) => {
   return (
     <div className="toast-container">
       {toasts.map(toast => (

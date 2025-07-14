@@ -1,0 +1,40 @@
+/* File: src/features/groups/components/GroupHeader.scss (Mới) */
+@use 'src/styles/index' as *;
+
+.group-detail-header {
+  background-color: $background-component;
+  border-radius: $border-radius-lg;
+  margin-bottom: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  .cover-image {
+    width: 120px;
+    height: 120px;
+    border-radius: $border-radius-md;
+    background: linear-gradient(45deg, $primary-dark, $primary-main);
+    flex-shrink: 0;
+  }
+
+  .group-info {
+    flex-grow: 1;
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    p {
+      color: $text-secondary;
+    }
+  }
+
+  .group-actions {
+    button, a button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+}

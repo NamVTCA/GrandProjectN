@@ -35,7 +35,12 @@ const UserManagementPage: React.FC = () => {
 
   // Logic cho các hành động (ban, suspend...) sẽ được thêm sau
   const handleAction = (userId: string, action: string) => {
-    console.log(`Thực hiện ${action} cho user ${userId}`);
+    // Ví dụ: Mở modal xác nhận
+    const reason = prompt(`Nhập lý do cho hành động "${action}" đối với người dùng ${userId}:`);
+    if (reason) {
+      console.log(`Thực hiện ${action} với lý do: ${reason}`);
+      // Gọi API tương ứng ở đây
+    }
   };
 
   if (loading) return <p>Đang tải danh sách người dùng...</p>;

@@ -1,5 +1,7 @@
+// File: src/components/common/Toast/ToastContext.tsx (Mới)
 import React, { createContext, useState, useContext, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import ToastContainer from './ToastContainer';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -11,8 +13,6 @@ interface ToastMessage {
 
 interface ToastContextType {
   addToast: (message: string, type: ToastType) => void;
-  removeToast: (id: number) => void;
-  toasts: ToastMessage[];
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -31,8 +31,9 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={{ addToast }}>
       {children}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </ToastContext.Provider>
   );
 };

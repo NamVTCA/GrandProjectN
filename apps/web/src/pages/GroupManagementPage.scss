@@ -1,0 +1,81 @@
+/* File: src/pages/GroupManagementPage.scss (Mới) */
+@use 'src/styles/index' as *;
+
+.group-management-page {
+  max-width: 900px;
+  margin: 0 auto;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+}
+
+.management-tabs {
+  display: flex;
+  border-bottom: 1px solid $surface-color;
+  margin-bottom: 30px;
+
+  .tab-button {
+    padding: 15px 25px;
+    background: none;
+    border: none;
+    color: $text-secondary;
+    font-size: 16px;
+    font-weight: 600;
+    position: relative;
+    cursor: pointer;
+
+    &.active {
+      color: $primary-accent;
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: $primary-accent;
+      }
+    }
+  }
+}
+
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.request-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: $background-component;
+  border-radius: $border-radius-md;
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+    }
+    strong {
+      font-weight: 600;
+    }
+  }
+
+  .request-actions {
+    display: flex;
+    gap: 10px;
+    button {
+      font-size: 14px;
+      padding: 8px 16px;
+    }
+  }
+}

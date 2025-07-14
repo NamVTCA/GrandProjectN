@@ -1,30 +1,47 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
+import { ToastProvider } from './components/common/Toast/ToastContext';
 
-// Import all real layouts and pages
+// --- Import tất cả các Layouts và Pages thật ---
+// Layouts
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
-import HomePage from './pages/HomePage';
+import AdminLayout from './layouts/AdminLayout';
+
+// Auth & Onboarding Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import SelectInterestsPage from './pages/SelectInterestsPage';
+
+// Core Feature Pages
+import HomePage from './pages/HomePage';
+import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
+import GroupDetailPage from './pages/GroupDetailPage';
+import GroupManagementPage from './pages/GroupManagementPage';
 import ChatPage from './pages/ChatPage';
 import ShopPage from './pages/ShopPage';
 import InventoryPage from './pages/InventoryPage';
-import SelectInterestsPage from './pages/SelectInterestsPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
+
+// Admin Pages
+import UserManagementPage from './pages/admin/UserManagementPage';
+import ContentManagementPage from './pages/admin/ContentManagementPage';
+const AdminDashboardPage = () => <div>Bảng điều khiển Admin (sẽ được xây dựng)</div>; // Placeholder
+
+// Route Guards
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminRoute from './components/auth/AdminRoute';
 
 /**
- * Component to handle routing logic based on authentication status.
+ * Component xử lý logic định tuyến dựa trên trạng thái xác thực.
  */
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Show a loading indicator while checking for the token
+  // Hiển thị màn hình chờ trong khi kiểm tra token
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#fff', backgroundColor: '#1a1d21' }}>
@@ -35,46 +52,59 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* Authenticated Routes */}
+      {/* === ADMIN ROUTES === */}
+      <Route element={<AdminRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
+          <Route path="/admin/content" element={<ContentManagementPage />} />
+        </Route>
+      </Route>
+
+      {/* === AUTHENTICATED USER ROUTES === */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
           <Route path="/groups" element={<GroupsPage />} />
+          <Route path="/groups/:id" element={<GroupDetailPage />} />
+          <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
         </Route>
-        {/* Routes that are authenticated but don't need the main layout */}
+        {/* Route không cần layout chính nhưng vẫn cần xác thực */}
         <Route path="/select-interests" element={<SelectInterestsPage />} />
       </Route>
 
-      {/* Public Routes */}
+      {/* === PUBLIC ROUTES === */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       </Route>
-
-      {/* Standalone Public Routes */}
+      
+      {/* Route công khai không cần layout */}
       <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-      {/* Fallback Route */}
+      {/* === FALLBACK ROUTE === */}
       <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
     </Routes>
   );
 };
 
 /**
- * The root component of the application.
+ * Component gốc của ứng dụng.
  */
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }
