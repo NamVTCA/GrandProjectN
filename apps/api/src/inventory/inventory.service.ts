@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException,UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserInventory, UserInventoryDocument } from './schemas/user-inventory.schema';
@@ -21,32 +21,48 @@ export class InventoryService {
     return this.inventoryModel.find({ user: userId }).populate('item').exec();
   }
 
-async equipItem(user: UserDocument | null, inventoryId: string): Promise<UserDocument> {
-  if (!user) {
-    throw new NotFoundException('Người dùng không tồn tại.');
+// --- NÂNG CẤP LOGIC TRANG BỊ ---
+  async equipItem(user: UserDocument, inventoryId: string): Promise<UserDocument> {
+    const inventoryEntry = await this.inventoryModel.findById(inventoryId).populate('item');
+    if (!inventoryEntry || inventoryEntry.user.toString() !== user._id.toString()) {
+      throw new NotFoundException('Không tìm thấy vật phẩm trong kho đồ của bạn.');
+    }
+
+    const itemToEquip = inventoryEntry.item as ShopItemDocument;
+    let fieldToUpdate: string;
+
+    // Xác định trường cần cập nhật trong UserSchema dựa trên loại vật phẩm
+    switch (itemToEquip.type) {
+      case ItemType.AVATAR_FRAME:
+        fieldToUpdate = 'equippedAvatarFrame';
+        break;
+      case ItemType.PROFILE_BACKGROUND:
+        fieldToUpdate = 'equippedProfileBackground';
+        break;
+      case ItemType.PROFILE_EFFECT:
+        fieldToUpdate = 'equippedProfileEffect';
+        break;
+      case ItemType.AVATAR_DECORATION:
+        fieldToUpdate = 'equippedAvatarDecoration';
+        break;
+      case ItemType.NAMEPLATE_THEME:
+        fieldToUpdate = 'equippedNameplateTheme';
+        break;
+      default:
+        throw new UnauthorizedException('Loại vật phẩm này không thể trang bị.');
+    }
+
+// Cập nhật User document, $set sẽ ghi đè lên giá trị cũ
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      user._id,
+      { [fieldToUpdate]: itemToEquip._id },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      throw new NotFoundException('Không tìm thấy người dùng.');
+    }
+
+    return updatedUser;
   }
-
-  const inventoryItem = await this.inventoryModel.findById(inventoryId).populate('item');
-
-  if (!inventoryItem || inventoryItem.user.toString() !== user._id.toString()) {
-    throw new NotFoundException('Không tìm thấy vật phẩm trong kho đồ của bạn.');
-  }
-
-  const item = inventoryItem.item as ShopItemDocument;
-  let updateQuery = {};
-
-  if (item.type === ItemType.AVATAR_FRAME) {
-    updateQuery = { equippedAvatarFrame: item._id };
-  } else if (item.type === ItemType.PROFILE_BACKGROUND) {
-    updateQuery = { equippedProfileBackground: item._id };
-  } else {
-    throw new BadRequestException('Không thể trang bị loại vật phẩm này.');
-  }
-
-  const updatedUser = await this.userModel.findByIdAndUpdate(user._id, { $set: updateQuery }, { new: true }).exec();
-  if (!updatedUser) {
-    throw new NotFoundException('Không tìm thấy người dùng sau khi cập nhật.');
-  }
-  return updatedUser;
-}
 }

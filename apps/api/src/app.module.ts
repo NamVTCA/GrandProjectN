@@ -29,6 +29,7 @@ import { LivestreamModule } from './livestream/livestream.module';
 import { PresenceModule } from './presence/presence.module';
 import { SettingsModule } from './settings/settings.module'; // <-- IMPORT MODULE MỚI
 import { CoinPackagesModule } from './coin-packages/coin-packages.module'; // <-- IMPORT MODULE MỚI
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { CoinPackagesModule } from './coin-packages/coin-packages.module'; // <-
     PresenceModule,
     SettingsModule, // <-- THÊM VÀO DANH SÁCH IMPORTS 
     CoinPackagesModule, // <-- THÊM VÀO DANH SÁCH IMPORTS
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -19,6 +19,8 @@ import { ModerationService } from '../moderation/moderation.service';
 import { ReactToPostDto } from './dto/react-to-post.dto'; // <-- IMPORT DTO MỚI
 import { ReactionType } from './schemas/reaction.schema'; // <-- IMPORT ENUM MỚI
 import { RepostDto } from './dto/repost.dto'; // <-- IMPORT DTO MỚI
+import { UpdatePostDto } from './dto/update-post.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @Injectable()
 export class PostsService {
@@ -242,5 +244,34 @@ export class PostsService {
       .sort({ createdAt: -1 })
       .populate('author', 'username avatar')
       .exec();
+  }
+
+   // --- CÁC HÀM MỚI ---
+  async updatePost(postId: string, user: UserDocument, updatePostDto: UpdatePostDto): Promise<Post> {
+    const post = await this.postModel.findById(postId);
+    if (!post) {
+      throw new NotFoundException('Không tìm thấy bài đăng.');
+    }
+    if (post.author.toString() !== user._id.toString()) {
+      throw new UnauthorizedException('Bạn không có quyền chỉnh sửa bài đăng này.');
+    }
+
+    post.content = updatePostDto.content;
+    // (Tùy chọn) Cập nhật trạng thái kiểm duyệt nếu cần
+    // post.moderationStatus = ModerationStatus.PENDING;
+    return post.save();
+  }
+
+  async updateComment(commentId: string, user: UserDocument, updateCommentDto: UpdateCommentDto): Promise<Comment> {
+    const comment = await this.commentModel.findById(commentId);
+    if (!comment) {
+      throw new NotFoundException('Không tìm thấy bình luận.');
+    }
+    if (comment.author.toString() !== user._id.toString()) {
+      throw new UnauthorizedException('Bạn không có quyền chỉnh sửa bình luận này.');
+    }
+
+    comment.content = updateCommentDto.content;
+    return comment.save();
   }
 }

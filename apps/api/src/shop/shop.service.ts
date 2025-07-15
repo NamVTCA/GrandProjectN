@@ -5,6 +5,8 @@ import { ShopItem, ShopItemDocument } from './schemas/shop-item.schema';
 import { UserDocument } from '../auth/schemas/user.schema';
 import { PaymentsService } from '../payments/payments.service';
 import { InventoryService } from '../inventory/inventory.service'; // Import InventoryService
+import { CreateShopItemDto } from './dto/create-shop-item.dto'; // <-- Import
+import { UpdateShopItemDto } from './dto/update-shop-item.dto'; // <-- Import
 
 @Injectable()
 export class ShopService {
@@ -39,5 +41,28 @@ export class ShopService {
     return {
       message: `Mua thành công vật phẩm "${item.name}"!`,
     };
+  }
+  // --- CÁC HÀM MỚI CHO ADMIN ---
+
+  async createItem(createShopItemDto: CreateShopItemDto): Promise<ShopItem> {
+    const newItem = new this.shopItemModel(createShopItemDto);
+    return newItem.save();
+  }
+
+  async updateItem(id: string, updateShopItemDto: UpdateShopItemDto): Promise<ShopItem> {
+    const updatedItem = await this.shopItemModel.findByIdAndUpdate(id, updateShopItemDto, { new: true });
+    if (!updatedItem) {
+      throw new NotFoundException('Không tìm thấy vật phẩm.');
+    }
+    return updatedItem;
+  }
+
+  async deleteItem(id: string): Promise<{ message: string }> {
+    const result = await this.shopItemModel.findByIdAndDelete(id);
+    if (!result) {
+      throw new NotFoundException('Không tìm thấy vật phẩm.');
+    }
+    // Cân nhắc: Xóa vật phẩm này khỏi kho đồ của tất cả người dùng? (logic phức tạp hơn)
+    return { message: 'Đã xóa vật phẩm thành công.' };
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards,Delete } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -27,5 +27,21 @@ export class FriendsController {
   @Get('me')
   getMyFriends(@GetUser() user: UserDocument) {
       return this.friendsService.getMyFriends(user);
+  }
+
+    // --- CÁC ENDPOINT MỚI ---
+  @Delete(':friendId')
+  removeFriend(@GetUser() user: UserDocument, @Param('friendId') friendId: string) {
+    return this.friendsService.removeFriend(user.id, friendId);
+  }
+
+  @Post('block/:userId')
+  blockUser(@GetUser() user: UserDocument, @Param('userId') userIdToBlock: string) {
+    return this.friendsService.blockUser(user.id, userIdToBlock);
+  }
+
+  @Delete('block/:userId')
+  unblockUser(@GetUser() user: UserDocument, @Param('userId') userIdToUnblock: string) {
+    return this.friendsService.unblockUser(user.id, userIdToUnblock);
   }
 }

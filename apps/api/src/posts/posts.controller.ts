@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Delete,
+  Patch,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -17,6 +18,8 @@ import { UserDocument } from '../auth/schemas/user.schema';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { ReactToPostDto } from './dto/react-to-post.dto'; // <-- IMPORT DTO MỚI
 import { RepostDto } from './dto/repost.dto'; // <-- IMPORT DTO MỚI
+import { UpdatePostDto } from './dto/update-post.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @Controller('posts')
 export class PostsController {
@@ -86,5 +89,26 @@ export class PostsController {
   @Get('user/:authorId')
   findPostsByAuthor(@Param('authorId') authorId: string) {
     return this.postsService.findPostsByAuthor(authorId);
+  }
+
+  // --- CÁC ENDPOINT MỚI ---
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  updatePost(
+    @Param('id') postId: string,
+    @GetUser() user: UserDocument,
+    @Body() updatePostDto: UpdatePostDto,
+  ) {
+    return this.postsService.updatePost(postId, user, updatePostDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('comments/:id')
+  updateComment(
+    @Param('id') commentId: string,
+    @GetUser() user: UserDocument,
+    @Body() updateCommentDto: UpdateCommentDto,
+  ) {
+    return this.postsService.updateComment(commentId, user, updateCommentDto);
   }
 }

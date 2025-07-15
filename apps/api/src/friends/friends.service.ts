@@ -45,4 +45,52 @@ export class FriendsService {
       const userData = await this.userModel.findById(user._id).populate('friends', 'username avatar');
       return userData ? userData.friends : [];
   }
+
+    // --- CÁC HÀM MỚI ---
+  async removeFriend(userId: string, friendId: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+    const friend = await this.userModel.findById(friendId);
+
+    if (!user || !friend) {
+      throw new NotFoundException('Không tìm thấy người dùng.');
+    }
+
+    // Xóa bạn khỏi danh sách của cả hai
+    await this.userModel.findByIdAndUpdate(userId, { $pull: { friends: friendId } });
+    await this.userModel.findByIdAndUpdate(friendId, { $pull: { friends: userId } });
+    
+    return user;
+  }
+
+  async blockUser(userId: string, userToBlockId: string): Promise<User> {
+    if (userId === userToBlockId) {
+      throw new BadRequestException('Bạn không thể tự chặn chính mình.');
+    }
+    // Xóa bạn bè trước khi chặn (nếu có)
+    await this.removeFriend(userId, userToBlockId);
+
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $addToSet: { blockedUsers: userToBlockId } }, // $addToSet để tránh trùng lặp
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng.');
+    }
+    return user;
+  }
+
+  async unblockUser(userId: string, userToUnblockId: string): Promise<User> {
+     const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $pull: { blockedUsers: userToUnblockId } },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng.');
+    }
+    return user;
+  }
 }

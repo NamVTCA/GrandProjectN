@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ShopItem, ShopItemSchema } from './schemas/shop-item.schema';
 import { AuthModule } from '../auth/auth.module';
 import { InventoryModule } from '../inventory/inventory.module'; // <-- Thêm InventoryModule
+import { AdminShopController } from './admin-shop.controller';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { InventoryModule } from '../inventory/inventory.module'; // <-- Thêm In
     AuthModule,
     InventoryModule, // <-- Thêm vào đây
   ],
-  controllers: [ShopController],
+  controllers: [ShopController,AdminShopController],
   providers: [ShopService],
 })
 export class ShopModule {}

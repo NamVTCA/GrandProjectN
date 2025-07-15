@@ -27,7 +27,6 @@ export enum AccountStatus {
 }
 
 
-
 export type UserDocument = User & Document & { _id: Types.ObjectId };
 
 @Schema({ _id: false })
@@ -62,6 +61,9 @@ export class GameStatus {
 
 @Schema({ timestamps: true })
 export class User {
+
+  @Prop({ enum: GlobalRole, default: GlobalRole.USER })
+  globalRole: GlobalRole;
 
   @Prop({ enum: AccountStatus, default: AccountStatus.ACTIVE })
   accountStatus: AccountStatus;
@@ -107,18 +109,30 @@ export class User {
 
   @Prop({ enum: AccountType, default: AccountType.FREE })
   accountType: AccountType;
+
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ShopItem',
     required: false,
   })
   equippedAvatarFrame?: ShopItem;
+
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ShopItem',
     required: false,
   })
   equippedProfileBackground?: ShopItem;
+
+    // --- BỔ SUNG CÁC Ô TRANG BỊ MỚI ---
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: false })
+  equippedProfileEffect?: ShopItem;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: false })
+  equippedAvatarDecoration?: ShopItem;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: false })
+  equippedNameplateTheme?: ShopItem;
 
   @Prop({ type: GameStatus, required: false })
   currentGame?: GameStatus;
@@ -134,6 +148,9 @@ export class User {
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
   friends: User[]; // Danh sách bạn bè
+
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
+  blockedUsers: User[];
 
   @Prop({ default: false })
   hasSelectedInterests: boolean;

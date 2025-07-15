@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post,Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -23,5 +23,9 @@ export class GroupsController {
   @Get('suggestions')
   getSuggestions(@GetUser() user: UserDocument) {
       return this.groupsService.suggestGroups(user);
+  }
+    @Delete(':id')
+  deleteGroup(@Param('id') groupId: string, @GetUser() user: UserDocument) {
+    return this.groupsService.deleteGroup(groupId, user);
   }
 }
