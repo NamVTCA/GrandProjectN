@@ -1,5 +1,6 @@
-/* File: src/features/feed/components/PostCard.scss */
 @use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
+
 
 .post-card {
   background-color: $background-component;

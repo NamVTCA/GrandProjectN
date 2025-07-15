@@ -1,4 +1,3 @@
-// Mixin để căn giữa bằng flexbox
 @mixin flex-center($direction: row) {
   display: flex;
   justify-content: center;

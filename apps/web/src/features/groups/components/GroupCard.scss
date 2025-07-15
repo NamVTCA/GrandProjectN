@@ -1,5 +1,5 @@
-/* File: src/features/groups/components/GroupCard.scss */
 @use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .group-card {
   background-color: $background-component;

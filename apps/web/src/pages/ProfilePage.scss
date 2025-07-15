@@ -1,5 +1,6 @@
-/* File: src/pages/ProfilePage.scss */
 @use '../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
+
 
 .profile-page {
   max-width: 900px;

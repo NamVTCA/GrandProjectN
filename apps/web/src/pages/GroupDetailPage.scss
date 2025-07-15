@@ -1,5 +1,6 @@
-/* File: src/pages/GroupDetailPage.scss (Mới) */
 @use 'src/styles/index' as *;
+@import "../../../styles/_variables.scss"; 
+
 
 .group-detail-page {
   max-width: 900px;

@@ -1,5 +1,5 @@
-/* File: src/pages/InventoryPage.scss (Mới) */
 @use '../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .inventory-page {
   h1 { /* ... style tương tự ShopPage ... */ }
