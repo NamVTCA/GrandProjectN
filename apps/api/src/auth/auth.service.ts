@@ -94,16 +94,29 @@ export class AuthService {
   }
 
   // --- Đăng nhập ---
-  async login(loginUserDto: LoginUserDto): Promise<{ accessToken: string }> {
+  async login(
+    loginUserDto: LoginUserDto,
+  ): Promise<{ accessToken: string }> {
     const { email, password } = loginUserDto;
-    const user = await this.userModel.findOne({ email });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const payload = { sub: user._id, username: user.username };
-      const accessToken = this.jwtService.sign(payload);
-      return { accessToken };
+    // SỬA LỖI: Thêm .select('+password') để lấy cả trường password đã bị ẩn
+    const user = await this.userModel.findOne({ email }).select('+password');
+
+    if (!user) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác.');
     }
-    throw new UnauthorizedException('Email hoặc mật khẩu không chính xác.');
+
+    // Bây giờ user.password đã có giá trị
+    const isPasswordMatched = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordMatched) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác.');
+    }
+
+    const payload = { sub: user._id, username: user.username };
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken };
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
