@@ -1,5 +1,6 @@
-/* File: src/features/chat/components/ChatMessage.scss */
 @use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
+
 
 .chat-message-wrapper {
   display: flex;

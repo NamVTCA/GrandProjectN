@@ -1,5 +1,5 @@
-/* File: src/features/profile/components/UserPostList.scss (Cập nhật) */
 @use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .user-post-list {
   display: grid;

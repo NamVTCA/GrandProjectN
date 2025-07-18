@@ -1,5 +1,5 @@
-/* File: src/pages/ChatPage.scss */
 @use '../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .chat-page-layout {
   display: flex;

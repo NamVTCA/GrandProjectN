@@ -1,5 +1,5 @@
-/* File: src/components/common/Toast/Toast.scss (Mới) */
 @use 'src/styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .toast-container {
   position: fixed;

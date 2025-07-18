@@ -1,6 +1,21 @@
-/* File: src/layouts/MainLayout.scss */
 @use '../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
+@media (max-width: 1024px) {
+  .main-layout .rightbar {
+    display: none;
+  }
+}
+
+// Responsive: Ẩn Sidebar trên màn hình mobile
+@media (max-width: 768px) {
+  .main-layout .sidebar {
+    display: none; // Sau này sẽ thay bằng menu hamburger
+  }
+  .main-content {
+    padding: 15px;
+  }
+}
 .main-layout {
   display: flex;
   height: 100vh;
@@ -34,19 +49,4 @@
   padding: 20px;
 }
 
-// Responsive: Ẩn Rightbar trên màn hình tablet trở xuống
-@media (max-width: 1024px) {
-  .main-layout .rightbar {
-    display: none;
-  }
-}
 
-// Responsive: Ẩn Sidebar trên màn hình mobile
-@media (max-width: 768px) {
-  .main-layout .sidebar {
-    display: none; // Sau này sẽ thay bằng menu hamburger
-  }
-  .main-content {
-    padding: 15px;
-  }
-}

@@ -1,7 +1,20 @@
-/* File: src/features/profile/components/ProfileHeader.scss */
 @use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
+
 
 .profile-header {
+  @media (max-width: 768px) {
+    .profile-info-bar {
+      flex-direction: column;
+      align-items: center;
+      margin-top: -75px;
+      text-align: center;
+    }
+    .stats-section, .action-section {
+      margin-left: 0;
+      margin-bottom: 15px;
+    }
+  }
   background-color: $background-component;
   border-radius: $border-radius-lg;
   margin-bottom: 20px;
@@ -85,16 +98,5 @@
     color: $text-secondary;
   }
 
-  @media (max-width: 768px) {
-    .profile-info-bar {
-      flex-direction: column;
-      align-items: center;
-      margin-top: -75px;
-      text-align: center;
-    }
-    .stats-section, .action-section {
-      margin-left: 0;
-      margin-bottom: 15px;
-    }
-  }
+ 
 }

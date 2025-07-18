@@ -1,5 +1,6 @@
-/* File: src/features/shop/components/ShopItemCard.scss (Mới) */
 @use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
+
 
 .shop-item-card {
   background-color: $background-component;

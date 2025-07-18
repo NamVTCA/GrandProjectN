@@ -1,6 +1,6 @@
-/* File: src/features/feed/components/CreatePost.scss */
-@use '../../../styles/index' as *;
 
+@use '../../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 .create-post-card {
   background-color: $background-component;
   border-radius: $border-radius-lg;

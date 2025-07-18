@@ -1,5 +1,5 @@
-/* File: src/components/layout/Sidebar.scss */
 @use '../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .sidebar {
   width: 250px;

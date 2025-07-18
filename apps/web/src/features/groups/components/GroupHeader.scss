@@ -1,5 +1,5 @@
-/* File: src/features/groups/components/GroupHeader.scss (Mới) */
 @use 'src/styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .group-detail-header {
   background-color: $background-component;

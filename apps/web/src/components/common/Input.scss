@@ -1,5 +1,5 @@
-/* File: src/components/common/Input.scss */
 @use '../../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .custom-input {
   width: 100%;

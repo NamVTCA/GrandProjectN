@@ -1,5 +1,5 @@
-/* File: src/pages/HomePage.scss */
 @use '../styles/index' as *;
+@import "../../../styles/_variables.scss"; 
 
 .home-page {
   max-width: 700px;
