@@ -1,8 +1,13 @@
+// Dòng @use này PHẢI là câu lệnh thực thi đầu tiên
+@use 'index' as *;
 
-@use 'styles/index' as *;
-@use 'variables' as *;
-
-@use 'mixins' as *;
-
+// Dòng @import font phải nằm SAU TẤT CẢ các lệnh @use
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+// Các style toàn cục cho body
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: $background-body;
+  color: $text-light;
+  overflow-x: hidden;
+}

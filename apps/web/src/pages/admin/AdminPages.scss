@@ -1,5 +1,6 @@
-@use 'src/styles/index' as *;
-@import "../../../styles/_variables.scss"; 
+// @use 'src/styles/index' as *;
+@use "sass:color";
+
 
 .admin-page {
   h1 {
@@ -33,7 +34,7 @@
     }
 
     tbody tr:hover {
-      background-color: lighten($background-component, 3%);
+      background-color: color.adjust($background-component, $lightness: 3%);
     }
     
     .role-badge, .status-badge {

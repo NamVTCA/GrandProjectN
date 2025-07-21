@@ -1,4 +1,8 @@
-// styles/_index.scss
+// DÒNG NÀY RẤT QUAN TRỌNG
+// Chuyển tiếp module sass:color để dùng các hàm như color.adjust()
+@forward 'sass:color';
+
+// Chuyển tiếp các file của bạn như cũ
 @forward 'variables';
 @forward 'mixins';
 @forward 'reset';

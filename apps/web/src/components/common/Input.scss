@@ -1,5 +1,7 @@
-@use '../../styles/index' as *;
-@import "../../../styles/_variables.scss"; 
+// // 1. Khai báo CẢ HAI module cần thiết
+@use 'sass:color';
+// @use '../../styles/index' as *;
+
 
 .custom-input {
   width: 100%;

@@ -1,20 +1,6 @@
-@use '../../../styles/index' as *;
-@import "../../../styles/_variables.scss"; 
-
+// @use '../../../styles/index' as *;
 
 .profile-header {
-  @media (max-width: 768px) {
-    .profile-info-bar {
-      flex-direction: column;
-      align-items: center;
-      margin-top: -75px;
-      text-align: center;
-    }
-    .stats-section, .action-section {
-      margin-left: 0;
-      margin-bottom: 15px;
-    }
-  }
   background-color: $background-component;
   border-radius: $border-radius-lg;
   margin-bottom: 20px;
@@ -23,6 +9,7 @@
   .cover-image-container {
     height: 250px;
     background-color: $surface-color;
+
     .cover-image {
       width: 100%;
       height: 100%;
@@ -35,7 +22,7 @@
     align-items: flex-end;
     padding: 0 30px;
     position: relative;
-    margin-top: -75px; // Kéo avatar lên
+    margin-top: -75px;
     gap: 20px;
   }
 
@@ -55,10 +42,12 @@
 
     .name-section {
       margin-bottom: 15px;
+
       h2 {
         font-size: 24px;
         font-weight: 700;
       }
+
       p {
         color: $text-secondary;
       }
@@ -70,13 +59,16 @@
     gap: 30px;
     margin-left: auto;
     margin-bottom: 20px;
+
     .stat {
       text-align: center;
+
       strong {
         font-size: 18px;
         font-weight: 600;
         display: block;
       }
+
       span {
         font-size: 14px;
         color: $text-secondary;
@@ -86,17 +78,32 @@
 
   .action-section {
     margin-bottom: 20px;
+
     button {
       padding: 10px 20px;
       font-size: 14px;
     }
   }
-  
+
   .profile-bio {
     padding: 20px 30px;
     line-height: 1.6;
     color: $text-secondary;
   }
 
- 
+  // ✅ Đặt media query cuối cùng
+  @media (max-width: 768px) {
+    .profile-info-bar {
+      flex-direction: column;
+      align-items: center;
+      margin-top: -75px;
+      text-align: center;
+    }
+
+    .stats-section,
+    .action-section {
+      margin-left: 0;
+      margin-bottom: 15px;
+    }
+  }
 }
