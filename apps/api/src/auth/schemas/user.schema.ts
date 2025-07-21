@@ -19,13 +19,11 @@ export enum PresenceStatus {
   OFFLINE = 'OFFLINE',
 }
 
-
 export enum AccountStatus {
   ACTIVE = 'ACTIVE',
   SUSPENDED = 'SUSPENDED',
   BANNED = 'BANNED',
 }
-
 
 export type UserDocument = User & Document & { _id: Types.ObjectId };
 
@@ -40,7 +38,7 @@ export class Warning {
   // SỬA LỖI: Thay đổi kiểu dữ liệu từ `User` thành `mongoose.Schema.Types.ObjectId`
   // để phá vỡ tham chiếu vòng. Mối quan hệ vẫn được giữ lại nhờ `ref: 'User'`.
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-  by: Types.ObjectId; 
+  by: Types.ObjectId;
 }
 const WarningSchema = SchemaFactory.createForClass(Warning);
 
@@ -61,7 +59,6 @@ export class GameStatus {
 
 @Schema({ timestamps: true })
 export class User {
-
   @Prop({ enum: GlobalRole, default: GlobalRole.USER })
   globalRole: GlobalRole;
 
@@ -73,7 +70,7 @@ export class User {
 
   @Prop({ type: [WarningSchema], default: [] })
   warnings: Warning[];
-  
+
   @Prop({ enum: PresenceStatus, default: PresenceStatus.ONLINE })
   presenceStatus: PresenceStatus;
 
@@ -124,14 +121,26 @@ export class User {
   })
   equippedProfileBackground?: ShopItem;
 
-    // --- BỔ SUNG CÁC Ô TRANG BỊ MỚI ---
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: false })
+  // --- BỔ SUNG CÁC Ô TRANG BỊ MỚI ---
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShopItem',
+    required: false,
+  })
   equippedProfileEffect?: ShopItem;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: false })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShopItem',
+    required: false,
+  })
   equippedAvatarDecoration?: ShopItem;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: false })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShopItem',
+    required: false,
+  })
   equippedNameplateTheme?: ShopItem;
 
   @Prop({ type: GameStatus, required: false })
@@ -158,6 +167,11 @@ export class User {
   // --- BỔ SUNG TRƯỜNG TIỀN TỆ ---
   @Prop({ type: Number, default: 100 }) // Tặng 100 coins cho người dùng mới
   coins: number;
+
+  @Prop({ default: 0 })
+  xp_per_day: number;
+  @Prop({ type: [Number], default: [] })
+  milestonesReached: number[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
