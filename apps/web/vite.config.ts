@@ -7,17 +7,16 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Định nghĩa '@' là đường dẫn tắt đến thư mục 'src'
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // --- PHẦN QUAN TRỌNG NHẤT ĐỂ SỬA LỖI ---
   css: {
     preprocessorOptions: {
       scss: {
-        // Tự động import các biến vào mọi tệp SCSS.
-        // Giờ đây bạn không cần phải @use ở đầu mỗi tệp nữa.
-        additionalData: `@import "@/styles/_variables.scss";`
+        // Tự động NẠP các module vào MỌI tệp SCSS bằng @use.
+        // Dòng này sẽ cung cấp tất cả biến, mixin và cả sass:color
+        // cho toàn bộ dự án.
+        additionalData: `@use "@/styles/index.scss" as *;`
       }
     }
   }

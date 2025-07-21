@@ -1,6 +1,6 @@
-@use '../styles/index' as *;
+// @use '../styles/index' as *;
 @use 'sass:color';
-@import "../../../styles/_variables.scss"; 
+
 
 
 .auth-page {
@@ -50,7 +50,7 @@
     &:hover {
       background-color: $accent-light;
       color: $primary-dark;
-      transform: scale(1.05);
+      transform: Scale(1.05);
     }
   }
 }
