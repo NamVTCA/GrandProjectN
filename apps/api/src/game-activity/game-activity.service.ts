@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  OnModuleInit,
+  Logger,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -34,7 +39,8 @@ export class GameActivityService implements OnModuleInit {
     private presenceService: PresenceService,
   ) {
     this.clientId = this.configService.get<string>('IGDB_CLIENT_ID') ?? '';
-    this.clientSecret = this.configService.get<string>('IGDB_CLIENT_SECRET') ?? '';
+    this.clientSecret =
+      this.configService.get<string>('IGDB_CLIENT_SECRET') ?? '';
   }
 
   async onModuleInit() {
@@ -52,7 +58,10 @@ export class GameActivityService implements OnModuleInit {
       this.accessToken = response.data.access_token;
       this.logger.log('Successfully authenticated with IGDB/Twitch.');
     } catch (error) {
-      this.logger.error('Failed to authenticate with IGDB/Twitch', error.response?.data);
+      this.logger.error(
+        'Failed to authenticate with IGDB/Twitch',
+        error.response?.data,
+      );
     }
   }
 
@@ -65,34 +74,47 @@ export class GameActivityService implements OnModuleInit {
         this.httpService.post<IgdbGameDto[]>(`${this.igdbApiUrl}/games`, body, {
           headers: {
             'Client-ID': this.clientId,
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Accept': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+            Accept: 'application/json',
           },
         }),
       );
       return response.data;
     } catch (error) {
-      this.logger.error('Error searching games from IGDB:', error.response?.data);
+      this.logger.error(
+        'Error searching games from IGDB:',
+        error.response?.data,
+      );
       return [];
     }
   }
 
-  async setPlayingStatus(userId: string, gameId: number): Promise<UserDocument> {
+  async setPlayingStatus(
+    userId: string,
+    gameId: number,
+  ): Promise<UserDocument> {
     const gameDetails = await this.getGameDetails(gameId);
+    if (!gameDetails || !gameDetails.id) {
+      throw new BadRequestException(
+        'Không tìm thấy thông tin game với ID đã cung cấp.',
+      );
+    }
 
     const gameStatus = {
-        igdbId: gameDetails.id.toString(),
-        name: gameDetails.name,
-        boxArtUrl: gameDetails.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${gameDetails.cover.image_id}.jpg` : ''
+      igdbId: gameDetails.id.toString(),
+      name: gameDetails.name,
+      boxArtUrl: gameDetails.cover
+        ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${gameDetails.cover.image_id}.jpg`
+        : '',
     };
 
     const updatedUser = await this.userModel.findByIdAndUpdate(
-        userId,
-        { $set: { currentGame: gameStatus } },
-        { new: true }
+      userId,
+      { $set: { currentGame: gameStatus } },
+      { new: true },
     );
     if (!updatedUser) {
-        throw new Error('User not found');
+      throw new Error('User not found');
     }
     return updatedUser;
   }
@@ -103,29 +125,39 @@ export class GameActivityService implements OnModuleInit {
       this.httpService.post<IgdbGameDto[]>(`${this.igdbApiUrl}/games`, body, {
         headers: {
           'Client-ID': this.clientId,
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${this.accessToken}`,
+          Accept: 'application/json',
         },
       }),
     );
+    if (!response.data || response.data.length === 0) {
+      throw new BadRequestException(`Không tìm thấy game với ID ${gameId}`);
+    }
     return response.data[0];
   }
 
   // HÀM MỚI: Mời bạn bè chơi game
-  async inviteFriendToPlay(inviter: UserDocument, friendId: string): Promise<{ message: string }> {
+  async inviteFriendToPlay(
+    inviter: UserDocument,
+    friendId: string,
+  ): Promise<{ message: string }> {
     // 1. Kiểm tra xem người được mời có phải là bạn bè không
-    const isFriend = inviter.friends.some(id => id.toString() === friendId);
+    const isFriend = inviter.friends.some((id) => id.toString() === friendId);
     if (!isFriend) {
-      throw new BadRequestException('Bạn chỉ có thể mời những người có trong danh sách bạn bè.');
+      throw new BadRequestException(
+        'Bạn chỉ có thể mời những người có trong danh sách bạn bè.',
+      );
     }
 
     // 2. Kiểm tra xem người mời có đang chơi game không
     if (!inviter.currentGame?.name) {
-      throw new BadRequestException('Bạn cần phải ở trong một game để có thể mời người khác.');
+      throw new BadRequestException(
+        'Bạn cần phải ở trong một game để có thể mời người khác.',
+      );
     }
 
     // 3. Kiểm tra xem người bạn đó có online không
-    if (!await this.presenceService.isUserOnline(friendId)) {
+    if (!(await this.presenceService.isUserOnline(friendId))) {
       return { message: 'Người bạn này hiện không online.' };
     }
 
@@ -147,6 +179,8 @@ export class GameActivityService implements OnModuleInit {
       },
     );
 
-    return { message: `Đã gửi lời mời chơi ${inviter.currentGame.name} đến ${friend.username}.` };
+    return {
+      message: `Đã gửi lời mời chơi ${inviter.currentGame.name} đến ${friend.username}.`,
+    };
   }
 }

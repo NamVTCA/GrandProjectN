@@ -16,9 +16,8 @@ import { NotificationType } from '../notifications/schemas/notification.schema';
 import { GroupsService } from '../groups/groups.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModerationService } from '../moderation/moderation.service';
-import { ReactToPostDto } from './dto/react-to-post.dto'; // <-- IMPORT DTO MỚI
-import { ReactionType } from './schemas/reaction.schema'; // <-- IMPORT ENUM MỚI
-import { RepostDto } from './dto/repost.dto'; // <-- IMPORT DTO MỚI
+import { ReactToPostDto } from './dto/react-to-post.dto';
+import { RepostDto } from './dto/repost.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -37,7 +36,6 @@ export class PostsService {
     user: UserDocument,
     createPostDto: CreatePostDto,
   ): Promise<Post> {
-    // 1. Kiểm duyệt nội dung văn bản
     const textModeration = await this.moderationService.checkText(
       createPostDto.content,
     );
@@ -50,7 +48,6 @@ export class PostsService {
     const isVideoPost =
       createPostDto.mediaUrls && createPostDto.mediaUrls[0]?.includes('.mp4');
 
-    // 2. Tạo đối tượng bài đăng mới với trạng thái phù hợp
     const newPost = new this.postModel({
       content: createPostDto.content,
       mediaUrls: createPostDto.mediaUrls,
@@ -63,7 +60,6 @@ export class PostsService {
 
     const savedPost = await newPost.save();
 
-    // 3. Nếu là video, phát ra sự kiện để xử lý ngầm
     if (isVideoPost && createPostDto.mediaUrls) {
       this.eventEmitter.emit('post.video.uploaded', {
         postId: savedPost._id,
@@ -71,7 +67,6 @@ export class PostsService {
       });
     }
 
-    // 4. Nếu bài đăng thuộc một nhóm, cộng XP
     if (createPostDto.groupId) {
       const XP_PER_POST = 10;
       await this.groupsService.addXpToMember(
@@ -81,11 +76,12 @@ export class PostsService {
       );
     }
 
+    // FIX: Populate trực tiếp đối tượng vừa lưu
+    await savedPost.populate({ path: 'author', select: 'username avatar' });
     return savedPost;
   }
 
   async findAllPosts(): Promise<Post[]> {
-    // Chỉ hiển thị các bài đăng đã được duyệt hoặc đang xử lý
     return this.postModel
       .find({
         moderationStatus: {
@@ -93,6 +89,13 @@ export class PostsService {
         },
       })
       .populate('author', 'username avatar')
+      .populate({
+        path: 'repostOf',
+        populate: {
+          path: 'author',
+          select: 'username avatar',
+        },
+      })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -101,6 +104,13 @@ export class PostsService {
     const post = await this.postModel
       .findById(id)
       .populate('author', 'username avatar')
+      .populate({
+        path: 'repostOf',
+        populate: {
+          path: 'author',
+          select: 'username avatar',
+        },
+      })
       .exec();
     if (!post) {
       throw new NotFoundException('Không tìm thấy bài đăng');
@@ -131,7 +141,7 @@ export class PostsService {
     postId: string,
     user: UserDocument,
     createCommentDto: CreateCommentDto,
-  ) {
+  ): Promise<Comment> {
     const textModeration = await this.moderationService.checkText(
       createCommentDto.content,
     );
@@ -159,10 +169,12 @@ export class PostsService {
       `/posts/${post._id}`,
     );
 
-    return newComment.save();
+    const savedComment = await newComment.save();
+    await savedComment.populate({ path: 'author', select: 'username avatar' });
+    return savedComment;
   }
 
-  async findCommentsByPost(postId: string) {
+  async findCommentsByPost(postId: string): Promise<Comment[]> {
     return this.commentModel
       .find({ post: postId, moderationStatus: ModerationStatus.APPROVED })
       .populate('author', 'username avatar')
@@ -170,7 +182,6 @@ export class PostsService {
       .exec();
   }
 
-// --- HÀM CŨ `toggleLike` ĐƯỢC THAY THẾ BẰNG HÀM MỚI `toggleReaction` ---
   async toggleReaction(postId: string, user: UserDocument, reactToPostDto: ReactToPostDto): Promise<Post> {
     const post = await this.postModel.findById(postId);
     if (!post) {
@@ -184,69 +195,86 @@ export class PostsService {
     );
 
     if (existingReactionIndex > -1) {
-      // Nếu người dùng đã react
       if (post.reactions[existingReactionIndex].type === reactionType) {
-        // Nếu react lại với cùng loại -> Bỏ react
         post.reactions.splice(existingReactionIndex, 1);
       } else {
-        // Nếu react với loại khác -> Cập nhật lại reaction
         post.reactions[existingReactionIndex].type = reactionType;
       }
     } else {
-      // Nếu người dùng chưa react -> Thêm reaction mới
-      post.reactions.push({ user, type: reactionType });
+      post.reactions.push({ user: user._id as any, type: reactionType });
 
-      // Chỉ gửi thông báo khi có reaction mới, không gửi khi thay đổi loại reaction
-      await this.notificationsService.createNotification(
-        post.author as UserDocument,
-        user,
-        NotificationType.NEW_REACTION, // <-- Đổi loại thông báo
-        `/posts/${post._id}`,
-      );
+      if (post.author.toString() !== user._id.toString()) {
+        await this.notificationsService.createNotification(
+            post.author as UserDocument,
+            user,
+            NotificationType.NEW_REACTION,
+            `/posts/${post._id}`,
+        );
+      }
     }
 
-    return post.save();
+    const updatedPost = await post.save();
+    
+    // FIX: Populate trực tiếp đối tượng vừa lưu để đảm bảo dữ liệu đầy đủ
+    await updatedPost.populate([
+        { path: 'author', select: 'username avatar' },
+        { path: 'repostOf', populate: { path: 'author', select: 'username avatar' } }
+    ]);
+
+    return updatedPost;
   }
 
- // --- NÂNG CẤP HÀM REPOST ---
   async repost(
     originalPostId: string,
     user: UserDocument,
-    repostDto: RepostDto, // <-- Sử dụng DTO mới
+    repostDto: RepostDto,
   ): Promise<Post> {
     const originalPost = await this.postModel.findById(originalPostId);
     if (!originalPost) {
       throw new NotFoundException('Không tìm thấy bài đăng gốc.');
     }
 
-    // Không cho phép chia sẻ lại một bài đã là bài chia sẻ
     if (originalPost.repostOf) {
         throw new BadRequestException('Không thể chia sẻ lại một bài đã được chia sẻ.');
     }
 
     const newRepost = new this.postModel({
       author: user._id,
-      content: repostDto.content || '', // <-- Lấy nội dung từ DTO
+      content: repostDto.content || '',
       repostOf: originalPostId,
+      mediaUrls: [],
+      moderationStatus: ModerationStatus.APPROVED,
     });
 
-    // Tăng số lượt chia sẻ của bài gốc
+    const savedRepost = await newRepost.save();
+
     originalPost.repostCount = (originalPost.repostCount || 0) + 1;
     await originalPost.save();
 
-    return newRepost.save();
+    // FIX: Populate trực tiếp đối tượng vừa lưu
+    await savedRepost.populate([
+        { path: 'author', select: 'username avatar' },
+        { path: 'repostOf', populate: { path: 'author', select: 'username avatar' } }
+    ]);
+    return savedRepost;
   }
 
 
   async findPostsByAuthor(authorId: string): Promise<Post[]> {
     return this.postModel
-      .find({ author: authorId, moderationStatus: ModerationStatus.APPROVED }) // Chỉ lấy bài đã duyệt
+      .find({ author: authorId, moderationStatus: ModerationStatus.APPROVED })
       .sort({ createdAt: -1 })
       .populate('author', 'username avatar')
+      .populate({
+        path: 'repostOf',
+        populate: {
+          path: 'author',
+          select: 'username avatar',
+        },
+      })
       .exec();
   }
 
-   // --- CÁC HÀM MỚI ---
   async updatePost(postId: string, user: UserDocument, updatePostDto: UpdatePostDto): Promise<Post> {
     const post = await this.postModel.findById(postId);
     if (!post) {
@@ -257,9 +285,14 @@ export class PostsService {
     }
 
     post.content = updatePostDto.content;
-    // (Tùy chọn) Cập nhật trạng thái kiểm duyệt nếu cần
-    // post.moderationStatus = ModerationStatus.PENDING;
-    return post.save();
+    const updatedPost = await post.save();
+    
+    // FIX: Populate trực tiếp đối tượng vừa lưu
+    await updatedPost.populate([
+        { path: 'author', select: 'username avatar' },
+        { path: 'repostOf', populate: { path: 'author', select: 'username avatar' } }
+    ]);
+    return updatedPost;
   }
 
   async updateComment(commentId: string, user: UserDocument, updateCommentDto: UpdateCommentDto): Promise<Comment> {
@@ -272,6 +305,8 @@ export class PostsService {
     }
 
     comment.content = updateCommentDto.content;
-    return comment.save();
+    const savedComment = await comment.save();
+    await savedComment.populate({ path: 'author', select: 'username avatar' });
+    return savedComment;
   }
 }

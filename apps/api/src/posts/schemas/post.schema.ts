@@ -21,7 +21,7 @@ export class Post {
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   author: User; // Tác giả bài viết
 
-  @Prop({ required: true, trim: true })
+  @Prop({ required: false, trim: true })
   content: string; // Nội dung text
 
   @Prop([String])

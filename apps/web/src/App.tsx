@@ -74,9 +74,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/inventory" element={<InventoryPage />} />
         </Route>
         {/* Route không cần layout chính nhưng vẫn cần xác thực */}
-        <Route path="/select-interests" element={<SelectInterestsPage />} />
       </Route>
-
+        <Route path="/select-interests" element={<SelectInterestsPage />} />
       {/* === PUBLIC ROUTES === */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />

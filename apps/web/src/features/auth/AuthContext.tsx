@@ -65,11 +65,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchUser();
   }, [fetchUser]);
 
-  const login = (newToken: string) => {
-    setToken(newToken);
-    localStorage.setItem('authToken', newToken);
-    // fetchUser will be called automatically due to the token change
-  };
+const login = (newToken: string) => {
+  setToken(newToken);
+  localStorage.setItem('authToken', newToken);
+  api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+  fetchUser(); // gọi ngay
+};
+
 
   return (
     <AuthContext.Provider value={{ token, user, isAuthenticated: !!token, isLoading, login, logout, fetchUser }}>
