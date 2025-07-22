@@ -1,7 +1,8 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 export class CreatePostDto {
-  @IsNotEmpty()
+  @ValidateIf((o) => !o.mediaUrls || o.mediaUrls.length === 0)
+  @IsNotEmpty({ message: 'Nội dung không được để trống nếu không có media.' })
   @IsString()
   content: string;
 

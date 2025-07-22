@@ -14,11 +14,15 @@ interface Interest {
 const SelectInterestsPage: React.FC = () => {
   const [interests, setInterests] = useState<Interest[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { fetchUser } = useAuth();
+  const { fetchUser, user } = useAuth();
+console.log('user in SelectInterestsPage:', user);
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/interests').then(res => setInterests(res.data));
+    api.get('/interests').then(res => {
+      console.log('res.data', res.data);
+      setInterests(res.data);
+    });
   }, []);
 
   const handleToggleInterest = (id: string) => {

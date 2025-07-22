@@ -1,8 +1,9 @@
-// File: src/features/feed/types/Post.ts (Cập nhật)
-// SỬA LỖI: Thay thế `enum` bằng `type` để tương thích với cấu hình TypeScript
+// File: src/features/feed/types/Post.ts
+
+// Định nghĩa các loại cảm xúc hợp lệ
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
-// (Tùy chọn) Tạo một object chứa các hằng số để dễ sử dụng
+// Object chứa các hằng số để dễ sử dụng
 export const ReactionTypes: { [key: string]: ReactionType } = {
   LIKE: 'LIKE',
   LOVE: 'LOVE',
@@ -12,20 +13,32 @@ export const ReactionTypes: { [key: string]: ReactionType } = {
   ANGRY: 'ANGRY',
 };
 
+// --- CÁC INTERFACE CHÍNH ---
+
+interface Author {
+  _id: string;
+  username: string;
+  avatar?: string;
+}
+
 export interface Reaction {
-  user: string;
+  user: string; // Chỉ lưu ID của user
   type: ReactionType;
+}
+
+// FIX: Thêm interface Comment đã bị thiếu
+export interface Comment {
+    _id: string;
+    content: string;
+    author: Author;
+    createdAt: string;
 }
 
 export interface Post {
   _id: string;
   content: string;
   mediaUrls: string[];
-  author: {
-    _id: string;
-    username: string;
-    avatar?: string;
-  };
+  author: Author;
   reactions: Reaction[];
   commentCount: number;
   repostCount: number;

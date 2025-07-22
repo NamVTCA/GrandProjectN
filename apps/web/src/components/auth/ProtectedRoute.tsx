@@ -5,22 +5,26 @@ import { useAuth } from '../../features/auth/AuthContext';
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
+  // ✅ Đang xác thực → hiện loading
   if (isLoading) {
-    // Hiển thị một màn hình chờ đơn giản trong khi xác thực
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Đang tải...</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        Đang tải...
+      </div>
+    );
   }
 
+  // ✅ Nếu chưa đăng nhập → chuyển hướng login
   if (!isAuthenticated) {
-    // Nếu chưa đăng nhập, chuyển hướng về trang login
     return <Navigate to="/login" replace />;
   }
 
-  // Nếu đã đăng nhập nhưng chưa chọn sở thích, chuyển hướng
-  if (!user?.hasSelectedInterests) {
+  // ✅ Nếu đã đăng nhập nhưng chưa chọn sở thích → chuyển hướng
+  if (user && !user.hasSelectedInterests) {
     return <Navigate to="/select-interests" replace />;
   }
 
-  // Nếu mọi thứ ổn, cho phép truy cập vào các trang con
+  // ✅ Đã đăng nhập và hợp lệ → cho phép vào trang con
   return <Outlet />;
 };
 

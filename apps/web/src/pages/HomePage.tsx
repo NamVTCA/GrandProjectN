@@ -1,4 +1,3 @@
-// File: src/pages/HomePage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import CreatePost from '../features/feed/components/CreatePost';
@@ -29,53 +28,38 @@ const HomePage: React.FC = () => {
   }, [fetchPosts]);
 
   const handleReact = useCallback(async (postId: string, reactionType: ReactionType) => {
-    if (!user) return;
-
-    // Cập nhật UI lạc quan (optimistic update)
-    setPosts(currentPosts => 
-      currentPosts.map(p => {
-        if (p._id === postId) {
-          const existingReactionIndex = p.reactions.findIndex(r => r.user === user._id);
-          const newReactions = [...p.reactions];
-
-          if (existingReactionIndex > -1) {
-            if (newReactions[existingReactionIndex].type === reactionType) {
-              // Nếu người dùng bấm lại vào reaction cũ -> Bỏ reaction
-              newReactions.splice(existingReactionIndex, 1);
-            } else {
-              // Nếu người dùng chọn reaction khác -> Cập nhật
-              newReactions[existingReactionIndex].type = reactionType;
-            }
-          } else {
-            // Nếu người dùng chưa react -> Thêm reaction mới
-            newReactions.push({ user: user._id, type: reactionType });
-          }
-          return { ...p, reactions: newReactions };
-        }
-        return p;
-      })
-    );
-
-    // Gửi yêu cầu lên server
     try {
-      await api.post(`/posts/${postId}/react`, { type: reactionType });
+      const response = await api.post(`/posts/${postId}/react`, { type: reactionType });
+      // Cập nhật bài đăng cụ thể trong danh sách với dữ liệu mới từ API
+      setPosts(currentPosts =>
+        currentPosts.map(p => (p._id === postId ? response.data : p))
+      );
     } catch (error) {
       console.error("Lỗi khi bày tỏ cảm xúc:", error);
-      // Nếu có lỗi, tải lại toàn bộ dữ liệu để đảm bảo đồng bộ
-      fetchPosts(); 
     }
-  }, [user, fetchPosts]);
+  }, []);
 
-  const handleRepost = useCallback(async (postId: string) => {
+  const handleRepost = useCallback(async (postId: string, content: string) => {
     try {
-      // Logic cho repost có thể phức tạp hơn, ví dụ: mở một modal để người dùng nhập thêm nội dung
-      // Tạm thời, chúng ta chỉ gọi API và làm mới lại feed
-      await api.post(`/posts/${postId}/repost`, {});
+      await api.post(`/posts/${postId}/repost`, { content });
       fetchPosts(); // Tải lại toàn bộ feed để thấy bài đăng mới
     } catch (error) {
       console.error("Lỗi khi chia sẻ bài viết:", error);
     }
   }, [fetchPosts]);
+  
+  const handlePostDeleted = useCallback((postId: string) => {
+    setPosts(currentPosts => currentPosts.filter(p => p._id !== postId));
+  }, []);
+
+  const handleCommentAdded = useCallback((postId: string) => {
+    setPosts(currentPosts => currentPosts.map(p => {
+        if (p._id === postId) {
+            return { ...p, commentCount: p.commentCount + 1 };
+        }
+        return p;
+    }));
+  }, []);
 
   if (loading) return <p className="page-status">Đang tải bài đăng...</p>;
 
@@ -90,6 +74,8 @@ const HomePage: React.FC = () => {
               post={post} 
               onReact={handleReact}
               onRepost={handleRepost}
+              onPostDeleted={handlePostDeleted}
+              onCommentAdded={handleCommentAdded}
             />
           ))
         ) : (
