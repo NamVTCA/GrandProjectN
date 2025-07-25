@@ -170,6 +170,9 @@ export class User {
 
   @Prop({ default: 0 })
   xp_per_day: number;
+  @Prop({ default: 0 })
+  xp: number;
+
   @Prop({ type: [Number], default: [] })
   milestonesReached: number[];
 }

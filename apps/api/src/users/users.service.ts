@@ -66,7 +66,12 @@ export class UsersService {
         'Không tìm thấy người dùng để tạo thông báo.',
       );
     }
-
+    await this.receiveXP(
+      2,
+      'follow',
+      currentUserId.toString(),
+      userIdToFollow.toString(),
+    );
     await this.notificationsService.createNotification(
       userToFollowDoc,
       currentUserDoc,
@@ -109,48 +114,54 @@ export class UsersService {
     }
     return updatedUser;
   }
-  async receiveXP(xp: number, kind: string, userId: string): Promise<void> {
+  async receiveXP(
+    xp: number,
+    kind: string,
+    userId: string,
+    follow?: string,
+  ): Promise<void> {
     const user = await this.userModel.findById(userId);
     if (!user) {
       console.warn(`User with ID ${userId} not found.`);
       return;
     }
 
-    if (user.xp_per_day + xp > 250) {
-      const allowedXP = 250 - user.xp_per_day;
-      if (allowedXP <= 0) {
-        console.log(`User ${user.username} reached daily XP limit.`);
-        return;
-      }
-      xp = allowedXP;
+    if (kind === 'follow') {
+      await this.handleUserFollowed(userId); // gọi xử lý bonus milestone
     }
 
-    user.xp_per_day += xp;
-    await user.save();
-
-    console.log(`User ${user.username} received ${xp} XP from action: ${kind}`);
-  }
-
-  private scheduleDailyXPReset() {
-    schedule.scheduleJob('1 0 * * *', async () => {
-      const result = await this.userModel.updateMany({}, { xp_per_day: 0 });
-      console.log(
-        `Reset daily XP for all users. Modified: ${result.modifiedCount}`,
+    // Chặn cộng quá giới hạn trong ngày
+    if (user.xp_per_day >= 250) {
+      await this.notificationsService.createNotification(
+        user,
+        user,
+        NotificationType.NEW_NOTIFICATION,
+        null,
       );
-    });
+      console.log(`User ${user.username} reached daily XP limit.`);
+      return;
+    }
+
+    const allowedXP = Math.max(0, 250 - user.xp_per_day);
+    xp = Math.min(xp, allowedXP);
+    user.xp_per_day += xp;
+    user.xp += xp;
+    await user.save();
   }
   async handleUserFollowed(followedUserId: string): Promise<void> {
     const user = await this.userModel.findById(followedUserId);
     if (!user) {
-      alert(`User with ID ${followedUserId} not found.`);
+      console.warn(`User with ID ${followedUserId} not found.`);
       return;
     }
 
     const baseXP = 20;
-    user.xp_per_day = Math.min(user.xp_per_day + baseXP, 250);
+    const canAddBase = Math.max(0, 250 - user.xp_per_day);
+    const baseAdded = Math.min(baseXP, canAddBase);
+    user.xp_per_day += baseAdded;
+    user.xp += baseAdded; // ✅ Cộng vào tổng XP
 
-    const currentFollowers = user.followers.length;
-
+    const currentFollowers = user.followers?.length || 0;
     const milestones = [
       { count: 10, bonusXP: 100 },
       { count: 50, bonusXP: 300 },
@@ -159,22 +170,23 @@ export class UsersService {
       { count: 1000, bonusXP: 7000 },
     ];
 
-    if (!user.milestonesReached) user.milestonesReached = [];
+    user.milestonesReached ??= [];
 
     for (const milestone of milestones) {
       if (
         currentFollowers >= milestone.count &&
         !user.milestonesReached.includes(milestone.count)
       ) {
-        const bonus = milestone.bonusXP;
-        const canAdd = Math.max(0, 250 - user.xp_per_day);
-        const actualBonus = Math.min(canAdd, bonus);
-        user.xp_per_day += actualBonus;
+        const canAddBonus = Math.max(0, 250 - user.xp_per_day);
+        const bonusAdded = Math.min(canAddBonus, milestone.bonusXP);
+
+        user.xp_per_day += bonusAdded;
+        user.xp += bonusAdded; // ✅ Cộng vào tổng XP
 
         user.milestonesReached.push(milestone.count);
 
         console.log(
-          `User ${user.username} đạt mốc ${milestone.count} follower. Cộng bonus ${actualBonus} XP.`,
+          `User ${user.username} đạt mốc ${milestone.count} follower. Cộng bonus ${bonusAdded} XP.`,
         );
       }
     }

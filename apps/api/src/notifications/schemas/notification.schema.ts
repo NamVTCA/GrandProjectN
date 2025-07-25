@@ -10,11 +10,11 @@ export enum NotificationType {
   NEW_FOLLOWER = 'NEW_FOLLOWER',
   GAME_INVITE = 'GAME_INVITE',
   NEW_REACTION = 'NEW_REACTION',
+  NEW_NOTIFICATION = 'NEW_NOTIFICATION',
 }
 
 @Schema({ timestamps: true })
 export class Notification {
-  
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   recipient: User; // Người nhận
 
@@ -34,8 +34,6 @@ export class Notification {
     gameName?: string;
     boxArtUrl?: string;
   };
-
-  
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
