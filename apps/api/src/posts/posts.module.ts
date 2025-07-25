@@ -11,6 +11,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { GroupsModule } from '../groups/groups.module';
 import { ModerationModule } from '../moderation/moderation.module'; // Thêm dòng này
 import { MediaProcessingModule } from '../media-processing/media-processing.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MediaProcessingModule } from '../media-processing/media-processing.modu
       { name: Post.name, schema: PostSchema },
       { name: Comment.name, schema: CommentSchema },
     ]),
+    UsersModule,
     AuthModule,
     NotificationsModule,
     GroupsModule,
