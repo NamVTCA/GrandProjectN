@@ -63,7 +63,7 @@ export class PostsController {
     return this.postsService.findCommentsByPost(postId);
   }
 
-// --- THAY ĐỔI ENDPOINT TỪ `/like` SANG `/react` ---
+  // --- THAY ĐỔI ENDPOINT TỪ `/like` SANG `/react` ---
   @UseGuards(JwtAuthGuard)
   @Post(':id/react') // <-- Đổi tên endpoint
   @HttpCode(HttpStatus.OK)
@@ -110,5 +110,10 @@ export class PostsController {
     @Body() updateCommentDto: UpdateCommentDto,
   ) {
     return this.postsService.updateComment(commentId, user, updateCommentDto);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Delete('comments/:id')
+  deleteComment(@Param('id') id: string) {
+    return this.postsService.deleteComment(id);
   }
 }

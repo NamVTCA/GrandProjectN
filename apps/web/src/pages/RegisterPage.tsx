@@ -17,7 +17,7 @@ const RegisterPage: React.FC = () => {
       await api.post('/auth/register', { username, email, password });
       navigate('/login', { state: { successMessage: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực.' } });
     } catch (err) {
-      console.error(err);
+     alert(err);
     }
   };
 

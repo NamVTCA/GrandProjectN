@@ -339,4 +339,7 @@ export class PostsService {
     await savedComment.populate({ path: 'author', select: 'username avatar' });
     return savedComment;
   }
+  async deleteComment(id: string) {
+    return await this.commentModel.findByIdAndDelete(id);
+  }
 }

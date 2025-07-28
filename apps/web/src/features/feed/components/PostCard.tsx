@@ -24,7 +24,8 @@ import "./PostCard.scss";
 const CommentSection: React.FC<{
   postId: string;
   onCommentAdded: () => void;
-}> = ({ postId, onCommentAdded }) => {
+  onCommentDeleted: () => void;
+}> = ({ postId, onCommentAdded,onCommentDeleted }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +59,18 @@ const CommentSection: React.FC<{
       setIsLoading(false);
     }
   };
+const handleDeleteComment = async (commentId: string) => {
+  if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) return;
+
+  try {
+    await api.delete(`/posts/comments/${commentId}`);
+    setComments((prev) => prev.filter((c) => c._id !== commentId));
+    onCommentDeleted();
+  } catch (error) {
+    console.error("Lỗi khi xóa bình luận:", error);
+  }
+};
+const { user } = useAuth();
 
   return (
     <div className="comment-section">
@@ -75,22 +88,31 @@ const CommentSection: React.FC<{
       </form>
       <div className="comment-list">
         {comments.map((comment) => (
-          <div key={comment._id} className="comment">
-            <img
-              src={
-                comment.author.avatar ||
-                "https://placehold.co/32x32/242526/b0b3b8?text=..."
-              }
-              alt={comment.author.username}
-              className="comment-author-avatar"
-            />
-            <div className="comment-content">
-              <Link to={`/profile/${comment.author.username}`}>
-                <strong>{comment.author.username}</strong>
-              </Link>
-              <p>{comment.content}</p>
-            </div>
-          </div>
+        <div key={comment._id} className="comment">
+  <img
+    src={
+      comment.author.avatar ||
+      "https://placehold.co/32x32/242526/b0b3b8?text=..."
+    }
+    alt={comment.author.username}
+    className="comment-author-avatar"
+  />
+  <div className="comment-content">
+    <Link to={`/profile/${comment.author.username}`}>
+      <strong>{comment.author.username}</strong>
+    </Link>
+    <p>{comment.content}</p>
+  </div>
+  {user?._id === comment.author._id && (
+    <button
+      className="comment-delete-button"
+      onClick={() => handleDeleteComment(comment._id)}
+      title="Xóa bình luận"
+    >
+      <FaTrash />
+    </button>
+  )}
+</div>
         ))}
       </div>
     </div>
@@ -104,6 +126,7 @@ interface PostCardProps {
   onRepost: (postId: string, content: string) => void;
   onPostDeleted: (postId: string) => void;
   onCommentAdded: (postId: string) => void;
+  onCommentDeleted: (postId: string) => void;
 }
 
 // --- Helper object để map reaction với icon và màu sắc ---
@@ -124,13 +147,18 @@ const PostCard: React.FC<PostCardProps> = ({
   onRepost,
   onPostDeleted,
   onCommentAdded,
+  onCommentDeleted
 }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isRepostModalOpen, setRepostModalOpen] = useState(false);
   const [repostContent, setRepostContent] = useState("");
   const [showReactions, setShowReactions] = useState(false);
+const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
 
+useEffect(() => {
+  setLocalCommentCount(post.commentCount);
+}, [post.commentCount]);
   if (!post || !post.author) {
     return <div className="post-card-error">Đang cập nhật bài viết...</div>;
   }
@@ -256,7 +284,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
       <div className="post-stats">
         <span>{post.reactions.length} cảm xúc</span>
-        <span>{post.commentCount} bình luận</span>
+<span>{localCommentCount} bình luận</span>
         <span>{post.repostCount || 0} lượt chia sẻ</span>
       </div>
 
@@ -317,10 +345,17 @@ const PostCard: React.FC<PostCardProps> = ({
       </div>
 
       {showComments && (
-        <CommentSection
-          postId={post._id}
-          onCommentAdded={() => onCommentAdded(post._id)}
-        />
+         <CommentSection
+    postId={post._id}
+    onCommentAdded={() => {
+      onCommentAdded(post._id);
+      setLocalCommentCount((prev) => prev + 1);
+    }}
+    onCommentDeleted={() => {
+      onCommentDeleted(post._id);
+      setLocalCommentCount((prev) => Math.max(0, prev - 1));
+    }}
+  />
       )}
 
       {isRepostModalOpen && (
