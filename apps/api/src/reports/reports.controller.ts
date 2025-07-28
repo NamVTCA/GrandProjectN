@@ -21,7 +21,7 @@ export class ReportsController {
   // Endpoint cho Admin xem tất cả báo cáo
   // Sau này chúng ta sẽ thay JwtAuthGuard bằng một AdminGuard riêng
   // Bảo vệ endpoint này, chỉ ADMIN mới có thể truy cập
-  @Get()
+  @Get("all")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(GlobalRole.ADMIN)
   findAllReports() {

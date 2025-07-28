@@ -60,7 +60,13 @@ const HomePage: React.FC = () => {
         return p;
     }));
   }, []);
-
+const handleCommentDeleted = useCallback((postId: string) => {
+  setPosts(currentPosts =>
+    currentPosts.map(p =>
+      p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount - 1) } : p
+    )
+  );
+}, []);
   if (loading) return <p className="page-status">Đang tải bài đăng...</p>;
 
   return (
@@ -70,13 +76,13 @@ const HomePage: React.FC = () => {
         {posts.length > 0 ? (
           posts.map((post) => (
             <PostCard 
-              key={post._id} 
-              post={post} 
+              key={post._id}
+              post={post}
               onReact={handleReact}
               onRepost={handleRepost}
               onPostDeleted={handlePostDeleted}
-              onCommentAdded={handleCommentAdded}
-            />
+              onCommentAdded={handleCommentAdded} 
+              onCommentDeleted={handleCommentDeleted}            />
           ))
         ) : (
           <p className="page-status">Chưa có bài đăng nào. Hãy là người đầu tiên!</p>

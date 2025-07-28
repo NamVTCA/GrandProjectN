@@ -28,11 +28,11 @@ import InventoryPage from './pages/InventoryPage';
 // Admin Pages
 import UserManagementPage from './pages/admin/UserManagementPage';
 import ContentManagementPage from './pages/admin/ContentManagementPage';
-const AdminDashboardPage = () => <div>Bảng điều khiển Admin (sẽ được xây dựng)</div>; // Placeholder
 
 // Route Guards
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 /**
  * Component xử lý logic định tuyến dựa trên trạng thái xác thực.
