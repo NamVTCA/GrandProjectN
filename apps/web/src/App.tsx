@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { ToastProvider } from './components/common/Toast/ToastContext';
 
-// --- Import tất cả các Layouts và Pages thật ---
 // Layouts
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
