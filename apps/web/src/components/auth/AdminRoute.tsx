@@ -15,6 +15,10 @@ const AdminRoute: React.FC = () => {
   }
 
   // Nếu là Admin, cho phép truy cập
+   if (user?.globalRole == 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
   return <Outlet />;
 };
 
