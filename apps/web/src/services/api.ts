@@ -13,15 +13,24 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
     if (token) {
-      // Ensure the 'Authorization' header is set correctly
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    // Handle request errors
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
+
+// ✅ Thêm hàm gọi API chatbot ở đây
+export const chatWithBot = async (message: string): Promise<{ reply: string }> => {
+  const res = await api.post('/chatbot', { message });
+
+  // ✅ Kiểm tra và trả về đúng dạng object có thuộc tính reply
+  if (typeof res.data === 'string') {
+    return { reply: res.data }; // ← FIX lỗi
+  }
+
+  return res.data; // Nếu backend đã trả về { reply: string } thì vẫn đúng
+};
+
 
 export default api;

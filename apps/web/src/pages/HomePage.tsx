@@ -4,6 +4,7 @@ import CreatePost from '../features/feed/components/CreatePost';
 import PostCard from '../features/feed/components/PostCard';
 import type { Post, ReactionType } from '../features/feed/types/Post';
 import { useAuth } from '../features/auth/AuthContext';
+import ChatbotIcon from './ChatbotIcon';
 import './HomePage.scss';
 
 const HomePage: React.FC = () => {
@@ -88,7 +89,9 @@ const handleCommentDeleted = useCallback((postId: string) => {
           <p className="page-status">Chưa có bài đăng nào. Hãy là người đầu tiên!</p>
         )}
       </div>
+                      <ChatbotIcon />
     </div>
+    
   );
 };
 
