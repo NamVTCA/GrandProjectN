@@ -20,7 +20,6 @@ async function bootstrap() {
 
   // Bật validation toàn cục
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-
   await app.listen(8888);
 }
 bootstrap();

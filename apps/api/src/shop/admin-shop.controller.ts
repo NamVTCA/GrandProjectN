@@ -19,6 +19,7 @@ import { GlobalRole } from '../auth/schemas/user.schema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import { extname } from 'path';
 
 import path from 'path';
 
@@ -34,7 +35,7 @@ export class AdminShopController {
       storage: diskStorage({
         destination: './uploads/shop-items',
         filename: (req, file, cb) => {
-          const ext = path.extname(file.originalname);
+          const ext = extname(file.originalname);
           const fileName = `${uuidv4()}${ext}`;
           cb(null, fileName);
         },
@@ -54,6 +55,8 @@ export class AdminShopController {
     if (file) {
       dto.assetUrl = `/uploads/shop-items/${file.filename}`;
     }
+    console.log(dto);
+    console.log(file);
     return this.shopService.createItem(dto);
   }
 

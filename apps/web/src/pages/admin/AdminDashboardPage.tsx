@@ -12,10 +12,15 @@ const AdminDashboardPage: React.FC = () => {
     price: 0,
     asset: null as File | null,
   });
-  const [newPackage, setNewPackage] = useState({ name: '', coins: 0, price: 0 });
   const [newInterest, setNewInterest] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
+ const [newPackage, setNewPackage] = useState({
+    packageId: '',
+    name: '',
+    coinsAmount: 0,
+    price: 0,
+    currency: 'VND',
+  });
   useEffect(() => {
     api.get('/admin/stats').then(res => setStats(res.data)).catch(err => console.error('Lỗi tải thống kê', err));
     api.get('/reports/all').then(res => setReports(res.data)).catch(err => console.error('Lỗi tải báo cáo', err));
@@ -45,7 +50,8 @@ const AdminDashboardPage: React.FC = () => {
       setNewItem({ name: '', description: '', type: 'AVATAR_FRAME', price: 0, asset: null });
       setPreviewUrl(null);
     } catch (err) {
-      console.error('Lỗi tạo vật phẩm:', err);
+      
+      console.log(`Lỗi tạo vật phẩm:${err}`);
     }
   };
 
@@ -53,11 +59,18 @@ const AdminDashboardPage: React.FC = () => {
     try {
       await api.post('/coin-packages', newPackage);
       alert('Tạo gói coin thành công!');
-      setNewPackage({ name: '', coins: 0, price: 0 });
+      setNewPackage({
+        packageId: '',
+        name: '',
+        coinsAmount: 0,
+        price: 0,
+        currency: 'VND',
+      });
     } catch (err) {
       console.error('Lỗi tạo gói coin:', err);
     }
   };
+
 
   const handleCreateInterest = async () => {
     try {
@@ -102,13 +115,40 @@ const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* Tạo gói coin */}
-      <div className="admin-section">
-        <h2>Tạo gói coin</h2>
-        <input type="text" placeholder="Tên gói" value={newPackage.name} onChange={e => setNewPackage({ ...newPackage, name: e.target.value })} />
-        <input type="number" placeholder="Số lượng coin" value={newPackage.coins} onChange={e => setNewPackage({ ...newPackage, coins: +e.target.value })} />
-        <input type="number" placeholder="Giá (VNĐ)" value={newPackage.price} onChange={e => setNewPackage({ ...newPackage, price: +e.target.value })} />
-        <button onClick={handleCreateCoinPackage}>Tạo gói coin</button>
-      </div>
+       <div className="admin-section">
+      <h2>Tạo gói coin</h2>
+      <input
+        type="text"
+        placeholder="Mã gói (packageId)"
+        value={newPackage.packageId}
+        onChange={(e) => setNewPackage({ ...newPackage, packageId: e.target.value })}
+      />
+      <input
+        type="text"
+        placeholder="Tên gói"
+        value={newPackage.name}
+        onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
+      />
+      <input
+        type="number"
+        placeholder="Số lượng coin"
+        value={newPackage.coinsAmount}
+        onChange={(e) => setNewPackage({ ...newPackage, coinsAmount: +e.target.value })}
+      />
+      <input
+        type="number"
+        placeholder="Giá (VNĐ)"
+        value={newPackage.price}
+        onChange={(e) => setNewPackage({ ...newPackage, price: +e.target.value })}
+      />
+      <input
+        type="text"
+        placeholder="Đơn vị tiền tệ"
+        value={newPackage.currency}
+        onChange={(e) => setNewPackage({ ...newPackage, currency: e.target.value })}
+      />
+      <button onClick={handleCreateCoinPackage}>Tạo gói coin</button>
+    </div>
 
       {/* Tạo sở thích */}
       <div className="admin-section">

@@ -45,6 +45,7 @@ export class ShopService {
   // --- CÁC HÀM MỚI CHO ADMIN ---
 
   async createItem(createShopItemDto: CreateShopItemDto): Promise<ShopItem> {
+    
     const newItem = new this.shopItemModel(createShopItemDto);
     return newItem.save();
   }
