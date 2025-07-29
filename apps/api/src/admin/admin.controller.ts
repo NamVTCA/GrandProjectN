@@ -73,7 +73,7 @@ export class AdminController {
   ) {
     return this.adminService.banUser(userId, banUserDto.reason, admin);
   }
-  @Patch('users/:id/restore')
+  @Post('users/:id/restore')
   async restoreUser(
     @Param('id') userId: string,
     @GetUser() admin: UserDocument,

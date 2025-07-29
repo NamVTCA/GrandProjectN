@@ -5,9 +5,9 @@ import { User } from '../../auth/schemas/user.schema';
 export type FriendRequestDocument = FriendRequest & Document;
 
 export enum FriendRequestStatus {
-    PENDING = 'PENDING',
-    ACCEPTED = 'ACCEPTED',
-    REJECTED = 'REJECTED',
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
 }
 
 @Schema({ timestamps: true })
@@ -18,7 +18,11 @@ export class FriendRequest {
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   recipient: User; // Người nhận yêu cầu
 
-  @Prop({ required: true, enum: FriendRequestStatus, default: FriendRequestStatus.PENDING })
+  @Prop({
+    required: true,
+    enum: FriendRequestStatus,
+    default: FriendRequestStatus.PENDING,
+  })
   status: FriendRequestStatus;
 }
 
