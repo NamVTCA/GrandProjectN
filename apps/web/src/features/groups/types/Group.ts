@@ -1,15 +1,18 @@
+// File: apps/web/src/features/groups/types/Group.ts
+// Description: Updated data structures for the Groups feature to match the backend schema.
+
 // Define the structure for an Interest tag
-interface Interest {
+export interface Interest {
   _id: string;
   name: string;
 }
 
 // Define the structure for a user object within a group
-interface GroupMember {
+export interface GroupMember {
     _id: string;
     username: string;
     avatar?: string;
-    role: 'MEMBER' | 'MODERATOR' | 'OWNER'; // Thêm vai trò thành viên
+    role: 'MEMBER' | 'MODERATOR' | 'OWNER'; // Role of the member
 }
 
 // Define the structure for a Group, matching the final Backend schema
@@ -19,6 +22,10 @@ export interface Group {
   description: string;
   owner: string; // ID of the user who owns the group
   interests: Interest[];
+  privacy: 'public' | 'private'; // Added from previous versions for consistency
+  avatar?: string;
+  coverImage?: string;
+  memberCount: number;
 }
 
 
@@ -27,7 +34,14 @@ export interface GroupDetail extends Group {
     members: GroupMember[];
 }
 
-// --- BỔ SUNG ---
+// Define the structure for creating a group
+export interface CreateGroupDto {
+    name: string;
+    description: string;
+    privacy: 'public' | 'private';
+    interestIds?: string[]; // Optional: for adding interests on creation
+}
+
 // Define the structure for a join request
 export interface JoinRequest {
     _id: string;

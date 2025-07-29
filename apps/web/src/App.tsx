@@ -14,11 +14,14 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import SelectInterestsPage from './pages/SelectInterestsPage';
+import ChatPageBot from './pages/ChatPageBot';
+
 
 // Core Feature Pages
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
+import CreateGroupPage from './pages/CreateGroupPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupManagementPage from './pages/GroupManagementPage';
 import ChatPage from './pages/ChatPage';
@@ -67,8 +70,10 @@ const AppRoutes: React.FC = () => {
           <Route path="/profile/:username" element={<ProfilePage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupDetailPage />} />
+          <Route path="/groups/create" element={<CreateGroupPage />} />
           <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat-bot" element={<ChatPageBot/>}/>
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
         </Route>
@@ -88,8 +93,11 @@ const AppRoutes: React.FC = () => {
 
       {/* === FALLBACK ROUTE === */}
       <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+
     </Routes>
+    
   );
+  
 };
 
 /**
