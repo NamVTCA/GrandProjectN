@@ -4,6 +4,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
+import { CoinPackage, CoinPackageDocument } from './schemas/coin-package.schema';
 
 @Controller('payments')
 export class PaymentsController {
@@ -16,7 +17,10 @@ export class PaymentsController {
     @GetUser() user: UserDocument,
     @Body() createPaymentDto: CreatePaymentDto,
   ) {
-    return this.paymentsService.createPaymentIntent(user, createPaymentDto.packageId);
+    return this.paymentsService.createPaymentIntent(
+      user,
+      createPaymentDto.packageId,
+    );
   }
 
   // Endpoint này mô phỏng webhook được gọi bởi cổng thanh toán khi giao dịch thành công.
@@ -25,4 +29,5 @@ export class PaymentsController {
   handleSuccessfulPayment(@Body('orderId') orderId: string) {
     return this.paymentsService.fulfillOrder(orderId);
   }
+ 
 }

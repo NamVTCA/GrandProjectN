@@ -9,17 +9,14 @@ const AdminRoute: React.FC = () => {
     return <div>Đang kiểm tra quyền truy cập...</div>;
   }
 
-  // Nếu người dùng không phải là Admin, chuyển hướng họ về trang chủ
+  // Nếu không phải admin, chặn
   if (user?.globalRole !== 'ADMIN') {
     return <Navigate to="/" replace />;
   }
 
-  // Nếu là Admin, cho phép truy cập
-   if (user?.globalRole == 'ADMIN') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
+  // Cho phép truy cập
   return <Outlet />;
 };
+
 
 export default AdminRoute;

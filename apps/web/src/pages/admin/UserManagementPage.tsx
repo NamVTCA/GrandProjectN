@@ -34,14 +34,41 @@ const UserManagementPage: React.FC = () => {
   }, [fetchUsers]);
 
   // Logic cho các hành động (ban, suspend...) sẽ được thêm sau
-  const handleAction = (userId: string, action: string) => {
-    // Ví dụ: Mở modal xác nhận
-    const reason = prompt(`Nhập lý do cho hành động "${action}" đối với người dùng ${userId}:`);
-    if (reason) {
-      console.log(`Thực hiện ${action} với lý do: ${reason}`);
-      // Gọi API tương ứng ở đây
+const handleAction = async (
+  userId: string,
+  action: 'warn' | 'suspend' | 'ban' | 'restore'
+) => {
+  let payload: any = {};
+
+  if (action === 'warn' || action === 'suspend' || action === 'ban') {
+    const reason = prompt(`Nhập lý do cho hành động "${action}":`);
+    if (!reason) return;
+    payload.reason = reason;
+  }
+
+  if (action === 'suspend') {
+    const daysStr = prompt("Nhập số ngày tạm khóa:");
+    const durationInDays = parseInt(daysStr || "0", 10);
+    if (isNaN(durationInDays) || durationInDays <= 0) {
+      alert("Số ngày không hợp lệ");
+      return;
     }
-  };
+    payload.durationInDays = durationInDays;
+  }
+
+  try {
+    await api.patch(
+      action === 'restore'
+        ? `/admin/users/${userId}/restore`
+        : `/admin/users/${userId}/${action}`
+      
+    );
+    fetchUsers();
+  } catch (error) {
+    console.error(`Lỗi khi thực hiện ${action}:`, error);
+  }
+};
+
 
   if (loading) return <p>Đang tải danh sách người dùng...</p>;
 
@@ -72,6 +99,10 @@ const UserManagementPage: React.FC = () => {
                   <button onClick={() => handleAction(user._id, 'warn')}>Cảnh cáo</button>
                   <button onClick={() => handleAction(user._id, 'suspend')}>Tạm khóa</button>
                   <button onClick={() => handleAction(user._id, 'ban')}>Khóa</button>
+                  <button onClick={() => handleAction(user._id, 'restore')}>
+  Khôi phục
+</button>
+
                 </td>
               </tr>
             ))}
