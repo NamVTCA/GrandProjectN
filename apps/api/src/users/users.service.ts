@@ -6,7 +6,6 @@ import { User, UserDocument } from '../auth/schemas/user.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/schemas/notification.schema';
-import * as schedule from 'node-schedule';
 
 @Injectable()
 export class UsersService {
@@ -192,5 +191,18 @@ export class UsersService {
     }
 
     await user.save();
+  }
+  async GetUserDental(id: string) {
+    const user = await this.userModel.findById(id);
+    return user;
+  }
+  async getAllFriend(id: string) {
+    const user = await this.userModel.findById(id).populate('friends').exec();
+
+    if (!user) {
+      throw new NotFoundException('Người dùng không tồn tại');
+    }
+
+    return user.friends;
   }
 }

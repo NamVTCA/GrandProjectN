@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Notification, NotificationDocument, NotificationType } from './schemas/notification.schema';
+import {
+  Notification,
+  NotificationDocument,
+  NotificationType,
+} from './schemas/notification.schema';
 import { UserDocument } from '../auth/schemas/user.schema';
 import { NotificationsGateway } from './notifications.gateway';
 import { PresenceService } from '../presence/presence.service';
@@ -9,7 +13,8 @@ import { PresenceService } from '../presence/presence.service';
 @Injectable()
 export class NotificationsService {
   constructor(
-    @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
+    @InjectModel(Notification.name)
+    private notificationModel: Model<NotificationDocument>,
     private notificationsGateway: NotificationsGateway,
     private presenceService: PresenceService,
   ) {}
@@ -32,13 +37,21 @@ export class NotificationsService {
     });
 
     const savedNotification = await notification.save();
-    const populatedNotification = await savedNotification.populate('sender', 'username avatar');
+    const populatedNotification = await savedNotification.populate(
+      'sender',
+      'username avatar',
+    );
 
     if (await this.presenceService.isUserOnline(recipient._id.toString())) {
-        const socketId = this.presenceService.getSocketId(recipient._id.toString());
-        if (socketId) {
-            this.notificationsGateway.sendNotificationToUser(socketId, populatedNotification);
-        }
+      const socketId = this.presenceService.getSocketId(
+        recipient._id.toString(),
+      );
+      if (socketId) {
+        this.notificationsGateway.sendNotificationToUser(
+          socketId,
+          populatedNotification,
+        );
+      }
     }
     return populatedNotification;
   }
@@ -51,11 +64,23 @@ export class NotificationsService {
       .exec();
   }
 
-  async markAsRead(notificationId: string, userId: string): Promise<Notification | null> {
+  async markAsRead(
+    notificationId: string,
+    userId: string,
+  ): Promise<Notification | null> {
     return this.notificationModel.findOneAndUpdate(
       { _id: notificationId, recipient: userId },
       { isRead: true },
       { new: true },
     );
+  }
+  async getAllNotification(recivedId: string) {
+    const notifications = await this.notificationModel
+      .find({ recipient: recivedId })
+      .sort({ createdAt: -1 }) // mới nhất lên đầu
+      .populate('sender', 'username avatar') // chỉ lấy username, avatar của người gửi
+      .exec();
+
+    return notifications;
   }
 }

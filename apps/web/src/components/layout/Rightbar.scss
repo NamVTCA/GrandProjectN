@@ -1,18 +1,77 @@
-// @use '../../styles/variables' as *;
-
+// File: Rightbar.scss
+@use '../../styles/variables' as *;
 
 .rightbar {
   width: 300px;
   padding: 20px;
   background-color: $background-component;
   border-left: 1px solid $surface-color;
+
   .rightbar-section {
     margin-bottom: 30px;
+
     h4 {
       color: $text-secondary;
       text-transform: uppercase;
       font-size: 12px;
       margin-bottom: 15px;
+    }
+
+    .placeholder-text {
+      font-size: 14px;
+      color: $text-secondary;
+    }
+
+    .friend-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .friend-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 10px;
+        border-radius: $border-radius-md;
+        transition: background-color 0.2s;
+        position: relative;
+
+        &:hover {
+          background-color: $surface-hover;
+        }
+
+        img {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid $primary-light;
+        }
+
+        span {
+          font-weight: 500;
+          color: $text-light;
+        }
+
+        .status-indicator {
+          position: absolute;
+          right: 10px;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+
+        &.online .status-indicator {
+          background-color: #4caf50;
+        }
+
+        &.offline .status-indicator {
+          background-color: #9e9e9e;
+        }
+      }
     }
   }
 }
