@@ -36,6 +36,7 @@ import ContentManagementPage from './pages/admin/ContentManagementPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 /**
  * Component xử lý logic định tuyến dựa trên trạng thái xác thực.
@@ -76,6 +77,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/chat-bot" element={<ChatPageBot/>}/>
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+
         </Route>
         {/* Route không cần layout chính nhưng vẫn cần xác thực */}
       </Route>

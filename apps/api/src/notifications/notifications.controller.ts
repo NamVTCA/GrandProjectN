@@ -11,11 +11,24 @@ export class NotificationsController {
 
   @Get()
   getNotifications(@GetUser() user: UserDocument) {
-    return this.notificationsService.getNotificationsForUser(user._id.toString());
+    return this.notificationsService.getNotificationsForUser(
+      user._id.toString(),
+    );
   }
 
   @Patch(':id/read')
-  markAsRead(@Param('id') notificationId: string, @GetUser() user: UserDocument) {
-    return this.notificationsService.markAsRead(notificationId, user._id.toString());
+  markAsRead(
+    @Param('id') notificationId: string,
+    @GetUser() user: UserDocument,
+  ) {
+    return this.notificationsService.markAsRead(
+      notificationId,
+      user._id.toString(),
+    );
+  }
+  @Get('/all')
+  @UseGuards(JwtAuthGuard)
+  async getMyNotifications(@GetUser() user: UserDocument) {
+    return this.notificationsService.getAllNotification(user._id.toString());
   }
 }

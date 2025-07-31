@@ -72,4 +72,14 @@ export class UsersController {
       interestIds,
     );
   }
+  @UseGuards(JwtAuthGuard)
+  @Get('get/friends')
+  getAllFriend(@GetUser() user: UserDocument) {
+    return this.usersService.getAllFriend(user._id.toString());
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('get/dental:id')
+  getDental(@Param('id') id: string) {
+    return this.usersService.GetUserDental(id);
+  }
 }
