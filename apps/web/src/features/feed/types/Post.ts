@@ -1,9 +1,7 @@
 // File: src/features/feed/types/Post.ts
 
-// Định nghĩa các loại cảm xúc hợp lệ
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
-// Object chứa các hằng số để dễ sử dụng
 export const ReactionTypes: { [key: string]: ReactionType } = {
   LIKE: 'LIKE',
   LOVE: 'LOVE',
@@ -13,25 +11,25 @@ export const ReactionTypes: { [key: string]: ReactionType } = {
   ANGRY: 'ANGRY',
 };
 
-// --- CÁC INTERFACE CHÍNH ---
+// ✅ Thêm type PostVisibility để dùng lại
+export type PostVisibility = 'PUBLIC' | 'FRIENDS_ONLY' | 'PRIVATE';
 
-interface Author {
+export interface Author {
   _id: string;
   username: string;
-  avatar?: string;
+  avatarUrl?: string;
 }
 
 export interface Reaction {
-  user: string; // Chỉ lưu ID của user
+  user: string;
   type: ReactionType;
 }
 
-// FIX: Thêm interface Comment đã bị thiếu
 export interface Comment {
-    _id: string;
-    content: string;
-    author: Author;
-    createdAt: string;
+  _id: string;
+  content: string;
+  author: Author;
+  createdAt: string;
 }
 
 export interface Post {
@@ -43,5 +41,6 @@ export interface Post {
   commentCount: number;
   repostCount: number;
   createdAt: string;
+  visibility: PostVisibility; // ✅ Sử dụng type đã định nghĩa
   repostOf?: Post;
 }

@@ -6,7 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Post, PostDocument, ModerationStatus } from './schemas/post.schema';
+import {
+  Post,
+  PostDocument,
+  ModerationStatus,
+  PostVisibility,
+} from './schemas/post.schema';
 import { Comment, CommentDocument } from './schemas/comment.schema';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UserDocument } from '../auth/schemas/user.schema';
@@ -39,6 +44,43 @@ export class PostsService {
     user: UserDocument,
     createPostDto: CreatePostDto,
   ): Promise<Post> {
+    // Trường hợp là Repost
+    if (createPostDto.repostOf) {
+      const originalPost = await this.postModel.findById(
+        createPostDto.repostOf,
+      );
+      if (!originalPost) {
+        throw new NotFoundException('Bài viết gốc không tồn tại.');
+      }
+
+      const repost = new this.postModel({
+        content: createPostDto.content || '', // Có thể để trống
+        mediaUrls: [], // Repost không có media
+        author: user._id,
+        repostOf: originalPost._id,
+        moderationStatus: ModerationStatus.APPROVED,
+      });
+
+      const savedRepost = await repost.save();
+
+      await savedRepost.populate({ path: 'author', select: 'username avatar' });
+      await savedRepost.populate({
+        path: 'repostOf',
+        populate: { path: 'author', select: 'username avatar' },
+      });
+
+      // Tăng repost count cho bài gốc
+      await this.postModel.findByIdAndUpdate(originalPost._id, {
+        $inc: { repostCount: 1 },
+      });
+
+      // XP cho repost
+      await this.userService.receiveXP(10, 'repost', user.id);
+
+      return savedRepost;
+    }
+
+    // Trường hợp là post bình thường (có thể có ảnh/video)
     const textModeration = await this.moderationService.checkText(
       createPostDto.content,
     );
@@ -60,10 +102,12 @@ export class PostsService {
         ? ModerationStatus.PROCESSING
         : ModerationStatus.APPROVED,
     });
-    const userid = user._id;
+
     await this.userService.receiveXP(30, 'createPost', user.id);
+
     const savedPost = await newPost.save();
 
+    // Emit sự kiện nếu là video
     if (isVideoPost && createPostDto.mediaUrls) {
       this.eventEmitter.emit('post.video.uploaded', {
         postId: savedPost._id,
@@ -71,6 +115,7 @@ export class PostsService {
       });
     }
 
+    // Cộng XP cho thành viên group nếu có
     if (createPostDto.groupId) {
       const XP_PER_POST = 10;
       await this.groupsService.addXpToMember(
@@ -80,8 +125,8 @@ export class PostsService {
       );
     }
 
-    // FIX: Populate trực tiếp đối tượng vừa lưu
     await savedPost.populate({ path: 'author', select: 'username avatar' });
+
     return savedPost;
   }
 
@@ -245,10 +290,24 @@ export class PostsService {
       throw new NotFoundException('Không tìm thấy bài đăng gốc.');
     }
 
+    // Không cho repost một bài đã là repost
     if (originalPost.repostOf) {
       throw new BadRequestException(
         'Không thể chia sẻ lại một bài đã được chia sẻ.',
       );
+    }
+
+    // Kiểm tra nếu originalPost là FRIENDS_ONLY thì user phải là bạn
+    if (originalPost.visibility === PostVisibility.FRIENDS_ONLY) {
+      const isFriend = user.friends.some(
+        (friendId) => friendId.toString() === originalPost.author.toString(),
+      );
+
+      if (!isFriend && originalPost.author.toString() !== user._id.toString()) {
+        throw new BadRequestException(
+          'Bạn không thể chia sẻ bài viết không thuộc bạn bè.',
+        );
+      }
     }
 
     const newRepost = new this.postModel({
@@ -257,14 +316,16 @@ export class PostsService {
       repostOf: originalPostId,
       mediaUrls: [],
       moderationStatus: ModerationStatus.APPROVED,
+      visibility: PostVisibility.FRIENDS_ONLY, // hoặc repostDto.visibility nếu cho người dùng chọn
     });
 
     const savedRepost = await newRepost.save();
 
+    // Tăng số lượng repost cho bài gốc
     originalPost.repostCount = (originalPost.repostCount || 0) + 1;
     await originalPost.save();
 
-    // FIX: Populate trực tiếp đối tượng vừa lưu
+    // Populate kết quả trả về
     await savedRepost.populate([
       { path: 'author', select: 'username avatar' },
       {
@@ -272,6 +333,7 @@ export class PostsService {
         populate: { path: 'author', select: 'username avatar' },
       },
     ]);
+
     return savedRepost;
   }
 

@@ -11,13 +11,16 @@ interface User {
   coins: number;
   hasSelectedInterests: boolean;
   globalRole: 'USER' | 'MODERATOR' | 'ADMIN';
-  // --- BỔ SUNG ---
-    currentGame?: {
+
+  friends: string[]; // ✅ THÊM DÒNG NÀY
+
+  currentGame?: {
     igdbId: string;
     name: string;
     boxArtUrl: string;
-    };
+  };
 }
+
 
 // Define the shape of the context
 interface AuthContextType {
@@ -28,6 +31,7 @@ interface AuthContextType {
   login: (token: string) => void;
   logout: () => void;
   fetchUser: () => Promise<void>;
+  
 }
 
 // Create the context

@@ -1,4 +1,11 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import {
+  IsArray,
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreatePostDto {
   @ValidateIf((o) => !o.mediaUrls || o.mediaUrls.length === 0)
@@ -14,4 +21,7 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   groupId?: string;
+  @IsOptional()
+  @IsMongoId()
+  readonly repostOf?: string;
 }
