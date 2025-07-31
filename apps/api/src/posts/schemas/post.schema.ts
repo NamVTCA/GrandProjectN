@@ -12,7 +12,11 @@ export enum ModerationStatus {
   REJECTED = 'REJECTED',
   PROCESSING = 'PROCESSING', // Trạng thái mới cho video
 }
-
+export enum PostVisibility {
+  PUBLIC = 'PUBLIC',
+  FRIENDS_ONLY = 'FRIENDS_ONLY',
+  PRIVATE = 'PRIVATE',
+}
 @Schema({ timestamps: true })
 export class Post {
   @Prop({ enum: ModerationStatus, default: ModerationStatus.PENDING })
@@ -42,6 +46,8 @@ export class Post {
 
   @Prop({ default: 0 })
   repostCount: number;
+  @Prop({ enum: PostVisibility, default: PostVisibility.PUBLIC })
+  visibility: PostVisibility;
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);

@@ -78,10 +78,10 @@ export class PostsController {
   // --- NÂNG CẤP ENDPOINT REPOST ---
   @UseGuards(JwtAuthGuard)
   @Post(':id/repost')
-  repost(
+  async repost(
     @Param('id') originalPostId: string,
     @GetUser() user: UserDocument,
-    @Body() repostDto: RepostDto, // <-- Sử dụng DTO mới
+    @Body() repostDto: RepostDto,
   ) {
     return this.postsService.repost(originalPostId, user, repostDto);
   }

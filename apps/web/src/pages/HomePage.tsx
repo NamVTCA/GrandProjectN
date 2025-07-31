@@ -16,13 +16,28 @@ const HomePage: React.FC = () => {
     setLoading(true);
     try {
       const response = await api.get('/posts');
-      setPosts(response.data);
+      const fetchedPosts: Post[] = response.data;
+
+      // Lọc bài viết theo quyền hiển thị
+      const visiblePosts = fetchedPosts.filter(post => {
+        if (post.visibility === 'PUBLIC') return true;
+        if (post.visibility === 'PRIVATE') return post.author._id === user?._id;
+        if (post.visibility === 'FRIENDS_ONLY') {
+          return (
+            post.author._id === user?._id ||
+            user?.friends?.includes(post.author._id)
+          );
+        }
+        return false;
+      });
+
+      setPosts(visiblePosts);
     } catch (error) {
       console.error("Lỗi khi tải bài đăng:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchPosts();
@@ -31,7 +46,6 @@ const HomePage: React.FC = () => {
   const handleReact = useCallback(async (postId: string, reactionType: ReactionType) => {
     try {
       const response = await api.post(`/posts/${postId}/react`, { type: reactionType });
-      // Cập nhật bài đăng cụ thể trong danh sách với dữ liệu mới từ API
       setPosts(currentPosts =>
         currentPosts.map(p => (p._id === postId ? response.data : p))
       );
@@ -42,8 +56,11 @@ const HomePage: React.FC = () => {
 
   const handleRepost = useCallback(async (postId: string, content: string) => {
     try {
-      await api.post(`/posts/${postId}/repost`, { content });
-      fetchPosts(); // Tải lại toàn bộ feed để thấy bài đăng mới
+      await api.post(`/posts/${postId}/repost`, {
+        content,
+        visibility: 'FRIENDS_ONLY' // mặc định chỉ bạn bè được xem
+      });
+      fetchPosts();
     } catch (error) {
       console.error("Lỗi khi chia sẻ bài viết:", error);
     }
@@ -55,19 +72,21 @@ const HomePage: React.FC = () => {
 
   const handleCommentAdded = useCallback((postId: string) => {
     setPosts(currentPosts => currentPosts.map(p => {
-        if (p._id === postId) {
-            return { ...p, commentCount: p.commentCount + 1 };
-        }
-        return p;
+      if (p._id === postId) {
+        return { ...p, commentCount: p.commentCount + 1 };
+      }
+      return p;
     }));
   }, []);
-const handleCommentDeleted = useCallback((postId: string) => {
-  setPosts(currentPosts =>
-    currentPosts.map(p =>
-      p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount - 1) } : p
-    )
-  );
-}, []);
+
+  const handleCommentDeleted = useCallback((postId: string) => {
+    setPosts(currentPosts =>
+      currentPosts.map(p =>
+        p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount - 1) } : p
+      )
+    );
+  }, []);
+
   if (loading) return <p className="page-status">Đang tải bài đăng...</p>;
 
   return (
@@ -83,15 +102,15 @@ const handleCommentDeleted = useCallback((postId: string) => {
               onRepost={handleRepost}
               onPostDeleted={handlePostDeleted}
               onCommentAdded={handleCommentAdded} 
-              onCommentDeleted={handleCommentDeleted}            />
+              onCommentDeleted={handleCommentDeleted}
+            />
           ))
         ) : (
           <p className="page-status">Chưa có bài đăng nào. Hãy là người đầu tiên!</p>
         )}
       </div>
-                      <ChatbotIcon />
+      <ChatbotIcon />
     </div>
-    
   );
 };
 
