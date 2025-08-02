@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { InterestsService } from './interests.service';
 import { CreateInterestDto } from './dto/create-interest.dto';
 import { UpdateInterestDto } from './dto/update-interest.dto';
@@ -22,12 +31,20 @@ export class AdminInterestsController {
   // nên ở đây không cần, Admin có thể dùng chung API đó để xem.
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInterestDto: UpdateInterestDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateInterestDto: UpdateInterestDto,
+  ) {
     return this.interestsService.update(id, updateInterestDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.interestsService.remove(id);
+  }
+  @Delete()
+  async removeMany(@Body('ids') ids: string[]) {
+    await Promise.all(ids.map((id) => this.interestsService.remove(id)));
+    return { message: 'Đã xóa các sở thích đã chọn.' };
   }
 }

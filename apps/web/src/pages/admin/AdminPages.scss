@@ -6,7 +6,7 @@
   margin-top: 2.5rem;
   padding: 2rem;
   border-radius: 12px;
-  background-color: #fdfdfd;
+  background-color: #1b3606;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
   max-width: 600px;
 
@@ -228,11 +228,11 @@
   tbody {
     tr {
       &:nth-child(even) {
-        background-color: #fafafa;
+        background-color: #11582e;
       }
 
       &:hover {
-        background-color: #eef6ff;
+        background-color: #11582e;
       }
 
       td {

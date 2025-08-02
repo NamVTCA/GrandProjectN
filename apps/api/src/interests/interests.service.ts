@@ -7,7 +7,9 @@ import { UpdateInterestDto } from './dto/update-interest.dto';
 
 @Injectable()
 export class InterestsService {
-  constructor(@InjectModel(Interest.name) private interestModel: Model<InterestDocument>) {}
+  constructor(
+    @InjectModel(Interest.name) private interestModel: Model<InterestDocument>,
+  ) {}
 
   async findAll(): Promise<Interest[]> {
     return this.interestModel.find().exec();
@@ -18,8 +20,15 @@ export class InterestsService {
     return newInterest.save();
   }
 
-  async update(id: string, updateInterestDto: UpdateInterestDto): Promise<Interest> {
-    const updatedInterest = await this.interestModel.findByIdAndUpdate(id, updateInterestDto, { new: true });
+  async update(
+    id: string,
+    updateInterestDto: UpdateInterestDto,
+  ): Promise<Interest> {
+    const updatedInterest = await this.interestModel.findByIdAndUpdate(
+      id,
+      updateInterestDto,
+      { new: true },
+    );
     if (!updatedInterest) {
       throw new NotFoundException(`Không tìm thấy sở thích với ID: ${id}`);
     }
@@ -35,5 +44,11 @@ export class InterestsService {
     // Tạm thời để đơn giản, chúng ta chỉ xóa sở thích.
     return { message: 'Đã xóa sở thích thành công.' };
   }
+  async findOne(id: string): Promise<Interest> {
+    const interest = await this.interestModel.findById(id);
+    if (!interest) {
+      throw new NotFoundException(`Không tìm thấy sở thích với ID: ${id}`);
+    }
+    return interest;
+  }
 }
-

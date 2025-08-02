@@ -19,4 +19,7 @@ export class CoinPackagesService {
     const newPackage = new this.coinPackageModel(dto);
     return await newPackage.save();
   }
+  async findOne(packageId: string): Promise<CoinPackage | null> {
+    return this.coinPackageModel.findOne({ packageId });
+  }
 }
