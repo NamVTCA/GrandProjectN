@@ -11,9 +11,7 @@ interface User {
   coins: number;
   hasSelectedInterests: boolean;
   globalRole: 'USER' | 'MODERATOR' | 'ADMIN';
-
   friends: string[]; // ✅ THÊM DÒNG NÀY
-
   currentGame?: {
     igdbId: string;
     name: string;
@@ -21,17 +19,16 @@ interface User {
   };
 }
 
-
 // Define the shape of the context
 interface AuthContextType {
   token: string | null;
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>; // ← thêm
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (token: string) => void;
   logout: () => void;
   fetchUser: () => Promise<void>;
-  
 }
 
 // Create the context
@@ -43,48 +40,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Logout: xóa token + user
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('authToken');
+    delete api.defaults.headers.common['Authorization'];
   }, []);
 
+  // Fetch user từ /auth/me nếu có token
   const fetchUser = useCallback(async () => {
-    if (token) {
-      try {
-        const response = await api.get('/auth/me');
-        setUser(response.data);
-      } catch (error) {
-        console.error("Auth token is invalid or expired. Logging out.", error);
-        logout();
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const response = await api.get<User>('/auth/me');
+      setUser(response.data);
+    } catch (error) {
+      console.error("Auth token is invalid or expired. Logging out.", error);
+      logout();
+    } finally {
       setIsLoading(false);
     }
   }, [token, logout]);
 
   useEffect(() => {
+    // nếu đã có token thì attach vào header và fetchUser
+    if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     fetchUser();
-  }, [fetchUser]);
+  }, [fetchUser, token]);
 
-const login = (newToken: string) => {
-  setToken(newToken);
-  localStorage.setItem('authToken', newToken);
-  api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-  fetchUser(); // gọi ngay
-};
-
+  // Login: lưu token + gọi fetchUser
+  const login = (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem('authToken', newToken);
+    api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+    fetchUser();
+  };
 
   return (
-    <AuthContext.Provider value={{ token, user, isAuthenticated: !!token, isLoading, login, logout, fetchUser }}>
+    <AuthContext.Provider value={{ token, user, setUser, isAuthenticated: !!token, isLoading, login, logout, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Create a custom hook for easy access to the context
+// Hook để dùng context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

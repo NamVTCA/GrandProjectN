@@ -1,20 +1,29 @@
-// apps/api/src/users/users.service.ts
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/schemas/notification.schema';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private notificationsService: NotificationsService,
   ) {}
 
-  async findByUsername(username: string) {
+  // Route công khai: xem profile theo username
+  async findByUsername(username: string): Promise<UserDocument> {
     const user = await this.userModel
       .findOne({ username })
       .select('-password -email')
@@ -26,21 +35,55 @@ export class UsersService {
     return user;
   }
 
+  // Cập nhật profile cơ bản (name, bio…)
   async updateProfile(
     userId: string | Types.ObjectId,
     updateUserDto: UpdateUserDto,
-  ) {
-    const updatedUser = await this.userModel
+  ): Promise<UserDocument> {
+    const updated = await this.userModel
       .findByIdAndUpdate(userId, updateUserDto, { new: true })
       .select('-password')
       .exec();
 
-    if (!updatedUser) {
+    if (!updated) {
       throw new NotFoundException('Không tìm thấy người dùng');
     }
-    return updatedUser;
+    return updated;
   }
 
+  // Cập nhật avatar: nhận avatarPath (string) rồi lưu vào document
+  async updateAvatar(
+    userId: string | Types.ObjectId,
+    avatarPath: string,
+  ): Promise<UserDocument> {
+    const updated = await this.userModel
+      .findByIdAndUpdate(userId, { avatar: avatarPath }, { new: true })
+      .select('-password')
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy người dùng khi cập nhật avatar');
+    }
+    return updated;
+  }
+
+  // Cập nhật coverImage: nhận coverPath (string) rồi lưu vào document
+  async updateCover(
+    userId: string | Types.ObjectId,
+    coverPath: string,
+  ): Promise<UserDocument> {
+    const updated = await this.userModel
+      .findByIdAndUpdate(userId, { coverImage: coverPath }, { new: true })
+      .select('-password')
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy người dùng khi cập nhật cover');
+    }
+    return updated;
+  }
+
+  // Theo dõi user khác
   async followUser(
     currentUserId: string | Types.ObjectId,
     userIdToFollow: string,
@@ -48,22 +91,16 @@ export class UsersService {
     if (currentUserId.toString() === userIdToFollow) {
       throw new Error('Bạn không thể tự theo dõi chính mình.');
     }
-
     await this.userModel.findByIdAndUpdate(currentUserId, {
       $addToSet: { following: userIdToFollow },
     });
-
     await this.userModel.findByIdAndUpdate(userIdToFollow, {
       $addToSet: { followers: currentUserId },
     });
-
     const userToFollowDoc = await this.userModel.findById(userIdToFollow);
     const currentUserDoc = await this.userModel.findById(currentUserId);
-
     if (!userToFollowDoc || !currentUserDoc) {
-      throw new NotFoundException(
-        'Không tìm thấy người dùng để tạo thông báo.',
-      );
+      throw new NotFoundException('Không tìm thấy người dùng để tạo thông báo.');
     }
     await this.receiveXP(
       2,
@@ -77,10 +114,10 @@ export class UsersService {
       NotificationType.NEW_FOLLOWER,
       `/profile/${currentUserDoc.username}`,
     );
-
     return { message: 'Theo dõi thành công.' };
   }
 
+  // Bỏ theo dõi
   async unfollowUser(
     currentUserId: string | Types.ObjectId,
     userIdToUnfollow: string,
@@ -88,31 +125,33 @@ export class UsersService {
     await this.userModel.findByIdAndUpdate(currentUserId, {
       $pull: { following: userIdToUnfollow },
     });
-
     await this.userModel.findByIdAndUpdate(userIdToUnfollow, {
       $pull: { followers: currentUserId },
     });
-
     return { message: 'Bỏ theo dõi thành công.' };
   }
 
+  // Cập nhật sở thích user
   async updateUserInterests(
     userId: string,
     interestIds: string[],
   ): Promise<UserDocument> {
-    const updatedUser = await this.userModel
+    const updated = await this.userModel
       .findByIdAndUpdate(
         userId,
         { $set: { interests: interestIds, hasSelectedInterests: true } },
         { new: true },
       )
-      .populate('interests');
+      .populate('interests')
+      .exec();
 
-    if (!updatedUser) {
+    if (!updated) {
       throw new NotFoundException('Không tìm thấy người dùng');
     }
-    return updatedUser;
+    return updated;
   }
+
+  // Xử lý XP khi follow
   async receiveXP(
     xp: number,
     kind: string,
@@ -121,15 +160,12 @@ export class UsersService {
   ): Promise<void> {
     const user = await this.userModel.findById(userId);
     if (!user) {
-      console.warn(`User with ID ${userId} not found.`);
+      this.logger.warn(`User with ID ${userId} not found.`);
       return;
     }
-
     if (kind === 'follow') {
-      await this.handleUserFollowed(userId); // gọi xử lý bonus milestone
+      await this.handleUserFollowed(userId);
     }
-
-    // Chặn cộng quá giới hạn trong ngày
     if (user.xp_per_day >= 250) {
       await this.notificationsService.createNotification(
         user,
@@ -137,29 +173,28 @@ export class UsersService {
         NotificationType.NEW_NOTIFICATION,
         null,
       );
-      console.log(`User ${user.username} reached daily XP limit.`);
+      this.logger.log(`User ${user.username} reached daily XP limit.`);
       return;
     }
-
     const allowedXP = Math.max(0, 250 - user.xp_per_day);
     xp = Math.min(xp, allowedXP);
     user.xp_per_day += xp;
     user.xp += xp;
     await user.save();
   }
+
+  // Xử lý milestone XP
   async handleUserFollowed(followedUserId: string): Promise<void> {
     const user = await this.userModel.findById(followedUserId);
     if (!user) {
-      console.warn(`User with ID ${followedUserId} not found.`);
+      this.logger.warn(`User with ID ${followedUserId} not found.`);
       return;
     }
-
     const baseXP = 20;
     const canAddBase = Math.max(0, 250 - user.xp_per_day);
     const baseAdded = Math.min(baseXP, canAddBase);
     user.xp_per_day += baseAdded;
-    user.xp += baseAdded; // ✅ Cộng vào tổng XP
-
+    user.xp += baseAdded;
     const currentFollowers = user.followers?.length || 0;
     const milestones = [
       { count: 10, bonusXP: 100 },
@@ -168,41 +203,36 @@ export class UsersService {
       { count: 500, bonusXP: 3000 },
       { count: 1000, bonusXP: 7000 },
     ];
-
     user.milestonesReached ??= [];
-
-    for (const milestone of milestones) {
+    for (const m of milestones) {
       if (
-        currentFollowers >= milestone.count &&
-        !user.milestonesReached.includes(milestone.count)
+        currentFollowers >= m.count &&
+        !user.milestonesReached.includes(m.count)
       ) {
         const canAddBonus = Math.max(0, 250 - user.xp_per_day);
-        const bonusAdded = Math.min(canAddBonus, milestone.bonusXP);
-
+        const bonusAdded = Math.min(canAddBonus, m.bonusXP);
         user.xp_per_day += bonusAdded;
-        user.xp += bonusAdded; // ✅ Cộng vào tổng XP
-
-        user.milestonesReached.push(milestone.count);
-
-        console.log(
-          `User ${user.username} đạt mốc ${milestone.count} follower. Cộng bonus ${bonusAdded} XP.`,
+        user.xp += bonusAdded;
+        user.milestonesReached.push(m.count);
+        this.logger.log(
+          `User ${user.username} đạt mốc ${m.count}. Bonus ${bonusAdded} XP.`,
         );
       }
     }
-
     await user.save();
   }
+
+  // Lấy thông tin dental
   async GetUserDental(id: string) {
-    const user = await this.userModel.findById(id);
-    return user;
+    return this.userModel.findById(id).exec();
   }
+
+  // Lấy bạn bè
   async getAllFriend(id: string) {
     const user = await this.userModel.findById(id).populate('friends').exec();
-
     if (!user) {
       throw new NotFoundException('Người dùng không tồn tại');
     }
-
     return user.friends;
   }
 }

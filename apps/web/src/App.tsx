@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+// File: src/App.tsx
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { ToastProvider } from './components/common/Toast/ToastContext';
 
@@ -16,10 +18,10 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import SelectInterestsPage from './pages/SelectInterestsPage';
 import ChatPageBot from './pages/ChatPageBot';
 
-
 // Core Feature Pages
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
+import EditProfileUser from './features/profile/pages/EditProfileUser';
 import GroupsPage from './pages/GroupsPage';
 import CreateGroupPage from './pages/CreateGroupPage';
 import GroupDetailPage from './pages/GroupDetailPage';
@@ -38,6 +40,13 @@ import AdminRoute from './components/auth/AdminRoute';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import NotificationsPage from './pages/NotificationsPage';
 
+// ======= Wrapper để force remount ProfilePage mỗi khi username thay đổi =======
+const ProfilePageWithKey: React.FC = () => {
+  const { username } = useParams<{ username: string }>();
+  return <ProfilePage key={username} />; // dùng username làm key
+};
+// ============================================================================
+
 /**
  * Component xử lý logic định tuyến dựa trên trạng thái xác thực.
  */
@@ -47,7 +56,16 @@ const AppRoutes: React.FC = () => {
   // Hiển thị màn hình chờ trong khi kiểm tra token
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#fff', backgroundColor: '#1a1d21' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          color: '#fff',
+          backgroundColor: '#1a1d21',
+        }}
+      >
         Đang tải ứng dụng...
       </div>
     );
@@ -68,21 +86,26 @@ const AppRoutes: React.FC = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/profile/:username" element={<ProfilePage />} />
+
+          {/* Dùng wrapper có key để force remount */}
+          <Route path="/profile/:username" element={<ProfilePageWithKey />} />
+
+          <Route path="/profile/:username/edit" element={<EditProfileUser />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupDetailPage />} />
           <Route path="/groups/create" element={<CreateGroupPage />} />
           <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
           <Route path="/chat" element={<ChatPage />} />
-          <Route path="/chat-bot" element={<ChatPageBot/>}/>
+          <Route path="/chat-bot" element={<ChatPageBot />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-
         </Route>
-        {/* Route không cần layout chính nhưng vẫn cần xác thực */}
       </Route>
-        <Route path="/select-interests" element={<SelectInterestsPage />} />
+
+      {/* Route không cần layout nhưng vẫn cần xác thực */}
+      <Route path="/select-interests" element={<SelectInterestsPage />} />
+
       {/* === PUBLIC ROUTES === */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
@@ -90,32 +113,28 @@ const AppRoutes: React.FC = () => {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       </Route>
-      
-      {/* Route công khai không cần layout */}
       <Route path="/verify-email" element={<VerifyEmailPage />} />
 
       {/* === FALLBACK ROUTE === */}
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
-
+      <Route
+        path="*"
+        element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />}
+      />
     </Routes>
-    
   );
-  
 };
 
 /**
  * Component gốc của ứng dụng.
  */
-function App() {
-  return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
-  );
-}
+const App: React.FC = () => (
+  <BrowserRouter>
+    <ToastProvider>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ToastProvider>
+  </BrowserRouter>
+);
 
 export default App;

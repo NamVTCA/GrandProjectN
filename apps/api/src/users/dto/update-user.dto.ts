@@ -17,4 +17,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsDateString()
   birthday?: Date;
+
+  @IsOptional()
+  @IsString()
+  username?: string;
 }

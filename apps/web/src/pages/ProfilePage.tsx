@@ -1,75 +1,109 @@
-// File: src/pages/ProfilePage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import ProfileHeader from '../features/profile/components/ProfileHeader';
 import UserPostList from '../features/profile/components/UserPostList';
-import  type { UserProfile } from '../features/profile/types/UserProfile';
+import type { UserProfile } from '../features/profile/types/UserProfile';
 import { useAuth } from '../features/auth/AuthContext';
 import './ProfilePage.scss';
 
-const ProfilePage: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
-  const { user: currentUser } = useAuth(); // Lấy thông tin người dùng đang đăng nhập
+type LocationState = {
+  updatedProfile?: UserProfile;
+};
 
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+const ProfilePage: React.FC = () => {
+  // 1) param username từ URL
+  const { username: paramUsername } = useParams<{ username: string }>();
+  // 2) location.state khi navigate kèm updatedProfile
+  const { state } = useLocation() as { state: LocationState };
+  const { user: currentUser } = useAuth();
+
+  // 3) stateProfile = state.updatedProfile nếu có
+  const stateProfile = state?.updatedProfile;
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(
+    stateProfile ?? null
+  );
   const [isFollowing, setIsFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!stateProfile); // nếu có state thì ko loading
   const [error, setError] = useState<string | null>(null);
 
+  // 4) fetch hoặc dùng stateProfile
   const fetchProfile = useCallback(async () => {
-    if (!username) return;
-    setLoading(true);
-    setError(null);
+    // Nếu đã có stateProfile từ navigation, dùng ngay
+    if (stateProfile) {
+      setIsFollowing(
+        !!currentUser && stateProfile.followers.includes(currentUser._id)
+      );
+      return;
+    }
+
+    // Nếu ko có paramUsername hoặc stateProfile, báo lỗi
+    if (!paramUsername) {
+      setError('Không xác định username.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.get(`/users/${username}`);
-      const profileData: UserProfile = response.data;
-      setUserProfile(profileData);
-      // Kiểm tra xem người dùng hiện tại có đang theo dõi hồ sơ này không
-      if (currentUser && profileData.followers.includes(currentUser._id)) {
-        setIsFollowing(true);
-      }
+      const { data } = await api.get<UserProfile>(`/users/${paramUsername}`);
+      setUserProfile(data);
+      setIsFollowing(
+        !!currentUser && data.followers.includes(currentUser._id)
+      );
     } catch (err) {
-      setError('Không tìm thấy người dùng hoặc đã có lỗi xảy ra.');
       console.error(err);
+      setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
     } finally {
       setLoading(false);
     }
-  }, [username, currentUser]);
+  }, [paramUsername, currentUser, stateProfile]);
 
+  // 5) useEffect chỉ gọi fetch nếu chưa có stateProfile
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (!stateProfile) {
+      fetchProfile();
+    }
+  }, [fetchProfile, stateProfile]);
 
+  // 6) Hàm follow/unfollow
   const handleFollowToggle = async () => {
-    if (!userProfile) return;
-
+    if (!userProfile || !currentUser) return;
     try {
       if (isFollowing) {
-        // --- Logic Bỏ theo dõi ---
         await api.delete(`/users/${userProfile._id}/follow`);
-        // Cập nhật UI một cách lạc quan (optimistic update)
-        setUserProfile(prev => prev ? { ...prev, followers: prev.followers.filter(id => id !== currentUser?._id) } : null);
+        setUserProfile(prev =>
+          prev
+            ? {
+                ...prev,
+                followers: prev.followers.filter(id => id !== currentUser._id),
+              }
+            : prev
+        );
       } else {
-        // --- Logic Theo dõi ---
         await api.post(`/users/${userProfile._id}/follow`);
-        // Cập nhật UI một cách lạc quan
-        setUserProfile(prev => prev ? { ...prev, followers: [...prev.followers, currentUser!._id] } : null);
+        setUserProfile(prev =>
+          prev
+            ? { ...prev, followers: [...prev.followers, currentUser._id] }
+            : prev
+        );
       }
-      setIsFollowing(prev => !prev);
-    } catch (error) {
-      console.error("Lỗi khi thực hiện theo dõi/bỏ theo dõi:", error);
+      setIsFollowing(!isFollowing);
+    } catch (err) {
+      console.error('Lỗi khi (un)follow:', err);
     }
   };
 
+  // 7) UI trạng thái
   if (loading) return <div className="page-status">Đang tải hồ sơ...</div>;
   if (error) return <div className="page-status error">{error}</div>;
   if (!userProfile) return null;
 
+  // 8) Render chính
   return (
     <div className="profile-page">
-      <ProfileHeader 
-        userProfile={userProfile} 
+      <ProfileHeader
+        userProfile={userProfile}
         isFollowing={isFollowing}
         onFollowToggle={handleFollowToggle}
       />
