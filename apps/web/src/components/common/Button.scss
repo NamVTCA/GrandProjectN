@@ -1,28 +1,61 @@
-// Chỉ cần MỘT dòng này ở trên cùng
-// @use '../../styles/index' as *;
+// File: apps/web/src/components/common/Button/Button.scss
 
-.custom-button {
-  padding: 14px;
-  background: linear-gradient(45deg, $primary-main, $primary-accent);
-  color: $text-light;
-  border: none;
+.btn {
+  padding: 0.75rem 1.5rem;
   border-radius: $border-radius-md;
-  font-weight: bold;
-  font-size: 16px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 15px rgba($primary-main, 0.4);
-  }
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:disabled {
-    background: $surface-color;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+    opacity: 0.6;
+  }
+
+  // Variant "primary"
+  &.btn-primary {
+    background-color: $primary-color;
+    color: $text-light;
+    border-color: $primary-color;
+
+    &:hover:not(:disabled) {
+      // ✅ SỬA LỖI: Dùng hàm rgba() để làm tối màu hover
+      background-color: rgba(black, 0.1); // Thêm một lớp màu đen mờ lên trên
+      border-color: rgba(black, 0.1);
+      transform: translateY(-2px);
+      box-shadow: $card-shadow;
+    }
+  }
+
+  // Variant "secondary"
+  &.btn-secondary {
+    background-color: $surface-color;
+    color: $text-secondary;
+    border-color: $border-color;
+
+    &:hover:not(:disabled) {
+      // ✅ SỬA LỖI: Dùng hàm rgba() để làm sáng màu hover
+      background-color: rgba(white, 0.05); // Thêm một lớp màu trắng mờ lên trên
+      border-color: $text-secondary;
+      color: $text-light;
+    }
+  }
+
+  // Variant "ghost"
+  &.btn-ghost {
+    background-color: transparent;
+    color: $text-secondary;
+    border-color: transparent;
+
+    &:hover:not(:disabled) {
+      background-color: $surface-color;
+      color: $text-light;
+    }
   }
 }

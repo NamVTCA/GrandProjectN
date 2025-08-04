@@ -116,4 +116,12 @@ export class PostsController {
   deleteComment(@Param('id') id: string) {
     return this.postsService.deleteComment(id);
   }
+
+    // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
+  @Get('group/:groupId') // <-- Route: GET /api/posts/group/:groupId
+  @UseGuards(JwtAuthGuard)
+  findAllByGroup(@Param('groupId') groupId: string) {
+    // Gọi đến service để tìm tất cả các bài viết có groupId tương ứng
+    return this.postsService.findAllByGroup(groupId);
+  }
 }

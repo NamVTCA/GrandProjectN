@@ -1,13 +1,21 @@
 import React, { useState, useRef } from 'react';
 import api from '../../../services/api';
 import { useAuth } from '../../auth/AuthContext';
+import type { Post } from '../types/Post'; // 1. Import Post type
 import './CreatePost.scss';
 
+// 2. Cập nhật interface để onPostCreated có thể nhận bài viết mới
 interface CreatePostProps {
-  onPostCreated: () => void;
+  onPostCreated: (newPost: Post) => void;
+  context?: 'profile' | 'group';
+  contextId?: string;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ 
+  onPostCreated, 
+  context = 'profile',
+  contextId 
+}) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
@@ -15,12 +23,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- CẤU HÌNH CLOUDINARY ---
-  // THAY THẾ CÁC GIÁ TRỊ NÀY BẰNG THÔNG TIN TÀI KHOẢN CLOUDINARY CỦA BẠN
-  const CLOUDINARY_CLOUD_NAME = "das4ycyz9"; // <-- THAY THẾ
-  const CLOUDINARY_UPLOAD_PRESET = "SocialMedia"; // <-- THAY THẾ
+  const CLOUDINARY_CLOUD_NAME = "das4ycyz9";
+  const CLOUDINARY_UPLOAD_PRESET = "SocialMedia";
   const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -28,12 +33,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     }
   };
 
-  // Hàm tải một file lên Cloudinary
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
     try {
       const response = await fetch(CLOUDINARY_URL, {
         method: 'POST',
@@ -51,7 +54,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() && mediaFiles.length === 0) return;
@@ -60,27 +62,36 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     setError(null);
 
     try {
-      // B1: Tải tất cả media files lên Cloudinary và lấy URLs
       const mediaUrls = await Promise.all(
         mediaFiles.map(file => uploadFile(file))
       );
 
-      // B2: Gọi API của bạn để tạo bài đăng
-      await api.post('/posts', {
+      const payload: { content: string; mediaUrls: string[]; groupId?: string } = {
         content,
         mediaUrls,
-      });
+      };
 
-      // B3: Reset form và thông báo thành công
+      if (context === 'group' && contextId) {
+        payload.groupId = contextId;
+      }
+      
+      // 3. Lấy kết quả bài viết mới từ API
+      const response = await api.post<Post>('/posts', payload);
+      const newPost = response.data; // Đây là bài viết mới server trả về
+
+      // Reset form
       setContent('');
       setMediaFiles([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      onPostCreated();
+      
+      // 4. Gửi bài viết mới về cho component cha để cập nhật UI ngay lập tức
+      onPostCreated(newPost);
+
     } catch (err: any) {
       console.error("Lỗi khi đăng bài:", err);
-      setError(err.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
+      setError(err.response?.data?.message || "Đã có lỗi xảy ra.");
     } finally {
       setIsSubmitting(false);
     }
@@ -115,13 +126,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
           {isSubmitting ? 'Đang đăng...' : 'Đăng'}
         </button>
       </div>
-       {mediaFiles.length > 0 && (
-        <div className="media-preview">
-            {mediaFiles.map((file, index) => (
-                <p key={index}>{file.name}</p>
-            ))}
-        </div>
-      )}
+      {mediaFiles.length > 0 && (
+       <div className="media-preview">
+           {mediaFiles.map((file, index) => (
+               <p key={index}>{file.name}</p>
+           ))}
+       </div>
+     )}
       {error && <p className="error-message">{error}</p>}
     </div>
   );

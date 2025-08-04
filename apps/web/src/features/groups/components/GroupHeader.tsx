@@ -1,13 +1,10 @@
-// File: src/features/groups/components/GroupHeader.tsx
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { GroupDetail } from '../types/Group';
 import Button from '../../../components/common/Button';
-import { FaCog, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa'; // Thêm icons cho sinh động
+import { FaCog, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import './GroupHeader.scss';
 
-// 1. Mở rộng props để nhận đầy đủ trạng thái từ component cha
 interface GroupHeaderProps {
   group: GroupDetail;
   isMember: boolean;
@@ -17,21 +14,19 @@ interface GroupHeaderProps {
 }
 
 const GroupHeader: React.FC<GroupHeaderProps> = ({
-  // 2. Nhận các props mới ở đây
   group,
   isMember,
   isOwner,
   onJoinLeaveClick,
   isProcessing,
 }) => {
-  // 3. Xóa logic `useAuth` và `isOwner` khỏi component này
 
-  // Hàm để tạo nút hành động một cách linh hoạt
   const renderActionButton = () => {
     // Nếu là chủ sở hữu, hiển thị nút Quản lý
     if (isOwner) {
       return (
-        <Link to={`/groups/${group._id}/settings`}>
+        // ✅ SỬA LỖI: Thay thế ':id' bằng ID thật của nhóm
+        <Link to={`/groups/${group._id}/manage`}>
           <Button variant="secondary" disabled={isProcessing}>
             <FaCog /> Quản lý nhóm
           </Button>
@@ -87,7 +82,6 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
             </p>
           </div>
           <div className="group-actions">
-            {/* 4. Sử dụng hàm renderActionButton để hiển thị nút chính xác */}
             {renderActionButton()}
           </div>
         </div>

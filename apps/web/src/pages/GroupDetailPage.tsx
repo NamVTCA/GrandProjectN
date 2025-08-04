@@ -1,133 +1,173 @@
-// File: apps/web/src/pages/GroupDetailPage.tsx
-// Description: Refactored detail page to use the GroupHeader component.
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../services/api'; // api là một AxiosInstance
-import type { GroupDetail, GroupMember } from '../features/groups/types/Group';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import api from '../services/api';
 import { useAuth } from '../features/auth/AuthContext';
-import { useToast } from '../components/common/Toast/ToastContext';
+import type { GroupDetail } from '../features/groups/types/Group';
+import type { Post, ReactionType, PostVisibility } from '../features/feed/types/Post';
 import GroupHeader from '../features/groups/components/GroupHeader';
+import CreatePost from '../features/feed/components/CreatePost';
+import PostCard from '../features/feed/components/PostCard';
 import './GroupDetailPage.scss';
 
-// Component danh sách thành viên (giữ nguyên)
-const MemberList: React.FC<{ members: GroupMember[] }> = ({ members }) => (
-  <div className="widget-card">
-    <h2>Thành viên ({members.length})</h2>
-    <ul className="member-list">
-      {members.map(member => (
-        <li key={member._id} className="member-item">
-          <Link to={`/profile/${member._id}`}>
-            <img src={member.avatar || 'https://placehold.co/50x50/2a2a2a/ffffff?text=U'} alt={member.username} />
-            <div className="member-info">
-              <span className="username">{member.username}</span>
-              <span className="role">{member.role}</span>
-            </div>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
 const GroupDetailPage: React.FC = () => {
-  const { groupId } = useParams<{ groupId: string }>();
-  const { user } = useAuth();
-  const { addToast } = useToast();
+    // --- STATE & HOOKS ---
+    const { id: groupId } = useParams<{ id: string }>();
+    const { user } = useAuth();
+    const [group, setGroup] = useState<GroupDetail | null>(null);
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isProcessingJoin, setIsProcessingJoin] = useState<boolean>(false);
 
-  const [group, setGroup] = useState<GroupDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Hàm fetch dữ liệu nhóm (đã sửa)
-  useEffect(() => {
-    if (!groupId) return;
-    const fetchGroup = async () => {
-      try {
-        setLoading(true);
-        // SỬA Ở ĐÂY: Dùng api.get với URL
-        const response = await api.get(`/groups/${groupId}`);
-        setGroup(response.data);
-      } catch (error) {
-        addToast('Không tìm thấy nhóm hoặc có lỗi xảy ra.', 'error');
-      } finally {
-        setLoading(false);
-      }
+    // --- CÁC HÀM XỬ LÝ SỰ KIỆN CHO BÀI VIẾT ---
+    const handleReact = async (postId: string, reaction: ReactionType) => {
+        try {
+            const updatedPost = await api.post<Post>(`/posts/${postId}/react`, { type: reaction });
+            setPosts(currentPosts =>
+                currentPosts.map(p => p._id === postId ? updatedPost.data : p)
+            );
+        } catch (err) {
+            console.error("Lỗi khi bày tỏ cảm xúc:", err);
+        }
     };
-    fetchGroup();
-  }, [groupId, addToast]);
 
-  // Logic xác định vai trò thành viên (giữ nguyên)
-  const { isMember, isOwner } = useMemo(() => {
-    if (!user || !group) return { isMember: false, isOwner: false };
-    const member = group.members.find(m => m._id === user._id);
-    return {
-      isMember: !!member,
-      isOwner: group.owner === user._id,
+    const handlePostDeleted = (postId: string) => {
+        setPosts(currentPosts => currentPosts.filter(p => p._id !== postId));
+        api.delete(`/posts/${postId}`).catch(err => {
+            console.error("Lỗi khi xóa bài viết:", err);
+        });
     };
-  }, [user, group]);
+    
+    const handleRepost = (postId: string, content: string, visibility: PostVisibility) => {
+        console.log(`Chia sẻ bài viết ${postId} với nội dung: ${content}`);
+    };
 
-  // Logic xử lý tham gia/rời nhóm (đã sửa)
-  const handleJoinLeave = async () => {
-    if (!groupId) return;
-    setIsProcessing(true);
-    try {
-      // SỬA Ở ĐÂY: Xác định endpoint và dùng api.post()
-      const endpoint = isMember ? `/groups/${groupId}/leave` : `/groups/${groupId}/join`;
-      await api.post(endpoint);
+    const handleCommentChange = (postId: string, change: number) => {
+        setPosts(currentPosts =>
+            currentPosts.map(p =>
+                p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount + change) } : p
+            )
+        );
+    };
 
-      addToast(isMember ? 'Bạn đã rời khỏi nhóm.' : 'Yêu cầu tham gia đã được gửi.', 'success');
+    // --- CÁC HÀM TẢI DỮ LIỆU ---
+    const fetchPosts = useCallback(async () => {
+        if (!groupId) return;
+        try {
+            const response = await api.get<Post[]>(`/posts/group/${groupId}`);
+            setPosts(response.data);
+        } catch (err) {
+            console.error("Lỗi khi tải bài viết của nhóm:", err);
+        }
+    }, [groupId]);
 
-      // SỬA Ở ĐÂY: Lấy lại dữ liệu nhóm sau khi hành động thành công
-      const updatedResponse = await api.get(`/groups/${groupId}`);
-      setGroup(updatedResponse.data);
-    } catch (error: any) {
-      addToast(error.response?.data?.message || 'Thao tác thất bại.', 'error');
-    } finally {
-      setIsProcessing(false);
+    useEffect(() => {
+        if (!groupId) {
+            setLoading(false);
+            setError("Không tìm thấy ID của nhóm.");
+            return;
+        }
+        const fetchAllData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const [groupResponse] = await Promise.all([
+                    api.get<GroupDetail>(`/groups/${groupId}`),
+                    fetchPosts()
+                ]);
+                setGroup(groupResponse.data);
+            } catch (err) {
+                setError("Không thể tải thông tin nhóm. Nhóm có thể không tồn tại hoặc đã bị xóa.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAllData();
+    }, [groupId, fetchPosts]);
+
+    const isOwner = useMemo(() => {
+        if (!user || !group) return false;
+        return user._id === group.owner._id;
+    }, [user, group]);
+
+    const isMember = useMemo(() => {
+        if (!user || !group) return false;
+        return group.members.some(member => member.user?._id === user._id);
+    }, [user, group]);
+
+    const handleJoinLeaveClick = async () => {
+        if (!group) return;
+        setIsProcessingJoin(true);
+        try {
+            const endpoint = isMember ? `/groups/${group._id}/leave` : `/groups/${group._id}/join`;
+            const response = await api.post<GroupDetail>(endpoint);
+            setGroup(response.data);
+        } catch (err) {
+            console.error("Lỗi khi tham gia/rời khỏi nhóm:", err);
+        } finally {
+            setIsProcessingJoin(false);
+        }
+    };
+
+    // ✅ HÀM MỚI: Xử lý khi có bài viết mới được tạo
+    const handlePostCreated = (newPost: Post) => {
+        // Thêm bài viết mới vào đầu danh sách hiện tại để cập nhật UI ngay lập tức
+        setPosts(currentPosts => [newPost, ...currentPosts]);
+    };
+    
+    // --- RENDER ---
+    if (loading) {
+        return <div className="page-loading">Đang tải...</div>;
     }
-  };
+    if (error) {
+        return <div className="page-loading error">{error}</div>;
+    }
+    if (!group) {
+        return <div className="page-loading">Không tìm thấy nhóm.</div>;
+    }
 
-  if (loading) return <div className="page-loading">Đang tải thông tin nhóm...</div>;
-  if (!group) return <div className="page-loading">Không tìm thấy nhóm.</div>;
-
-  return (
-    <div className="group-detail-page">
-      {/* SỬ DỤNG COMPONENT GROUPHEADER */}
-      <GroupHeader
-        group={group}
-        isMember={isMember}
-        isOwner={isOwner}
-        onJoinLeaveClick={handleJoinLeave}
-        isProcessing={isProcessing}
-      />
-
-      <main className="group-body">
-        <div className="main-content">
-          <div className="widget-card">
-            <h2>Bài viết (sắp có)</h2>
-          </div>
-        </div>
-        <aside className="sidebar-content">
-          <div className="widget-card">
-            <h2>Giới thiệu</h2>
-            <p>{group.description}</p>
-            {group.interests.length > 0 && (
-              <div className="interests-section">
-                <h4>Sở thích</h4>
-                <div className="interests-tags">
-                  {group.interests.map(interest => (
-                    <span key={interest._id} className="tag">{interest.name}</span>
-                  ))}
+    return (
+        <div className="group-detail-page">
+            <GroupHeader
+                group={group}
+                isOwner={isOwner}
+                isMember={isMember}
+                isProcessing={isProcessingJoin}
+                onJoinLeaveClick={handleJoinLeaveClick}
+            />
+            <div className="group-body">
+                <div className="main-content">
+                    {isMember && (
+                        <CreatePost
+                            context="group"
+                            contextId={group._id}
+                            onPostCreated={handlePostCreated} // <-- SỬ DỤNG HÀM MỚI
+                        />
+                    )}
+                    <div className="post-list">
+                        {posts.length > 0 ? (
+                            posts.map(post => (
+                                <PostCard
+                                    key={post._id}
+                                    post={post}
+                                    onReact={handleReact}
+                                    onRepost={handleRepost}
+                                    onPostDeleted={handlePostDeleted}
+                                    onCommentAdded={() => handleCommentChange(post._id, 1)}
+                                    onCommentDeleted={() => handleCommentChange(post._id, -1)}
+                                />
+                            ))
+                        ) : (
+                             <p className="page-status">Chưa có bài viết nào trong nhóm này. Hãy là người đầu tiên!</p>
+                        )}
+                    </div>
                 </div>
-              </div>
-            )}
-          </div>
-          <MemberList members={group.members} />
-        </aside>
-      </main>
-    </div>
-  );
+                <div className="sidebar-content">
+                    {/* ... (phần sidebar giữ nguyên) ... */}
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default GroupDetailPage;

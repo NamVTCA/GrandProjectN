@@ -162,7 +162,7 @@ const PostCard: React.FC<PostCardProps> = ({
     setLocalCommentCount(post.commentCount);
   }, [post.commentCount]);
 
-  const isAuthor = user?._id === post.author._id;
+  const isAuthor = user?._id === post.author?._id;
   const currentUserReaction = user
     ? post.reactions.find((r) => r.user === user._id)
     : null;
