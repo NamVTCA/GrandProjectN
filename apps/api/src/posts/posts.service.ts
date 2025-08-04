@@ -44,98 +44,89 @@ export class PostsService {
     user: UserDocument,
     createPostDto: CreatePostDto,
   ): Promise<Post> {
-    // Trường hợp là Repost
+    // --- XỬ LÝ REPOST ---
     if (createPostDto.repostOf) {
-      const originalPost = await this.postModel.findById(
-        createPostDto.repostOf,
-      );
+      const originalPost = await this.postModel.findById(createPostDto.repostOf);
       if (!originalPost) {
         throw new NotFoundException('Bài viết gốc không tồn tại.');
       }
 
       const repost = new this.postModel({
-        content: createPostDto.content || '', // Có thể để trống
-        mediaUrls: [], // Repost không có media
+        content: createPostDto.content || '',
         author: user._id,
         repostOf: originalPost._id,
+        visibility: createPostDto.visibility,
         moderationStatus: ModerationStatus.APPROVED,
       });
 
-      const savedRepost = await repost.save();
-
-      await savedRepost.populate({ path: 'author', select: 'username avatar' });
-      await savedRepost.populate({
-        path: 'repostOf',
-        populate: { path: 'author', select: 'username avatar' },
-      });
-
-      // Tăng repost count cho bài gốc
-      await this.postModel.findByIdAndUpdate(originalPost._id, {
-        $inc: { repostCount: 1 },
-      });
-
-      // XP cho repost
+      originalPost.repostCount += 1;
+      await originalPost.save();
       await this.userService.receiveXP(10, 'repost', user.id);
 
-      return savedRepost;
+      const savedRepost = await repost.save();
+      
+      // Quan trọng: Populate đầy đủ thông tin và return
+      return savedRepost.populate([
+          { path: 'author', select: 'username avatar' },
+          { 
+              path: 'repostOf',
+              populate: { path: 'author', select: 'username avatar' }
+          }
+      ]);
     }
 
-    // Trường hợp là post bình thường (có thể có ảnh/video)
-    const textModeration = await this.moderationService.checkText(
-      createPostDto.content,
-    );
+    // --- XỬ LÝ BÀI VIẾT THƯỜNG ---
+    const textModeration = await this.moderationService.checkText(createPostDto.content);
     if (textModeration.status === ModerationStatus.REJECTED) {
-      throw new BadRequestException(
-        `Nội dung của bạn không phù hợp: ${textModeration.reason}`,
-      );
+      throw new BadRequestException(`Nội dung của bạn không phù hợp: ${textModeration.reason}`);
     }
 
-    const isVideoPost =
-      createPostDto.mediaUrls && createPostDto.mediaUrls[0]?.includes('.mp4');
+    const isVideoPost = createPostDto.mediaUrls && createPostDto.mediaUrls[0]?.includes('.mp4');
 
     const newPost = new this.postModel({
       content: createPostDto.content,
       mediaUrls: createPostDto.mediaUrls,
       author: user._id,
-      group: createPostDto.groupId,
+      group: createPostDto.groupId, // Lấy groupId từ DTO
+      visibility: createPostDto.visibility,
       moderationStatus: isVideoPost
         ? ModerationStatus.PROCESSING
         : ModerationStatus.APPROVED,
     });
 
-    await this.userService.receiveXP(30, 'createPost', user.id);
-
     const savedPost = await newPost.save();
 
-    // Emit sự kiện nếu là video
+    // Xử lý các tác vụ phụ
+    await this.userService.receiveXP(30, 'createPost', user.id);
     if (isVideoPost && createPostDto.mediaUrls) {
       this.eventEmitter.emit('post.video.uploaded', {
         postId: savedPost._id,
         videoPath: createPostDto.mediaUrls[0],
       });
     }
-
-    // Cộng XP cho thành viên group nếu có
     if (createPostDto.groupId) {
-      const XP_PER_POST = 10;
       await this.groupsService.addXpToMember(
         user._id.toString(),
         createPostDto.groupId,
-        XP_PER_POST,
+        10, // XP_PER_POST
       );
     }
 
-    await savedPost.populate({ path: 'author', select: 'username avatar' });
-
-    return savedPost;
+    // Quan trọng: Populate đầy đủ thông tin tác giả và return
+    return savedPost.populate({ path: 'author', select: 'username avatar' });
   }
-
+  
+  // ✅ CẬP NHẬT LẠI HÀM NÀY
   async findAllPosts(): Promise<Post[]> {
     return this.postModel
       .find({
+        // ĐIỀU KIỆN 1: Trạng thái kiểm duyệt phù hợp
         moderationStatus: {
           $in: [ModerationStatus.APPROVED, ModerationStatus.PROCESSING],
         },
+        // ✅ ĐIỀU KIỆN 2 (QUAN TRỌNG): Chỉ lấy các bài viết
+        // không thuộc về nhóm nào (trường 'group' không tồn tại hoặc là null)
+        group: { $exists: false },
       })
       .populate('author', 'username avatar')
       .populate({
@@ -403,5 +394,25 @@ export class PostsService {
   }
   async deleteComment(id: string) {
     return await this.commentModel.findByIdAndDelete(id);
+  }
+
+
+    // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
+  async findAllByGroup(groupId: string): Promise<Post[]> {
+    return this.postModel
+      .find({
+        // Chỉ lấy các bài viết có groupId khớp với ID được cung cấp
+        group: groupId,
+        moderationStatus: {
+          $in: [ModerationStatus.APPROVED, ModerationStatus.PROCESSING],
+        },
+      })
+      .sort({ createdAt: -1 })
+      .populate('author', 'username avatar')
+      .populate({
+        path: 'repostOf',
+        populate: { path: 'author', select: 'username avatar' },
+      })
+      .exec();
   }
 }

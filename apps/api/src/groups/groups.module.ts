@@ -11,6 +11,8 @@ import { UsersModule } from '../users/users.module';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { Post, PostSchema } from '../posts/schemas/post.schema';
 import { Comment, CommentSchema } from '../posts/schemas/comment.schema';
+import { JoinRequest, JoinRequestSchema } from './schemas/join-request.schema'; 
+import { GroupOwnerGuard } from './guards/group-owner.guard';
 
 @Module({
   imports: [
@@ -21,13 +23,14 @@ import { Comment, CommentSchema } from '../posts/schemas/comment.schema';
       { name: User.name, schema: UserSchema },
       { name: Post.name, schema: PostSchema },
       { name: Comment.name, schema: CommentSchema },
+      { name: JoinRequest.name, schema: JoinRequestSchema },
     ]),
     AuthModule,
     RewardsModule,
     UsersModule, // <-- Thêm UsersModule để sử dụng UserService
   ],
   controllers: [GroupsController],
-  providers: [GroupsService],
+  providers: [GroupsService, GroupOwnerGuard],
   exports: [GroupsService], // Export để PostsModule có thể dùng
 })
 export class GroupsModule {}

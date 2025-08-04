@@ -1,56 +1,57 @@
-// File: apps/web/src/features/groups/types/Group.ts
-// Description: Updated data structures for the Groups feature to match the backend schema.
+// File: src/features/groups/types/Group.ts
+// Description: Cập nhật cấu trúc dữ liệu cho tính năng Nhóm để khớp với schema của backend.
 
-// Define the structure for an Interest tag
+import type { UserProfile } from '../../profile/types/UserProfile'; // Import type UserProfile
+
+// Cấu trúc cho một tag Sở thích
 export interface Interest {
   _id: string;
   name: string;
 }
 
-// Define the structure for a user object within a group
+// ✅ [ĐÃ SỬA] Cấu trúc cho một Thành viên trong nhóm.
+// Backend trả về một object lồng nhau { user: {...}, role: '...' },
+// nên chúng ta cần định nghĩa type cho đúng cấu trúc này.
 export interface GroupMember {
-    _id: string;
-    username: string;
-    avatar?: string;
-    role: 'MEMBER' | 'MODERATOR' | 'OWNER'; // Role of the member
+  user: UserProfile; // Thông tin chi tiết của người dùng
+  role: 'MEMBER' | 'MODERATOR' | 'OWNER';
+  joinedAt: string;
 }
 
-// Define the structure for a Group, matching the final Backend schema
+// Cấu trúc cho một Nhóm (dạng xem tóm tắt, dùng cho danh sách)
 export interface Group {
   _id: string;
   name: string;
   description: string;
-  owner: string; // ID of the user who owns the group
+  // ✅ [ĐÃ SỬA] Backend sẽ trả về một object User đã được populate, không chỉ là ID
+  owner: UserProfile; 
   interests: Interest[];
-  privacy: 'public' | 'private'; // Added from previous versions for consistency
+  privacy: 'public' | 'private';
   avatar?: string;
   coverImage?: string;
   memberCount: number;
 }
 
 
-// Define the structure for a detailed Group view
+// Cấu trúc cho một Nhóm (dạng xem chi tiết)
 export interface GroupDetail extends Group {
-    members: GroupMember[];
+  // Trang chi tiết sẽ có thêm danh sách thành viên đầy đủ
+  members: GroupMember[]; 
 }
 
-// Define the structure for creating a group
+// Cấu trúc để tạo một nhóm mới
 export interface CreateGroupDto {
-    name: string;
-    description: string;
-    privacy: 'public' | 'private';
-    interestIds?: string[]; // Optional: for adding interests on creation
+  name: string;
+  description: string;
+  privacy: 'public' | 'private';
+  interestIds?: string[];
 }
 
-// Define the structure for a join request
+// Cấu trúc cho một yêu cầu tham gia nhóm
 export interface JoinRequest {
-    _id: string;
-    user: {
-        _id: string;
-        username: string;
-        avatar?: string;
-    };
-    group: string; // Group ID
-    status: 'PENDING';
-    createdAt: string;
+  _id: string;
+  user: UserProfile;
+  group: string; // Group ID
+  status: 'PENDING';
+  createdAt: string;
 }

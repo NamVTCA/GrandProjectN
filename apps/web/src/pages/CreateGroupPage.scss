@@ -1,81 +1,112 @@
+// File này sẽ tự động nhận các biến ($primary-color, $background-body...)
+// và hàm (rgba) từ cấu hình Vite, không cần @import hay @use ở đây.
+
 .create-group-page {
   display: flex;
   justify-content: center;
-  align-items: flex-start; // Changed to flex-start for long forms
+  align-items: flex-start;
   padding: 2rem;
   min-height: calc(100vh - #{$header-height});
+  background-color: $background-body;
+}
 
-  .create-group-form {
-    background-color: $color-gray-dark;
-    padding: 2rem 2.5rem;
-    border-radius: 8px;
+.create-group-form {
+  background-color: $background-component;
+  padding: 2.5rem;
+  border-radius: $border-radius-lg;
+  width: 100%;
+  max-width: 650px;
+  border: 1px solid $border-color;
+  box-shadow: $card-shadow;
+
+  h1 {
+    text-align: center;
+    color: $primary-color;
+    margin-bottom: 0.75rem;
+    font-size: 2rem;
+  }
+
+  p {
+    text-align: center;
+    color: $text-secondary;
+    margin-bottom: 2.5rem;
+  }
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    color: $text-light;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  // Component <Input /> đã được style chung, chúng ta chỉ cần style
+  // cho textarea và select để đồng bộ.
+  textarea,
+  select {
     width: 100%;
-    max-width: 600px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    border: 1px solid $color-gray-medium;
+    padding: 0.8rem 1rem;
+    background-color: $surface-color;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-md;
+    color: $text-light;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
 
-    h1, p {
-      text-align: center;
-    }
-
-    h1 {
-      color: $color-primary;
-      margin-bottom: 0.5rem;
-    }
-
-    p {
-      color: $color-gray-light;
-      margin-bottom: 2rem;
-    }
-
-    .form-group {
-      margin-bottom: 1.5rem;
-
-      label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-        color: $text-light;
-      }
-      
-      textarea, select {
-        width: 100%;
-        padding: 0.75rem;
-        background-color: $color-gray-light;
-        border: 1px solid $color-gray-medium;
-        border-radius: 4px;
-        color: $text-light;
-        font-size: 1rem;
-        transition: border-color 0.2s;
-
-        &:focus {
-          outline: none;
-          border-color: $color-primary;
-        }
-      }
-    }
-
-    .interests-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      padding: 0.5rem;
-      background-color: $color-gray-light;
-      border-radius: 4px;
-      border: 1px solid $color-gray-medium;
-
-      .interest-tag {
-        padding: 0.3rem 0.8rem;
-        font-size: 0.9rem;
-        border-radius: 16px;
-      }
-    }
-
-    .submit-btn {
-      width: 100%;
-      padding: 0.8rem;
-      font-size: 1.1rem;
-      margin-top: 1rem;
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      // Dùng hàm rgba() để tương thích 100%
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
     }
   }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='#{$text-secondary}' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  .error-text {
+    color: $error-color;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    display: block;
+  }
+}
+
+.interests-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: $surface-color;
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
+  margin-top: 0.5rem;
+
+  .interest-tag {
+    border-radius: 999px;
+  }
+}
+
+.submit-btn {
+  width: 100%;
+  margin-top: 1.5rem;
 }

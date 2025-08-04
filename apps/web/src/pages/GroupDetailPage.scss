@@ -1,66 +1,32 @@
-// @use 'src/styles/index' as *;
+// Hiển thị trạng thái tải trang hoặc lỗi
 .page-loading {
-  text-align: center;
-  font-size: 1.2rem;
-  color: $color-gray-light;
-  height: 50vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 60vh;
+  font-size: 1.2rem;
+  color: $text-secondary; // Dùng biến màu chữ phụ
+
+  &.error {
+    color: $error-color; // Dùng biến màu báo lỗi
+  }
 }
 
+// Bố cục chính của trang
 .group-detail-page {
-  .group-header {
-    background-color: $color-gray-dark;
-    border-bottom: 1px solid $color-gray-medium;
-    margin-bottom: -80px; // Pull the body up
-
-    .cover-image {
-      width: 100%;
-      height: 300px;
-      object-fit: cover;
-    }
-
-    .header-content {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 2rem 1rem 2rem;
-      display: flex;
-      align-items: flex-end;
-      position: relative;
-      top: -60px;
-
-      .avatar {
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        border: 5px solid $color-bg-dark;
-        margin-right: 1.5rem;
-        background-color: $color-gray-dark;
-      }
-
-      .group-info {
-        flex-grow: 1;
-        color: $text-light;
-        h1 { font-size: 2.2rem; font-weight: bold; margin: 0; }
-        p { margin: 0.25rem 0 0 0; color: $color-gray-light; }
-      }
-
-      .group-actions {
-        display: flex;
-        gap: 1rem;
-      }
-    }
-  }
+  padding-bottom: 3rem;
 
   .group-body {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem;
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    // Cải thiện responsive cho cột
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
+    position: relative;
+    z-index: 2; // Đẩy nội dung lên trên header
   }
 
   .main-content {
@@ -74,61 +40,95 @@
     flex-direction: column;
     gap: 1.5rem;
     position: sticky;
-    top: calc(#{$header-height} + 1rem);
+    top: calc(#{$header-height} + 1.5rem); // Dùng biến chiều cao header
   }
 
+  // --- WIDGETS ---
   .widget-card {
-    background-color: $color-gray-dark;
+    background-color: $background-component; // Dùng biến màu nền component
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: $border-radius-lg; // Dùng biến bo góc
+    border: 1px solid $border-color;
     
     h2 {
       font-size: 1.2rem;
-      font-weight: bold;
+      font-weight: 600; // Giảm độ đậm một chút
+      color: $text-light;
       margin: 0 0 1rem 0;
-      border-bottom: 1px solid $color-gray-medium;
-      padding-bottom: 0.75rem;
+      border-bottom: 1px solid $border-color; // Dùng biến màu viền
+      padding-bottom: 1rem;
     }
 
-    p { line-height: 1.6; white-space: pre-wrap; }
+    p { 
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: $text-secondary;
+    }
 
     .interests-section {
       margin-top: 1.5rem;
-      h4 { font-size: 1rem; margin-bottom: 0.5rem; }
+
+      h4 { 
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+        color: $text-light;
+      }
+
       .interests-tags {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
+
         .tag {
-          background-color: $color-gray-medium;
+          background-color: $surface-color; // Dùng màu nền bề mặt
           padding: 0.3rem 0.8rem;
-          border-radius: 16px;
-          font-size: 0.9rem;
+          border-radius: 999px; // Bo tròn hoàn toàn
+          font-size: 0.85rem;
+          font-weight: 500;
         }
       }
     }
   }
 
+  // --- MEMBER LIST ---
   .member-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
     .member-item a {
       display: flex;
       align-items: center;
-      padding: 0.5rem 0;
+      padding: 0.5rem;
       text-decoration: none;
       color: $text-light;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-      &:hover { background-color: $color-gray-medium; }
+      border-radius: $border-radius-md;
+      transition: background-color 0.2s ease;
 
-      img { width: 40px; height: 40px; border-radius: 50%; margin-right: 1rem; }
+      &:hover { 
+        background-color: $surface-color; // Thêm hiệu ứng hover
+      }
+
+      img { 
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        object-fit: cover; // Đảm bảo ảnh không bị méo
+      }
+
       .member-info {
         display: flex;
         flex-direction: column;
-        .username { font-weight: bold; }
-        .role { font-size: 0.8rem; color: $color-gray-light; text-transform: capitalize; }
+        .username { font-weight: 600; }
+        .role { 
+          font-size: 0.8rem;
+          color: $text-secondary;
+          text-transform: capitalize;
+        }
       }
     }
   }

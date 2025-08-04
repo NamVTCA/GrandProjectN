@@ -5,7 +5,9 @@ import {
   IsOptional,
   IsString,
   ValidateIf,
+  IsEnum,
 } from 'class-validator';
+import { PostVisibility } from '../schemas/post.schema'; // 1. Import Enum
 
 export class CreatePostDto {
   @ValidateIf((o) => !o.mediaUrls || o.mediaUrls.length === 0)
@@ -24,4 +26,7 @@ export class CreatePostDto {
   @IsOptional()
   @IsMongoId()
   readonly repostOf?: string;
+  @IsEnum(PostVisibility)
+  @IsOptional()
+  visibility?: PostVisibility;
 }
