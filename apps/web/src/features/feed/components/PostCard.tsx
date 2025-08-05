@@ -16,7 +16,7 @@ import {
 } from "react-icons/fa";
 import api from "../../../services/api";
 import { useAuth } from "../../auth/AuthContext";
-import type { Post, Comment, ReactionType, PostVisibility,  } from "../types/Post";
+import type { Post, Comment, ReactionType, PostVisibility } from "../types/Post";
 import { ReactionTypes } from "../types/Post";
 import "./PostCard.scss";
 
@@ -62,6 +62,7 @@ const CommentSection: React.FC<{
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    // Sử dụng modal tùy chỉnh thay vì window.confirm nếu muốn
     if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) return;
 
     try {
@@ -92,7 +93,7 @@ const CommentSection: React.FC<{
           <div key={comment._id} className="comment">
             <img
               src={
-                comment.author.avatarUrl ||
+                comment.author.avatarUrl || // Sửa thành avatar
                 "https://placehold.co/32x32/242526/b0b3b8?text=..."
               }
               alt={comment.author.username}
@@ -157,6 +158,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [visibility, setVisibility] = useState<PostVisibility>("FRIENDS_ONLY");
   const [showReactions, setShowReactions] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
+  // ✅ THÊM STATE MỚI ĐỂ QUẢN LÝ MODAL XÁC NHẬN XÓA
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     setLocalCommentCount(post.commentCount);
@@ -177,10 +180,16 @@ const PostCard: React.FC<PostCardProps> = ({
     setRepostContent("");
   };
 
+  // ✅ CẬP NHẬT HÀM XÓA
   const handleDelete = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa bài đăng này?")) {
-      onPostDeleted(post._id);
-    }
+    // Thay vì gọi window.confirm, chúng ta sẽ mở modal
+    setDeleteModalOpen(true);
+  };
+
+  // ✅ HÀM MỚI: Xử lý khi người dùng xác nhận xóa từ modal
+  const confirmDelete = () => {
+    onPostDeleted(post._id);
+    setDeleteModalOpen(false); // Đóng modal sau khi xóa
   };
 
   const renderVisibilityIcon = (v: PostVisibility) => {
@@ -359,6 +368,20 @@ const PostCard: React.FC<PostCardProps> = ({
             <div className="modal-actions">
               <button onClick={() => setRepostModalOpen(false)}>Hủy</button>
               <button onClick={handleRepostSubmit}>Chia sẻ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ THÊM MODAL XÁC NHẬN XÓA */}
+      {isDeleteModalOpen && (
+        <div className="modal-overlay" onClick={() => setDeleteModalOpen(false)}>
+          <div className="modal-content confirm-delete-modal" onClick={e => e.stopPropagation()}>
+            <h3>Xác nhận xóa</h3>
+            <p>Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setDeleteModalOpen(false)}>Hủy</button>
+              <button className="btn-confirm-delete" onClick={confirmDelete}>Xóa</button>
             </div>
           </div>
         </div>

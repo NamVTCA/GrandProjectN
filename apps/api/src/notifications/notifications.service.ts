@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { OnEvent } from '@nestjs/event-emitter'; // 1. Import OnEvent
+
 import {
   Notification,
   NotificationDocument,
   NotificationType,
 } from './schemas/notification.schema';
-import { UserDocument } from '../auth/schemas/user.schema';
+import { User, UserDocument } from '../auth/schemas/user.schema';
 import { NotificationsGateway } from './notifications.gateway';
 import { PresenceService } from '../presence/presence.service';
 
@@ -15,10 +17,13 @@ export class NotificationsService {
   constructor(
     @InjectModel(Notification.name)
     private notificationModel: Model<NotificationDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
     private notificationsGateway: NotificationsGateway,
     private presenceService: PresenceService,
   ) {}
 
+  // Hàm createNotification của bạn đã rất tốt, giữ nguyên
   async createNotification(
     recipient: UserDocument,
     sender: UserDocument,
@@ -42,6 +47,7 @@ export class NotificationsService {
       'username avatar',
     );
 
+    // Gửi tín hiệu real-time
     if (await this.presenceService.isUserOnline(recipient._id.toString())) {
       const socketId = this.presenceService.getSocketId(
         recipient._id.toString(),
@@ -82,5 +88,32 @@ export class NotificationsService {
       .exec();
 
     return notifications;
+  }
+
+    // ✅ THÊM HÀM NÀY VÀO
+  // Hàm này sẽ tự động chạy mỗi khi có sự kiện 'notification.create' được phát ra
+  // Hàm này sẽ tự động chạy mỗi khi có sự kiện 'notification.create'
+  @OnEvent('notification.create')
+  async handleNotificationCreateEvent(payload: { 
+    recipientId: string, 
+    actor: UserDocument, 
+    type: NotificationType,
+    link?: string 
+  }) {
+    // 3. ✅ DÙNG ID ĐỂ TÌM KIẾM USER ĐẦY ĐỦ
+    const recipient = await this.userModel.findById(payload.recipientId);
+    if (!recipient) {
+      console.error(`Không tìm thấy người dùng nhận thông báo với ID: ${payload.recipientId}`);
+      return; // Dừng lại nếu không tìm thấy người nhận
+    }
+
+    // 4. ✅ TẠO THÔNG BÁO VỚI DỮ LIỆU ĐÃ ĐƯỢC CHUẨN HÓA
+    // Logic tạo và gửi real-time đã nằm trong hàm này nên không cần lặp lại
+    await this.createNotification(
+        recipient, 
+        payload.actor, 
+        payload.type,
+        payload.link || null 
+    );
   }
 }

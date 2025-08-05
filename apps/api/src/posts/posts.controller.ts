@@ -1,14 +1,5 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  Patch,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
+  Controller, Get, Post, Body, Param, Delete, Patch, UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -16,8 +7,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { ReactToPostDto } from './dto/react-to-post.dto'; // <-- IMPORT DTO MỚI
-import { RepostDto } from './dto/repost.dto'; // <-- IMPORT DTO MỚI
+import { ReactToPostDto } from './dto/react-to-post.dto';
+import { RepostDto } from './dto/repost.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -25,18 +16,52 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  // --- CÁC ROUTE CỤ THỂ (KHÔNG CÓ THAM SỐ) ĐƯỢC ĐẶT LÊN ĐẦU ---
+
   @UseGuards(JwtAuthGuard)
   @Post()
   create(@GetUser() user: UserDocument, @Body() createPostDto: CreatePostDto) {
     return this.postsService.createPost(user, createPostDto);
   }
 
-  @Get()
-  findAll() {
-    return this.postsService.findAllPosts();
+  @Get('feed') // ✅ Route này sẽ được kiểm tra trước
+  @UseGuards(JwtAuthGuard)
+  getForFeed(@GetUser() user: UserDocument) {
+    return this.postsService.findAllForFeed(user);
+  }
+  
+  // --- CÁC ROUTE CÓ THAM SỐ NHƯNG CỤ THỂ ---
+  
+  @Get('group/:groupId')
+  @UseGuards(JwtAuthGuard)
+  findAllByGroup(@Param('groupId') groupId: string) {
+    return this.postsService.findAllByGroup(groupId);
   }
 
-  @Get(':id')
+  @Get('user/:authorId')
+  findPostsByAuthor(@Param('authorId') authorId: string) {
+    return this.postsService.findPostsByAuthor(authorId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('comments/:id')
+  updateComment(
+    @Param('id') commentId: string,
+    @GetUser() user: UserDocument,
+    @Body() updateCommentDto: UpdateCommentDto,
+  ) {
+    return this.postsService.updateComment(commentId, user, updateCommentDto);
+  }
+  
+  @UseGuards(JwtAuthGuard)
+  @Delete('comments/:id')
+  deleteComment(@Param('id') id: string) {
+    return this.postsService.deleteComment(id);
+  }
+
+  // --- CÁC ROUTE CHUNG CHUNG (CÓ THAM SỐ :id) ĐƯỢC ĐẶT XUỐNG DƯỚI ---
+
+  @Get(':id') // Route này sẽ chỉ được dùng khi các route ở trên không khớp
   findOne(@Param('id') id: string) {
     return this.postsService.findPostById(id);
   }
@@ -47,7 +72,6 @@ export class PostsController {
     return this.postsService.deletePost(id, user);
   }
 
-  // --- Bình luận ---
   @UseGuards(JwtAuthGuard)
   @Post(':id/comments')
   addComment(
@@ -63,19 +87,17 @@ export class PostsController {
     return this.postsService.findCommentsByPost(postId);
   }
 
-  // --- THAY ĐỔI ENDPOINT TỪ `/like` SANG `/react` ---
   @UseGuards(JwtAuthGuard)
-  @Post(':id/react') // <-- Đổi tên endpoint
+  @Post(':id/react')
   @HttpCode(HttpStatus.OK)
   toggleReaction(
     @Param('id') postId: string,
     @GetUser() user: UserDocument,
-    @Body() reactToPostDto: ReactToPostDto, // <-- Sử dụng DTO mới
+    @Body() reactToPostDto: ReactToPostDto,
   ) {
     return this.postsService.toggleReaction(postId, user, reactToPostDto);
   }
 
-  // --- NÂNG CẤP ENDPOINT REPOST ---
   @UseGuards(JwtAuthGuard)
   @Post(':id/repost')
   async repost(
@@ -86,12 +108,6 @@ export class PostsController {
     return this.postsService.repost(originalPostId, user, repostDto);
   }
 
-  @Get('user/:authorId')
-  findPostsByAuthor(@Param('authorId') authorId: string) {
-    return this.postsService.findPostsByAuthor(authorId);
-  }
-
-  // --- CÁC ENDPOINT MỚI ---
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   updatePost(
@@ -100,28 +116,5 @@ export class PostsController {
     @Body() updatePostDto: UpdatePostDto,
   ) {
     return this.postsService.updatePost(postId, user, updatePostDto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Patch('comments/:id')
-  updateComment(
-    @Param('id') commentId: string,
-    @GetUser() user: UserDocument,
-    @Body() updateCommentDto: UpdateCommentDto,
-  ) {
-    return this.postsService.updateComment(commentId, user, updateCommentDto);
-  }
-  @UseGuards(JwtAuthGuard)
-  @Delete('comments/:id')
-  deleteComment(@Param('id') id: string) {
-    return this.postsService.deleteComment(id);
-  }
-
-    // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
-  @Get('group/:groupId') // <-- Route: GET /api/posts/group/:groupId
-  @UseGuards(JwtAuthGuard)
-  findAllByGroup(@Param('groupId') groupId: string) {
-    // Gọi đến service để tìm tất cả các bài viết có groupId tương ứng
-    return this.postsService.findAllByGroup(groupId);
   }
 }

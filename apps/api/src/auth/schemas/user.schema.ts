@@ -59,6 +59,7 @@ export class GameStatus {
 
 @Schema({ timestamps: true })
 export class User {
+  _id: mongoose.Schema.Types.ObjectId;
   @Prop({ enum: GlobalRole, default: GlobalRole.USER })
   globalRole: GlobalRole;
 

@@ -4,13 +4,16 @@ import { User } from '../../auth/schemas/user.schema';
 
 export type NotificationDocument = Notification & Document;
 
+// ✅ ĐÃ HOÀN THIỆN: Enum này giờ đã bao gồm tất cả các loại thông báo
 export enum NotificationType {
-  NEW_LIKE = 'NEW_LIKE',
-  NEW_COMMENT = 'NEW_COMMENT',
-  NEW_FOLLOWER = 'NEW_FOLLOWER',
-  GAME_INVITE = 'GAME_INVITE',
-  NEW_REACTION = 'NEW_REACTION',
-  NEW_NOTIFICATION = 'NEW_NOTIFICATION',
+  NEW_REACTION = 'NEW_REACTION',   // Cho một lượt "thích" hoặc bày tỏ cảm xúc
+  NEW_COMMENT = 'NEW_COMMENT',     // Cho một bình luận mới
+  NEW_FOLLOWER = 'NEW_FOLLOWER',   // Cho một người theo dõi mới
+  FRIEND_REQUEST = 'FRIEND_REQUEST', // Cho một lời mời kết bạn mới
+  FRIEND_REQUEST_ACCEPTED = 'FRIEND_ACCEPTED',// cho một lời đồng ý kết bạn
+  GAME_INVITE = 'GAME_INVITE',     // Cho một lời mời chơi game
+  NEW_NOTIFICATION='NEW_NOTIFICATION'
+  // Bạn có thể thêm các loại khác ở đây trong tương lai
 }
 
 @Schema({ timestamps: true })
@@ -29,6 +32,7 @@ export class Notification {
 
   @Prop()
   link?: string;
+  
   @Prop({ type: Object })
   metadata?: {
     gameName?: string;

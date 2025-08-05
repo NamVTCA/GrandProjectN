@@ -1,20 +1,20 @@
 import React, { useState, useRef } from 'react';
 import api from '../../../services/api';
 import { useAuth } from '../../auth/AuthContext';
-import type { Post } from '../types/Post'; // 1. Import Post type
+import type { Post, PostVisibility } from '../types/Post';
 import './CreatePost.scss';
 
-// 2. Cập nhật interface để onPostCreated có thể nhận bài viết mới
+// Cập nhật interface để onPostCreated có thể nhận bài viết mới
 interface CreatePostProps {
   onPostCreated: (newPost: Post) => void;
   context?: 'profile' | 'group';
   contextId?: string;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ 
-  onPostCreated, 
+const CreatePost: React.FC<CreatePostProps> = ({
+  onPostCreated,
   context = 'profile',
-  contextId 
+  contextId
 }) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
@@ -22,6 +22,9 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Thêm state mới để quản lý chế độ hiển thị
+  const [visibility, setVisibility] = useState<PostVisibility>('PUBLIC');
 
   const CLOUDINARY_CLOUD_NAME = "das4ycyz9";
   const CLOUDINARY_UPLOAD_PRESET = "SocialMedia";
@@ -60,34 +63,31 @@ const CreatePost: React.FC<CreatePostProps> = ({
 
     setIsSubmitting(true);
     setError(null);
-
     try {
       const mediaUrls = await Promise.all(
         mediaFiles.map(file => uploadFile(file))
       );
 
-      const payload: { content: string; mediaUrls: string[]; groupId?: string } = {
+      // Thêm 'visibility' vào payload
+      const payload = {
         content,
         mediaUrls,
+        groupId: context === 'group' ? contextId : undefined,
+        visibility,
       };
 
-      if (context === 'group' && contextId) {
-        payload.groupId = contextId;
-      }
-      
-      // 3. Lấy kết quả bài viết mới từ API
       const response = await api.post<Post>('/posts', payload);
-      const newPost = response.data; // Đây là bài viết mới server trả về
-
+      
       // Reset form
       setContent('');
       setMediaFiles([]);
+      setVisibility('PUBLIC');
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
       
-      // 4. Gửi bài viết mới về cho component cha để cập nhật UI ngay lập tức
-      onPostCreated(newPost);
+      // Gửi bài viết mới về cho component cha để cập nhật UI ngay lập tức
+      onPostCreated(response.data);
 
     } catch (err: any) {
       console.error("Lỗi khi đăng bài:", err);
@@ -122,6 +122,20 @@ const CreatePost: React.FC<CreatePostProps> = ({
             style={{ display: 'none' }}
             accept="image/*,video/*"
         />
+
+        {/* Chỉ hiển thị dropdown khi không ở trong nhóm */}
+        {context !== 'group' && (
+          <select 
+            className="visibility-select" 
+            value={visibility} 
+            onChange={(e) => setVisibility(e.target.value as PostVisibility)}
+          >
+            <option value="PUBLIC">🌍 Công khai</option>
+            <option value="FRIENDS_ONLY">👥 Bạn bè</option>
+            <option value="PRIVATE">🔒 Riêng tư</option>
+          </select>
+        )}
+        
         <button className="submit-btn" onClick={handleSubmit} disabled={(!content.trim() && mediaFiles.length === 0) || isSubmitting}>
           {isSubmitting ? 'Đang đăng...' : 'Đăng'}
         </button>

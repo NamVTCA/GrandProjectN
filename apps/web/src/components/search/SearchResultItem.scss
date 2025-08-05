@@ -1,0 +1,41 @@
+@use '../../styles/index' as *;
+
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: $border-radius-sm;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+
+    &:hover {
+        background-color: $background-component;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: $text-light;
+        
+        img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        span {
+            font-weight: 600;
+        }
+    }
+
+    .action-button {
+        button {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+    }
+}
