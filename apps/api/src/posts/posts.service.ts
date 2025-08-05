@@ -26,7 +26,7 @@ import { RepostDto } from './dto/repost.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { UsersService } from 'src/users/users.service';
-
+import { GroupDocument } from '../groups/schemas/group.schema'; 
 @Injectable()
 export class PostsService {
   constructor(
@@ -62,10 +62,8 @@ export class PostsService {
       originalPost.repostCount += 1;
       await originalPost.save();
       await this.userService.receiveXP(10, 'repost', user.id);
-
       const savedRepost = await repost.save();
       
-      // Quan trọng: Populate đầy đủ thông tin và return
       return savedRepost.populate([
           { path: 'author', select: 'username avatar' },
           { 
@@ -87,7 +85,7 @@ export class PostsService {
       content: createPostDto.content,
       mediaUrls: createPostDto.mediaUrls,
       author: user._id,
-      group: createPostDto.groupId, // Lấy groupId từ DTO
+      group: createPostDto.groupId,
       visibility: createPostDto.visibility,
       moderationStatus: isVideoPost
         ? ModerationStatus.PROCESSING
@@ -96,7 +94,6 @@ export class PostsService {
 
     const savedPost = await newPost.save();
 
-    // Xử lý các tác vụ phụ
     await this.userService.receiveXP(30, 'createPost', user.id);
     if (isVideoPost && createPostDto.mediaUrls) {
       this.eventEmitter.emit('post.video.uploaded', {
@@ -108,37 +105,55 @@ export class PostsService {
       await this.groupsService.addXpToMember(
         user._id.toString(),
         createPostDto.groupId,
-        10, // XP_PER_POST
+        10,
       );
     }
-
-    // Quan trọng: Populate đầy đủ thông tin tác giả và return
+    
     return savedPost.populate({ path: 'author', select: 'username avatar' });
   }
   
-  // ✅ CẬP NHẬT LẠI HÀM NÀY
-  async findAllPosts(): Promise<Post[]> {
+  // ✅ HÀM DÀNH CHO TRANG CHỦ
+  // ✅ THAY THẾ HÀM findAllPosts BẰNG HÀM NÀY
+async findAllForFeed(currentUser: UserDocument): Promise<Post[]> {
+    // Lấy danh sách ID của bạn bè VÀ những người mình đang theo dõi
+    const friendIds = currentUser.friends.map(friend => friend._id);
+    const followingIds = currentUser.following.map(followedUser => followedUser._id);
+    
+    // Gộp 2 danh sách lại và thêm chính mình vào
+    const relevantUserIds = [...new Set([...friendIds, ...followingIds, currentUser._id])];
+
     return this.postModel
       .find({
-        // ĐIỀU KIỆN 1: Trạng thái kiểm duyệt phù hợp
-        moderationStatus: {
-          $in: [ModerationStatus.APPROVED, ModerationStatus.PROCESSING],
-        },
-        // ✅ ĐIỀU KIỆN 2 (QUAN TRỌNG): Chỉ lấy các bài viết
-        // không thuộc về nhóm nào (trường 'group' không tồn tại hoặc là null)
-        group: { $exists: false },
+        group: { $exists: false }, // Vẫn lọc bài trong nhóm
+        
+        // Điều kiện hiển thị mới
+        $or: [
+          // 1. Tất cả bài viết CÔNG KHAI
+          { visibility: PostVisibility.PUBLIC },
+          // 2. Bài viết BẠN BÈ & RIÊNG TƯ của những người có liên quan
+          { 
+            author: { $in: relevantUserIds },
+            visibility: { $in: [PostVisibility.FRIENDS_ONLY, PostVisibility.PRIVATE] } 
+          },
+        ],
       })
-      .populate('author', 'username avatar')
-      .populate({
-        path: 'repostOf',
-        populate: {
-          path: 'author',
-          select: 'username avatar',
-        },
-      })
-      .sort({ createdAt: -1 })
-      .exec();
+      // Lọc lại một lần nữa để đảm bảo tính riêng tư
+      .lean() // Dùng lean để có thể lọc thủ công
+      .then(posts => posts.filter(post => {
+        if (post.visibility === PostVisibility.PUBLIC) return true;
+        if (post.visibility === PostVisibility.PRIVATE) return post.author.toString() === currentUser._id.toString();
+        if (post.visibility === PostVisibility.FRIENDS_ONLY) {
+          const authorId = post.author.toString();
+          return authorId === currentUser._id.toString() || friendIds.map(id => id.toString()).includes(authorId);
+        }
+        return false;
+      }))
+      .then(filteredPosts => this.postModel.populate(filteredPosts, [
+        { path: 'author', select: 'username avatar' },
+        { path: 'repostOf', populate: { path: 'author', select: 'username avatar' } },
+      ]));
   }
+
 
   async findPostById(id: string): Promise<Post> {
     const post = await this.postModel
@@ -162,18 +177,36 @@ export class PostsService {
     postId: string,
     user: UserDocument,
   ): Promise<{ message: string }> {
-    const post = await this.findPostById(postId);
-    const authorId =
-      typeof post.author === 'object' &&
-      post.author !== null &&
-      '_id' in post.author
-        ? (post.author as any)._id.toString()
-        : post.author.toString();
-    if (authorId !== user._id.toString()) {
+    // B1: Tìm bài viết và "làm đầy" thông tin quan trọng (tác giả và nhóm)
+    const post = await this.postModel.findById(postId).populate('author').populate('group');
+    
+    if (!post) {
+      throw new NotFoundException('Không tìm thấy bài đăng.');
+    }
+
+    // B2: Xây dựng các quy tắc về quyền hạn
+    const isAuthor = post.author._id.toString() === user._id.toString();
+    const isGlobalAdmin = user.globalRole === 'ADMIN'; // Giả sử bạn có globalRole
+    
+    let isGroupOwner = false;
+    if (post.group) {
+      // Nếu là bài viết trong nhóm, kiểm tra xem người xóa có phải chủ nhóm không
+      // Ghi chú: 'group' đã được populate, nên chúng ta có thể truy cập 'owner'
+      const group = post.group as GroupDocument;
+      isGroupOwner = group.owner.toString() === user._id.toString();
+    }
+
+    // B3: Kiểm tra quyền hạn cuối cùng
+    // Cho phép xóa nếu người dùng là: Tác giả, HOẶC Chủ nhóm, HOẶC Admin toàn cục
+    if (!isAuthor && !isGroupOwner && !isGlobalAdmin) {
       throw new UnauthorizedException('Bạn không có quyền xóa bài đăng này.');
     }
+
+    // B4: Xóa bài viết và các dữ liệu liên quan
     await this.postModel.findByIdAndDelete(postId);
     await this.commentModel.deleteMany({ post: postId });
+    // (Tùy chọn) Thêm logic xóa notifications liên quan đến bài viết này
+
     return { message: 'Xóa bài đăng thành công.' };
   }
 
@@ -398,17 +431,18 @@ export class PostsService {
 
 
     // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
+  // ✅ HÀM DÀNH RIÊNG CHO TRANG NHÓM
   async findAllByGroup(groupId: string): Promise<Post[]> {
     return this.postModel
       .find({
-        // Chỉ lấy các bài viết có groupId khớp với ID được cung cấp
+        // Chỉ lấy các bài viết có groupId khớp
         group: groupId,
         moderationStatus: {
           $in: [ModerationStatus.APPROVED, ModerationStatus.PROCESSING],
         },
       })
       .sort({ createdAt: -1 })
-      .populate('author', 'username avatar')
+      .populate('author', 'username avatar') // <-- Đã sửa thành avatar
       .populate({
         path: 'repostOf',
         populate: { path: 'author', select: 'username avatar' },

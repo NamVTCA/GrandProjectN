@@ -10,9 +10,13 @@ import { FriendRequestStatus } from './schemas/friend-request.schema';
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
-  @Post('request/:recipientId')
-  sendRequest(@GetUser() user: UserDocument, @Param('recipientId') recipientId: string) {
-    return this.friendsService.sendRequest(user, recipientId);
+  // ✅ TẠO ENDPOINT NÀY: POST /api/friends/request/:receiverId
+  @Post('request/:receiverId')
+  sendRequest(
+    @GetUser() sender: UserDocument,
+    @Param('receiverId') receiverId: string,
+  ) {
+    return this.friendsService.sendRequest(sender, receiverId);
   }
 
   @Post('response/:requestId')
@@ -44,4 +48,6 @@ export class FriendsController {
   unblockUser(@GetUser() user: UserDocument, @Param('userId') userIdToUnblock: string) {
     return this.friendsService.unblockUser(user.id, userIdToUnblock);
   }
+
+  
 }

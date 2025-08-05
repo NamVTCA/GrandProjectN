@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import CreatePost from '../features/feed/components/CreatePost';
 import PostCard from '../features/feed/components/PostCard';
-import type { Post, ReactionType } from '../features/feed/types/Post';
+import type { Post, ReactionType, PostVisibility } from '../features/feed/types/Post';
 import { useAuth } from '../features/auth/AuthContext';
 import ChatbotIcon from './ChatbotIcon';
 import './HomePage.scss';
@@ -15,33 +15,25 @@ const HomePage: React.FC = () => {
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/posts');
-      const fetchedPosts: Post[] = response.data;
-
-      // Lọc bài viết theo quyền hiển thị
-      const visiblePosts = fetchedPosts.filter(post => {
-        if (post.visibility === 'PUBLIC') return true;
-        if (post.visibility === 'PRIVATE') return post.author._id === user?._id;
-        if (post.visibility === 'FRIENDS_ONLY') {
-          return (
-            post.author._id === user?._id ||
-            user?.friends?.includes(post.author._id)
-          );
-        }
-        return false;
-      });
-
-      setPosts(visiblePosts);
+      // Gọi API mới, an toàn và hiệu quả hơn
+      const response = await api.get('/posts/feed');
+      // Không cần lọc ở frontend nữa
+      setPosts(response.data);
     } catch (error) {
       console.error("Lỗi khi tải bài đăng:", error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  // Áp dụng "Cập nhật lạc quan" cho bài viết mới
+  const handlePostCreated = (newPost: Post) => {
+    setPosts(currentPosts => [newPost, ...currentPosts]);
+  };
 
   const handleReact = useCallback(async (postId: string, reactionType: ReactionType) => {
     try {
@@ -54,20 +46,19 @@ const HomePage: React.FC = () => {
     }
   }, []);
 
-  const handleRepost = useCallback(async (postId: string, content: string) => {
+  const handleRepost = useCallback(async (postId: string, content: string, visibility: PostVisibility) => {
     try {
-      await api.post(`/posts/${postId}/repost`, {
-        content,
-        visibility: 'FRIENDS_ONLY' // mặc định chỉ bạn bè được xem
-      });
-      fetchPosts();
+      const response = await api.post(`/posts/${postId}/repost`, { content, visibility });
+      handlePostCreated(response.data); // Tái sử dụng logic cập nhật lạc quan
     } catch (error) {
       console.error("Lỗi khi chia sẻ bài viết:", error);
     }
-  }, [fetchPosts]);
+  }, []);
   
   const handlePostDeleted = useCallback((postId: string) => {
     setPosts(currentPosts => currentPosts.filter(p => p._id !== postId));
+    // Yêu cầu xóa API vẫn được gửi đi trong nền
+    api.delete(`/posts/${postId}`).catch(err => console.error("Lỗi khi xóa bài viết:", err));
   }, []);
 
   const handleCommentAdded = useCallback((postId: string) => {
@@ -91,7 +82,7 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="home-page">
-      <CreatePost onPostCreated={fetchPosts} />
+      <CreatePost onPostCreated={handlePostCreated} />
       <div className="feed-container">
         {posts.length > 0 ? (
           posts.map((post) => (
@@ -106,7 +97,7 @@ const HomePage: React.FC = () => {
             />
           ))
         ) : (
-          <p className="page-status">Chưa có bài đăng nào. Hãy là người đầu tiên!</p>
+          <p className="page-status">Bảng tin của bạn chưa có gì. Hãy kết bạn để xem thêm nhé!</p>
         )}
       </div>
       <ChatbotIcon />
