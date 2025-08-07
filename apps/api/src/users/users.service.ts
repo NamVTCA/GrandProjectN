@@ -62,7 +62,9 @@ export class UsersService {
       .exec();
 
     if (!updated) {
-      throw new NotFoundException('Không tìm thấy người dùng khi cập nhật avatar');
+      throw new NotFoundException(
+        'Không tìm thấy người dùng khi cập nhật avatar',
+      );
     }
     return updated;
   }
@@ -78,7 +80,9 @@ export class UsersService {
       .exec();
 
     if (!updated) {
-      throw new NotFoundException('Không tìm thấy người dùng khi cập nhật cover');
+      throw new NotFoundException(
+        'Không tìm thấy người dùng khi cập nhật cover',
+      );
     }
     return updated;
   }
@@ -100,7 +104,9 @@ export class UsersService {
     const userToFollowDoc = await this.userModel.findById(userIdToFollow);
     const currentUserDoc = await this.userModel.findById(currentUserId);
     if (!userToFollowDoc || !currentUserDoc) {
-      throw new NotFoundException('Không tìm thấy người dùng để tạo thông báo.');
+      throw new NotFoundException(
+        'Không tìm thấy người dùng để tạo thông báo.',
+      );
     }
     await this.receiveXP(
       2,
@@ -234,5 +240,43 @@ export class UsersService {
       throw new NotFoundException('Người dùng không tồn tại');
     }
     return user.friends;
+  }
+  async getWarnings(userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select('warnings')
+      .populate([
+        {
+          path: 'warnings.by',
+          select: 'username avatar',
+        },
+        {
+          path: 'warnings.reason',
+          select: 'reasonText',
+        },
+      ]);
+
+    if (!user) throw new NotFoundException('Người dùng không tồn tại.');
+
+    return user.warnings;
+  }
+
+  // Update the deleteWarning method in users.service.ts
+  async deleteWarning(userId: string, warningId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Người dùng không tồn tại.');
+
+    // Find the warning using the _id field
+    const warningIndex = user.warnings.findIndex(
+      (w: any) => w._id?.toString() === warningId,
+    );
+
+    if (warningIndex === -1)
+      throw new NotFoundException('Cảnh cáo không tồn tại.');
+
+    user.warnings.splice(warningIndex, 1);
+    await user.save();
+
+    return { message: 'Xoá cảnh cáo thành công.' };
   }
 }
