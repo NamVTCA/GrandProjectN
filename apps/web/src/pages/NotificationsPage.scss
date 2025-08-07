@@ -37,6 +37,14 @@
       border-left: 4px solid $primary-color;
 background-color: color.adjust($surface-color, $lightness: 3%);
     }
+.delete-btn {
+  background: transparent;
+  color: red;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  margin-left: 10px;
+}
 
     img {
       width: 45px;
@@ -82,6 +90,21 @@ background-color: color.adjust($surface-color, $lightness: 3%);
   &:hover {
     background-color: color.adjust($surface-color, $lightness: 7%);
   }
+}
+.delete-warning-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: #ff4d4f;
+  border: none;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.delete-warning-btn:hover {
+  background: #d9363e;
 }
 
 }
