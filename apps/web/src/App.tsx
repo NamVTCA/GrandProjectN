@@ -39,6 +39,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import NotificationsPage from './pages/NotificationsPage';
+import UserReportsPage from './pages/UserReportsPage';
+import TopUpPage from './pages/TopUpPage';
 
 // ======= Wrapper để force remount ProfilePage mỗi khi username thay đổi =======
 const ProfilePageWithKey: React.FC = () => {
@@ -88,8 +90,10 @@ const AppRoutes: React.FC = () => {
           <Route path="/" element={<HomePage />} />
 
           {/* Dùng wrapper có key để force remount */}
+          <Route path="/top-up" element={<TopUpPage />} />
           <Route path="/profile/:username" element={<ProfilePageWithKey />} />
-
+ <Route path="/user-reports/:userId" element={<UserReportsPage />} />
+        <Route path="/admin/content-management" element={<ContentManagementPage />} />
           <Route path="/profile/:username/edit" element={<EditProfileUser />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupDetailPage />} />

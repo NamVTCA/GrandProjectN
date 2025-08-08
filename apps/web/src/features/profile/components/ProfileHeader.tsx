@@ -12,6 +12,61 @@ interface ProfileHeaderProps {
   isFollowing: boolean;
   onFollowToggle: () => void;
 }
+type UserLevelInfo = {
+   level: string;
+  description: string;
+  color: string;
+  icon?: string;
+  xpToNextLevel: number;
+};
+const getUserLevelInfo = (xp: number): UserLevelInfo => {
+  if (xp >= 20000) {
+    return {
+      level: 'Bậc thầy mạng xã hội',
+      description: 'Biểu tượng trong cộng đồng',
+      color: '#6f42c1',
+      icon: '🪐',
+      xpToNextLevel: 30000, // bạn tự đặt mức tiếp theo
+    };
+  } else if (xp >= 10000) {
+    return {
+      level: 'Người nổi tiếng',
+      description: 'Có tiếng nói trong cộng đồng',
+      color: '#d63384',
+      icon: '🌟',
+      xpToNextLevel: 20000,
+    };
+  } else if (xp >= 5000) {
+    return {
+      level: 'Lão làng',
+      description: 'Được cộng đồng quan tâm',
+      color: '#20c997',
+      xpToNextLevel: 10000,
+    };
+  } else if (xp >= 2000) {
+    return {
+      level: 'Cựu thành viên',
+      description: 'Tạo ảnh hưởng nhỏ',
+      color: '#17a2b8',
+      xpToNextLevel: 5000,
+    };
+  } else if (xp >= 500) {
+    return {
+      level: 'GenZ',
+      description: 'Có tương tác thường xuyên',
+      color: '#fd7e14',
+      xpToNextLevel: 2000,
+    };
+  } else {
+    return {
+      level: 'Mới dùng mạng xã hội',
+      description: 'Vừa tham gia',
+      color: '#6c757d',
+      xpToNextLevel: 500,
+    };
+  }
+};
+
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   userProfile,
@@ -21,6 +76,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   const isMyProfile = user?._id === userProfile._id;
+  const levelInfo = getUserLevelInfo(userProfile.xp);
 
   const handleEditProfile = () => {
     navigate(`/profile/${userProfile.username}/edit`);
@@ -50,10 +106,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             alt={userProfile.username}
             className="profile-avatar"
           />
-          <div className="name-section">
-            <h2>{userProfile.name || userProfile.username}</h2>
-            <p>@{userProfile.username}</p>
-          </div>
+          
+         <div className="name-section">
+  <h2>{userProfile.name || userProfile.username}</h2>
+  <p>@{userProfile.username}</p>
+<div className="user-level" style={{ color: levelInfo.color }}>
+  <strong>
+    {levelInfo.icon} {levelInfo.level}
+  </strong>
+  <p className="xp">
+    {userProfile.xp} / {levelInfo.xpToNextLevel} XP
+  </p>
+  <p className="desc">{levelInfo.description}</p>
+</div>
+
+
+</div>
+
         </div>
         <div className="stats-section">
           <div className="stat">

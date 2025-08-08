@@ -10,4 +10,6 @@ export interface UserProfile {
   followers: string[]; // Mảng các ID người dùng
   following: string[]; // Mảng các ID người dùng
   createdAt: string;
+  xp:number;
+  xpToNextLevel: number;
 }

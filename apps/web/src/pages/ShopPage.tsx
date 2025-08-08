@@ -5,11 +5,14 @@ import type { ShopItem } from '../features/shop/types/Shop';
 import ShopItemCard from '../features/shop/components/ShopItemCard';
 import { useAuth } from '../features/auth/AuthContext';
 import './ShopPage.scss';
+import { useNavigate } from 'react-router-dom';
+import { Coins } from 'lucide-react';
 
 const ShopPage: React.FC = () => {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, fetchUser } = useAuth(); // Lấy hàm fetchUser để cập nhật số dư
+const navigate = useNavigate();
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -38,12 +41,20 @@ const ShopPage: React.FC = () => {
   };
 
   return (
-    <div className="shop-page">
+     <div className="shop-page">
       <div className="shop-header">
         <h1>Cửa hàng Vật phẩm</h1>
         <div className="user-coins">
           <span>Số dư:</span>
-          <strong>{user?.coins.toLocaleString() || 0} Coins</strong>
+          <strong>
+            {user?.coins.toLocaleString() || 0} <Coins size={16} />
+          </strong>
+          <button
+            className="topup-button"
+            onClick={() => navigate('/top-up')}
+          >
+            + Nạp Coin
+          </button>
         </div>
       </div>
       {loading ? (
