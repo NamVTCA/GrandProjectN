@@ -4,14 +4,14 @@ import type { GroupDetail } from '../types/Group';
 import Button from '../../../components/common/Button';
 import { FaCog, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import './GroupHeader.scss';
-
-interface GroupHeaderProps {
+type GroupHeaderProps = {
   group: GroupDetail;
-  isMember: boolean;
   isOwner: boolean;
-  onJoinLeaveClick: () => void;
+  isMember: boolean;
   isProcessing: boolean;
-}
+  joinStatus: 'MEMBER' | 'PENDING' | 'NONE';
+  onJoinLeaveClick: () => void;
+};
 
 const GroupHeader: React.FC<GroupHeaderProps> = ({
   group,
@@ -19,13 +19,11 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   isOwner,
   onJoinLeaveClick,
   isProcessing,
+  joinStatus, // ✅ THÊM VÀO ĐÂY
 }) => {
-
   const renderActionButton = () => {
-    // Nếu là chủ sở hữu, hiển thị nút Quản lý
     if (isOwner) {
       return (
-        // ✅ SỬA LỖI: Thay thế ':id' bằng ID thật của nhóm
         <Link to={`/groups/${group._id}/manage`}>
           <Button variant="secondary" disabled={isProcessing}>
             <FaCog /> Quản lý nhóm
@@ -34,20 +32,37 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       );
     }
 
-    // Nếu không phải chủ sở hữu, hiển thị nút Tham gia/Rời nhóm
+    if (joinStatus === 'MEMBER') {
+      return (
+        <Button
+          onClick={onJoinLeaveClick}
+          disabled={isProcessing}
+          variant="secondary"
+        >
+          {isProcessing ? 'Đang xử lý...' : (
+            <>
+              <FaSignOutAlt /> Rời khỏi nhóm
+            </>
+          )}
+        </Button>
+      );
+    }
+
+    if (joinStatus === 'PENDING') {
+      return (
+        <Button disabled variant="secondary">
+          Đang chờ phê duyệt
+        </Button>
+      );
+    }
+
     return (
       <Button
         onClick={onJoinLeaveClick}
         disabled={isProcessing}
-        variant={isMember ? 'secondary' : 'primary'}
+        variant="primary"
       >
-        {isProcessing ? (
-          'Đang xử lý...'
-        ) : isMember ? (
-          <>
-            <FaSignOutAlt /> Rời khỏi nhóm
-          </>
-        ) : (
+        {isProcessing ? 'Đang xử lý...' : (
           <>
             <FaSignInAlt /> Tham gia nhóm
           </>
@@ -81,9 +96,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
               {group.memberCount} thành viên
             </p>
           </div>
-          <div className="group-actions">
-            {renderActionButton()}
-          </div>
+          <div className="group-actions">{renderActionButton()}</div>
         </div>
       </div>
     </header>

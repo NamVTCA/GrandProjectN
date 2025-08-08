@@ -10,7 +10,6 @@ import PostCard from '../features/feed/components/PostCard';
 import './GroupDetailPage.scss';
 
 const GroupDetailPage: React.FC = () => {
-    // --- STATE & HOOKS ---
     const { id: groupId } = useParams<{ id: string }>();
     const { user } = useAuth();
     const [group, setGroup] = useState<GroupDetail | null>(null);
@@ -18,8 +17,8 @@ const GroupDetailPage: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [isProcessingJoin, setIsProcessingJoin] = useState<boolean>(false);
+const [joinStatus, setJoinStatus] = useState<'MEMBER' | 'PENDING' | 'NONE'>('NONE');
 
-    // --- CÁC HÀM XỬ LÝ SỰ KIỆN CHO BÀI VIẾT ---
     const handleReact = async (postId: string, reaction: ReactionType) => {
         try {
             const updatedPost = await api.post<Post>(`/posts/${postId}/react`, { type: reaction });
@@ -37,7 +36,7 @@ const GroupDetailPage: React.FC = () => {
             console.error("Lỗi khi xóa bài viết:", err);
         });
     };
-    
+
     const handleRepost = (postId: string, content: string, visibility: PostVisibility) => {
         console.log(`Chia sẻ bài viết ${postId} với nội dung: ${content}`);
     };
@@ -50,7 +49,6 @@ const GroupDetailPage: React.FC = () => {
         );
     };
 
-    // --- CÁC HÀM TẢI DỮ LIỆU ---
     const fetchPosts = useCallback(async () => {
         if (!groupId) return;
         try {
@@ -95,27 +93,43 @@ const GroupDetailPage: React.FC = () => {
         return group.members.some(member => member.user?._id === user._id);
     }, [user, group]);
 
-    const handleJoinLeaveClick = async () => {
-        if (!group) return;
-        setIsProcessingJoin(true);
-        try {
-            const endpoint = isMember ? `/groups/${group._id}/leave` : `/groups/${group._id}/join`;
-            const response = await api.post<GroupDetail>(endpoint);
-            setGroup(response.data);
-        } catch (err) {
-            console.error("Lỗi khi tham gia/rời khỏi nhóm:", err);
-        } finally {
-            setIsProcessingJoin(false);
-        }
-    };
+   const handleJoinLeaveClick = async () => {
+  if (!group) return;
+  setIsProcessingJoin(true);
+  try {
+    const endpoint = isMember ? `/groups/${group._id}/leave` : `/groups/${group._id}/join`;
+    await api.post(endpoint);
+    const joinStatusResponse = await api.get<{ status: 'MEMBER' | 'PENDING' | 'NONE' }>(`/groups/${group._id}/join-status`);
+    setJoinStatus(joinStatusResponse.data.status);
+  } catch (err) {
+    console.error("Lỗi khi tham gia/rời khỏi nhóm:", err);
+  } finally {
+    setIsProcessingJoin(false);
+  }
+};
 
-    // ✅ HÀM MỚI: Xử lý khi có bài viết mới được tạo
+const fetchAllData = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const [groupResponse, joinStatusResponse] = await Promise.all([
+      api.get<GroupDetail>(`/groups/${groupId}`),
+      api.get<{ status: 'MEMBER' | 'PENDING' | 'NONE' }>(`/groups/${groupId}/join-status`),
+      fetchPosts(),
+    ]);
+    setGroup(groupResponse.data);
+    setJoinStatus(joinStatusResponse.data.status);
+  } catch (err) {
+    setError("Không thể tải thông tin nhóm. Nhóm có thể không tồn tại hoặc đã bị xóa.");
+  } finally {
+    setLoading(false);
+  }
+};
+
     const handlePostCreated = (newPost: Post) => {
-        // Thêm bài viết mới vào đầu danh sách hiện tại để cập nhật UI ngay lập tức
         setPosts(currentPosts => [newPost, ...currentPosts]);
     };
-    
-    // --- RENDER ---
+
     if (loading) {
         return <div className="page-loading">Đang tải...</div>;
     }
@@ -134,6 +148,7 @@ const GroupDetailPage: React.FC = () => {
                 isMember={isMember}
                 isProcessing={isProcessingJoin}
                 onJoinLeaveClick={handleJoinLeaveClick}
+                joinStatus={joinStatus}
             />
             <div className="group-body">
                 <div className="main-content">
@@ -141,7 +156,7 @@ const GroupDetailPage: React.FC = () => {
                         <CreatePost
                             context="group"
                             contextId={group._id}
-                            onPostCreated={handlePostCreated} // <-- SỬ DỤNG HÀM MỚI
+                            onPostCreated={handlePostCreated}
                         />
                     )}
                     <div className="post-list">
@@ -158,12 +173,14 @@ const GroupDetailPage: React.FC = () => {
                                 />
                             ))
                         ) : (
-                             <p className="page-status">Chưa có bài viết nào trong nhóm này. Hãy là người đầu tiên!</p>
+                            <p className="page-status">
+                                Chưa có bài viết nào trong nhóm này. Hãy là người đầu tiên!
+                            </p>
                         )}
                     </div>
                 </div>
                 <div className="sidebar-content">
-                    {/* ... (phần sidebar giữ nguyên) ... */}
+                    {/* Sidebar content here */}
                 </div>
             </div>
         </div>
