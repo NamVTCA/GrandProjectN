@@ -32,12 +32,32 @@ interface Warning {
     avatar: string;
   };
 }
+interface FriendRequest {
+  _id: string;
+  sender: {
+    _id: string;
+    username: string;
+    avatar: string;
+  };
+  status: string;
+  createdAt: string;
+}
 
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [warnings, setWarnings] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+
+const fetchFriendRequests = async () => {
+  try {
+    const res = await api.get('/friends/requests');
+    setFriendRequests(res.data);
+  } catch (err) {
+    console.error('Lỗi khi lấy lời mời kết bạn:', err);
+  }
+};
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -72,12 +92,20 @@ export default function Notifications() {
     }
   };
     const fetchAll = async () => {
-      await Promise.all([fetchNotifications(), fetchWarnings()]);
-      setLoading(false);
+      await Promise.all([fetchNotifications(), fetchWarnings(), fetchFriendRequests()]);
+  setLoading(false);
     };
 
     fetchAll();
   }, []);
+const respondToFriendRequest = async (requestId: string, status: 'ACCEPTED' | 'REJECTED') => {
+  try {
+    await api.post(`/friends/response/${requestId}`, { status });
+    setFriendRequests((prev) => prev.filter((req) => req._id !== requestId));
+  } catch (err) {
+    console.error('Lỗi khi xử lý lời mời:', err);
+  }
+};
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -151,6 +179,32 @@ const handleDeleteWarning = async (id: string) => {
       )}
       
       <hr className="divider" />
+{/* Phần Lời Mời Kết Bạn */}
+<h2 className="section-title">Lời Mời Kết Bạn</h2>
+{friendRequests.length === 0 ? (
+  <p className="empty-message">Không có lời mời nào.</p>
+) : (
+  <ul className="notification-list">
+    {friendRequests.map((req) => (
+      <li
+        key={req._id}
+        className="notification-item friend-request-item"
+      >
+        <img src={req.sender.avatar || '/default_avatar.png'} alt={req.sender.username} />
+        <div className="notification-content">
+          <span>
+            <strong>{req.sender.username}</strong> đã gửi cho bạn lời mời kết bạn
+          </span>
+          <small>{moment(req.createdAt).fromNow()}</small>
+        </div>
+        <div className="action-buttons">
+          <button onClick={() => respondToFriendRequest(req._id, 'ACCEPTED')} className="accept-btn">Chấp nhận</button>
+          <button onClick={() => respondToFriendRequest(req._id, 'REJECTED')} className="reject-btn">Từ chối</button>
+        </div>
+      </li>
+    ))}
+  </ul>
+)}
 
       {/* Phần Thông Báo */}
       <h2 className="section-title">Thông Báo</h2>
