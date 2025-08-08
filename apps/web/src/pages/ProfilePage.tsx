@@ -11,6 +11,7 @@ type LocationState = {
   updatedProfile?: UserProfile;
 };
 
+
 const ProfilePage: React.FC = () => {
   // 1) param username từ URL
   const { username: paramUsername } = useParams<{ username: string }>();
@@ -103,6 +104,7 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="profile-page">
       <ProfileHeader
+        
         userProfile={userProfile}
         isFollowing={isFollowing}
         onFollowToggle={handleFollowToggle}

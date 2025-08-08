@@ -37,11 +37,16 @@ const UserPostList: React.FC<UserPostListProps> = ({ userId }) => {
     <div className="user-post-list">
       {posts.map((post) => (
         <PostCard 
-          key={post._id} 
-          post={post} 
-          onReact={() => {}} 
-          onRepost={() => {}}
-        />
+          key={post._id}
+          post={post}
+          onReact={() => { } }
+          onRepost={() => { } } onPostDeleted={function (postId: string): void {
+            throw new Error('Function not implemented.');
+          } } onCommentAdded={function (postId: string): void {
+            throw new Error('Function not implemented.');
+          } } onCommentDeleted={function (postId: string): void {
+            throw new Error('Function not implemented.');
+          } }        />
       ))}
     </div>
   );

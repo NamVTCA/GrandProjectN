@@ -244,5 +244,23 @@
   }
 }
 
+.report-item {
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border-left: 4px solid crimson;
+
+  blockquote {
+    margin: 6px 0;
+    padding-left: 10px;
+    border-left: 2px solid #ddd;
+    font-style: italic;
+  }
+
+  small {
+    color: gray;
+  }
+}
 
 }
