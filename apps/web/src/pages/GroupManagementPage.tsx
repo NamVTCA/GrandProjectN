@@ -1,38 +1,35 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import type { JoinRequest, GroupMember } from '../features/groups/types/Group';
 import Button from '../components/common/Button';
 import './GroupManagementPage.scss';
 
-// Định nghĩa các tab có thể có
 type ManagementTab = 'requests' | 'members';
 
 const GroupManagementPage: React.FC = () => {
     const { id: groupId } = useParams<{ id: string }>();
     const [activeTab, setActiveTab] = useState<ManagementTab>('requests');
-    
-    // State cho từng tab
     const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
     const [members, setMembers] = useState<GroupMember[]>([]);
-    
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Hàm tải dữ liệu dựa trên tab đang hoạt động
     const fetchData = useCallback(async () => {
         if (!groupId) return;
         setLoading(true);
+        setError(null);
         try {
             if (activeTab === 'requests') {
                 const response = await api.get(`/groups/${groupId}/requests`);
                 setJoinRequests(response.data);
             } else if (activeTab === 'members') {
-                // Giả sử API endpoint để lấy thành viên là /groups/:id/members
                 const response = await api.get(`/groups/${groupId}/members`);
                 setMembers(response.data);
             }
-        } catch (error) {
-            console.error(`Lỗi khi tải dữ liệu cho tab ${activeTab}:`, error);
+        } catch (err: any) {
+            console.error(`Lỗi khi tải dữ liệu cho tab ${activeTab}:`, err);
+            setError(err.response?.data?.message || 'Không thể tải dữ liệu.');
         } finally {
             setLoading(false);
         }
@@ -42,59 +39,93 @@ const GroupManagementPage: React.FC = () => {
         fetchData();
     }, [fetchData]);
 
-    // --- Xử lý yêu cầu tham gia ---
+    // ✅ ĐÃ ĐIỀN ĐẦY ĐỦ LOGIC
     const handleApprove = async (requestId: string) => {
         try {
             await api.post(`/groups/${groupId}/requests/${requestId}/approve`);
-            fetchData(); // Tải lại danh sách yêu cầu
+            // Xóa yêu cầu khỏi danh sách ngay lập tức để UI mượt hơn
+            setJoinRequests(current => current.filter(req => req._id !== requestId));
         } catch (error) {
             console.error("Lỗi khi chấp thuận yêu cầu:", error);
+            alert("Đã có lỗi xảy ra.");
         }
     };
 
+    // ✅ ĐÃ ĐIỀN ĐẦY ĐỦ LOGIC
     const handleReject = async (requestId: string) => {
         try {
             await api.post(`/groups/${groupId}/requests/${requestId}/reject`);
-            fetchData(); // Tải lại danh sách yêu cầu
+            // Xóa yêu cầu khỏi danh sách ngay lập tức
+            setJoinRequests(current => current.filter(req => req._id !== requestId));
         } catch (error) {
             console.error("Lỗi khi từ chối yêu cầu:", error);
+            alert("Đã có lỗi xảy ra.");
         }
     };
 
-    // --- Component để render nội dung của tab ---
-    const renderTabContent = () => {
-        if (loading) {
-            return <p>Đang tải danh sách...</p>;
+    const handleKickMember = async (memberUserId: string) => {
+        if (window.confirm("Bạn có chắc chắn muốn xóa thành viên này khỏi nhóm?")) {
+            try {
+                await api.delete(`/groups/${groupId}/members/${memberUserId}`);
+                // Tải lại danh sách thành viên sau khi kick
+                fetchData();
+            } catch (error) {
+                console.error("Lỗi khi xóa thành viên:", error);
+                alert("Đã có lỗi xảy ra khi xóa thành viên.");
+            }
         }
+    };
+
+    const renderTabContent = () => {
+        if (loading) return <p className="page-status">Đang tải...</p>;
+        if (error) return <p className="page-status error">{error}</p>;
 
         if (activeTab === 'requests') {
             return (
-                <div className="request-list">
+                <div className="list-container">
                     {joinRequests.length > 0 ? (
                         joinRequests.map(req => (
-                            <div key={req._id} className="request-item">
-                                <div className="user-info">
+                            <div key={req._id} className="item-row">
+                                <Link to={`/profile/${req.user.username}`} className="user-info">
                                     <img src={req.user.avatar || 'https://via.placeholder.com/48'} alt={req.user.username} />
                                     <strong>{req.user.username}</strong>
-                                </div>
-                                <div className="request-actions">
+                                </Link>
+                                <div className="actions">
                                     <Button onClick={() => handleApprove(req._id)}>Chấp nhận</Button>
                                     <Button onClick={() => handleReject(req._id)} variant="secondary">Từ chối</Button>
                                 </div>
                             </div>
                         ))
-                    ) : (
-                        <p>Không có yêu cầu tham gia nào.</p>
-                    )}
+                    ) : <p className="page-status">Không có yêu cầu tham gia nào.</p>}
                 </div>
             );
         }
 
         if (activeTab === 'members') {
-            // Giao diện cho tab Thành viên sẽ được xây dựng ở đây
-            return <p>Tính năng quản lý thành viên sẽ sớm được cập nhật.</p>;
+            return (
+                <div className="list-container">
+                    {members.map(member => (
+                        <div key={member.user._id} className="item-row">
+                            <Link to={`/profile/${member.user.username}`} className="user-info">
+                                <img src={member.user.avatar || 'https://via.placeholder.com/48'} alt={member.user.username} />
+                                <div className="name-role">
+                                    <strong>{member.user.username}</strong>
+                                    <span className="role-badge">{member.role}</span>
+                                </div>
+                            </Link>
+                            <div className="actions">
+                                {member.role !== 'OWNER' && (
+                                    <>
+                                        <Button variant="secondary" size="small">Đổi vai trò</Button>
+                                        <Button variant="danger" size="small" onClick={() => handleKickMember(member.user._id)}>Kick</Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
         }
-
         return null;
     };
 
@@ -106,13 +137,13 @@ const GroupManagementPage: React.FC = () => {
                     className={`tab-button ${activeTab === 'requests' ? 'active' : ''}`}
                     onClick={() => setActiveTab('requests')}
                 >
-                    Yêu cầu tham gia
+                    Yêu cầu ({joinRequests.length})
                 </button>
                 <button 
                     className={`tab-button ${activeTab === 'members' ? 'active' : ''}`}
                     onClick={() => setActiveTab('members')}
                 >
-                    Thành viên
+                    Thành viên ({members.length})
                 </button>
             </div>
             <div className="tab-content">

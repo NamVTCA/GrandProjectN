@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException,UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException,UnauthorizedException,BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Group, GroupDocument } from './schemas/group.schema';
@@ -8,7 +8,9 @@ import { Post, PostDocument } from '../posts/schemas/post.schema';
 import { Comment, CommentDocument } from '../posts/schemas/comment.schema';
 import { JoinRequest, JoinRequestDocument } from './schemas/join-request.schema';
 import { CreateGroupDto } from './dto/create-group.dto';
-
+import { EventEmitter2 } from '@nestjs/event-emitter'; // 1. Import
+import { NotificationType } from '../notifications/schemas/notification.schema';
+import { GroupInvite, GroupInviteDocument } from './schemas/group-invite.schema';
 
 @Injectable()
 export class GroupsService {
@@ -19,15 +21,19 @@ export class GroupsService {
     @InjectModel(Post.name) private postModel: Model<PostDocument>,
     @InjectModel(Comment.name) private commentModel: Model<CommentDocument>,
     @InjectModel(JoinRequest.name) private joinRequestModel: Model<JoinRequestDocument>,
+    @InjectModel(GroupInvite.name) private groupInviteModel: Model<GroupInviteDocument>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createGroup(owner: UserDocument, createGroupDto: CreateGroupDto): Promise<Group> {
     const newGroup = new this.groupModel({
-      name: createGroupDto.name,
-      description: createGroupDto.description,
-      interests: createGroupDto.interestIds,
+      // Sử dụng toán tử spread (...) để lấy tất cả các thuộc tính hợp lệ từ DTO
+      ...createGroupDto, 
       owner: owner._id,
+      // Gán interests từ interestIds
+      interests: createGroupDto.interestIds, 
     });
+    
     const savedGroup = await newGroup.save();
 
     const ownerMembership = new this.groupMemberModel({
@@ -40,25 +46,96 @@ export class GroupsService {
     return savedGroup;
   }
 
-    async joinGroup(user: UserDocument, groupId: string): Promise<GroupMember> {
+  async joinGroup(user: UserDocument, groupId: string): Promise<any> {
+        const group = await this.groupModel.findById(groupId);
+        if (!group) {
+            throw new NotFoundException('Không tìm thấy nhóm.');
+        }
+
         const membershipExists = await this.groupMemberModel.findOne({ user: user._id, group: groupId });
         if (membershipExists) {
             throw new ConflictException('Bạn đã là thành viên của nhóm này.');
         }
-        const newMember = new this.groupMemberModel({ user: user._id, group: groupId, role: GroupRole.MEMBER });
-        return newMember.save();
+
+        // --- LOGIC PHÂN LOẠI CÔNG KHAI / RIÊNG TƯ ---
+        if (group.privacy === 'public') {
+            const newMember = new this.groupMemberModel({ user: user._id, group: groupId, role: GroupRole.MEMBER });
+            await newMember.save();
+        } else { // Nhóm riêng tư
+            const requestExists = await this.joinRequestModel.findOne({ user: user._id, group: groupId, status: 'PENDING' });
+            if (requestExists) {
+                throw new ConflictException('Bạn đã gửi yêu cầu tham gia nhóm này rồi.');
+            }
+            const newRequest = new this.joinRequestModel({ user: user._id, group: groupId });
+            await newRequest.save();
+        }
+        
+        // QUAN TRỌNG: Trả về thông tin nhóm đã được cập nhật đầy đủ
+        return this.findOneById(groupId);
+    }
+        // ✅ BỔ SUNG HÀM RỜI NHÓM
+    async leaveGroup(user: UserDocument, groupId: string): Promise<any> {
+        const membership = await this.groupMemberModel.findOne({ user: user._id, group: groupId });
+        if (!membership) {
+            throw new NotFoundException('Bạn không phải là thành viên của nhóm này.');
+        }
+        if (membership.role === GroupRole.OWNER) {
+            throw new BadRequestException('Chủ nhóm không thể rời đi. Bạn cần xóa nhóm hoặc chuyển quyền sở hữu.');
+        }
+
+        await membership.deleteOne();
+        
+        // QUAN TRỌNG: Trả về thông tin nhóm đã được cập nhật đầy đủ
+        return this.findOneById(groupId);
     }
 
+      async createInvite(groupId: string, inviter: UserDocument, inviteeId: string): Promise<GroupInvite> {
+    // Kiểm tra xem người được mời có tồn tại không
+    const invitee = await this.userModel.findById(inviteeId);
+    if (!invitee) {
+      throw new NotFoundException('Không tìm thấy người dùng bạn muốn mời.');
+    }
+
+    // Kiểm tra xem người được mời đã ở trong nhóm chưa
+    const isAlreadyMember = await this.groupMemberModel.findOne({ user: inviteeId, group: groupId });
+    if (isAlreadyMember) {
+      throw new ConflictException('Người này đã là thành viên của nhóm.');
+    }
+    
+    // Kiểm tra xem đã có lời mời đang chờ xử lý chưa
+    const existingInvite = await this.groupInviteModel.findOne({ group: groupId, invitee: inviteeId, status: 'PENDING' });
+    if (existingInvite) {
+        throw new ConflictException('Bạn đã mời người này vào nhóm rồi.');
+    }
+
+    const newInvite = new this.groupInviteModel({
+      group: groupId,
+      inviter: inviter._id,
+      invitee: inviteeId,
+    });
+    
+    const savedInvite = await newInvite.save();
+
+    // Phát sự kiện để tạo thông báo
+    this.eventEmitter.emit('notification.create', {
+        recipientId: inviteeId,
+        actor: inviter,
+        type: NotificationType.GROUP_INVITE,
+        link: `/invites`, // Link đến trang quản lý lời mời
+    });
+
+    return savedInvite;
+  }
+
   // ✅ THAY THẾ HOÀN TOÀN HÀM NÀY
-  async suggestGroups(user: UserDocument): Promise<Group[]> {
-        // B1: Lấy ID của tất cả nhóm người dùng đã tham gia
+    async suggestGroups(user: UserDocument): Promise<Group[]> {
         const userMemberships = await this.groupMemberModel.find({ user: user._id }).select('group');
         const userGroupIds = userMemberships.map(m => m.group);
 
-        // B2: Tìm nhóm gợi ý
         return this.groupModel.find({
-            interests: { $in: user.interests }, // Có chung sở thích
-            _id: { $nin: userGroupIds } // Và người dùng chưa tham gia
+            interests: { $in: user.interests },
+            privacy: 'public', // Chỉ gợi ý nhóm công khai
+            _id: { $nin: userGroupIds }
         })
         .populate('owner', 'username avatar')
         .populate('interests')
@@ -112,44 +189,61 @@ export class GroupsService {
     return { message: 'Đã xóa nhóm và tất cả dữ liệu liên quan thành công.' };
   }
 
+    // ✅ BỔ SUNG HÀM XÓA THÀNH VIÊN
+  async kickMember(groupId: string, memberUserId: string): Promise<{ message: string }> {
+    const membership = await this.groupMemberModel.findOne({
+      group: groupId,
+      user: memberUserId,
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Không tìm thấy thành viên này trong nhóm.');
+    }
+    // Không cho phép xóa chủ nhóm
+    if (membership.role === GroupRole.OWNER) {
+      throw new BadRequestException('Không thể xóa chủ sở hữu nhóm.');
+    }
+
+    await membership.deleteOne();
+
+    return { message: 'Đã xóa thành viên khỏi nhóm.' };
+  }
+
 
     // ✅ Bổ sung phương thức này nếu chưa có
 // ✅ THAY THẾ HOÀN TOÀN HÀM NÀY
-  async findOneById(id: string): Promise<any> {
-    // B1: Lấy thông tin cơ bản của nhóm
-    const group = await this.groupModel.findById(id)
-        .populate('owner', 'username avatar')
-        .populate('interests')
-        .lean() // Dùng .lean() để biến nó thành object JS thuần túy, dễ chỉnh sửa
-        .exec();
-
-    if (!group) {
-        throw new NotFoundException(`Không tìm thấy nhóm với ID: ${id}`);
+    // ✅ HÀM TÌM CHI TIẾT NHÓM ĐÃ ĐƯỢC SỬA LẠI
+    async findOneById(id: string): Promise<any> {
+        const group = await this.groupModel.findById(id)
+            .populate('owner', 'username avatar')
+            .populate('interests')
+            .lean()
+            .exec();
+        if (!group) {
+            throw new NotFoundException(`Không tìm thấy nhóm với ID: ${id}`);
+        }
+        const members = await this.groupMemberModel.find({ group: id }).populate('user', 'username avatar');
+        const memberCount = await this.groupMemberModel.countDocuments({ group: id });
+        return { ...group, members, memberCount };
     }
 
-    // B2: Lấy danh sách thành viên từ bảng GroupMember
-    const members = await this.groupMemberModel.find({ group: id })
-        .populate('user', 'username avatar'); // Lấy thông tin chi tiết của từng user
-    
-    // B3: Đếm tổng số thành viên
-    const memberCount = await this.groupMemberModel.countDocuments({ group: id });
-
-    // B4: Gộp tất cả dữ liệu lại và trả về cho frontend
-    return { ...group, members, memberCount };
-  }
+        // ✅ BỔ SUNG HÀM LẤY DANH SÁCH THÀNH VIÊN
+    async getGroupMembers(groupId: string): Promise<GroupMember[]> {
+        return this.groupMemberModel.find({ group: groupId })
+            .populate('user', 'username avatar');
+    }
 
     // ✅ BỔ SUNG PHƯƠN THỨC NÀY
     async findGroupsForUser(user: UserDocument): Promise<Group[]> {
-        // B1: Tìm các bản ghi thành viên của user
         const memberships = await this.groupMemberModel.find({ user: user._id }).select('group');
         const groupIds = memberships.map(m => m.group);
 
-        // B2: Dùng danh sách ID để lấy thông tin chi tiết các nhóm đó
         return this.groupModel.find({ _id: { $in: groupIds } })
             .populate('owner', 'username avatar')
             .populate('interests')
             .exec();
     }
+
 
 
     // --- LOGIC QUẢN LÝ ---
@@ -159,32 +253,56 @@ export class GroupsService {
       .populate('user', 'username avatar');
   }
 
-  async approveRequest(requestId: string): Promise<{ message: string }> {
-    const request = await this.joinRequestModel.findById(requestId);
+  async approveRequest(requestId: string, owner: UserDocument): Promise<{ message: string }> {
+    const request = await this.joinRequestModel.findById(requestId)
+        .populate('user')
+        .populate('group'); // Populate để lấy thông tin
+
     if (!request || request.status !== 'PENDING') {
       throw new NotFoundException('Không tìm thấy yêu cầu hoặc yêu cầu đã được xử lý.');
     }
 
-    // Tạo bản ghi thành viên mới
     const newMember = new this.groupMemberModel({
-      user: request.user,
-      group: request.group,
+      user: request.user._id,
+      group: request.group._id,
       role: GroupRole.MEMBER,
     });
     await newMember.save();
+    
+    // Xóa yêu cầu sau khi đã xử lý
+    await request.deleteOne();
 
-    // Cập nhật trạng thái yêu cầu
-    request.status = 'APPROVED';
-    await request.save();
+    // 3. ✅ PHÁT SỰ KIỆN THÔNG BÁO "CHẤP THUẬN"
+    this.eventEmitter.emit('notification.create', {
+        recipientId: request.user._id.toString(), // Người nhận là người gửi yêu cầu
+        actor: owner, // Người thực hiện là chủ nhóm
+        type: NotificationType.GROUP_REQUEST_ACCEPTED,
+        link: `/groups/${request.group._id}`,
+    });
 
     return { message: 'Đã chấp thuận thành viên.' };
   }
 
-  async rejectRequest(requestId: string): Promise<{ message: string }> {
-    const request = await this.joinRequestModel.findByIdAndDelete(requestId);
+  async rejectRequest(requestId: string, owner: UserDocument): Promise<{ message: string }> {
+    const request = await this.joinRequestModel.findById(requestId)
+        .populate('user')
+        .populate('group');
+
     if (!request) {
       throw new NotFoundException('Không tìm thấy yêu cầu.');
     }
+    
+    // Xóa yêu cầu
+    await request.deleteOne();
+
+    // 4. ✅ PHÁT SỰ KIỆN THÔNG BÁO "TỪ CHỐI"
+    this.eventEmitter.emit('notification.create', {
+        recipientId: request.user._id.toString(), // Người nhận là người gửi yêu cầu
+        actor: owner, // Người thực hiện là chủ nhóm
+        type: NotificationType.GROUP_REQUEST_REJECTED,
+        link: null, // Không cần link cho thông báo từ chối
+    });
+
     return { message: 'Đã từ chối yêu cầu.' };
   }
 }
