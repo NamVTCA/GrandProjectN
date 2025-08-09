@@ -24,6 +24,7 @@ class GroupMember {
 // --- Schema chính cho Group ---
 @Schema({ timestamps: true })
 export class Group {
+  _id: mongoose.Schema.Types.ObjectId;
   @Prop({ required: true, trim: true })
   name: string;
 

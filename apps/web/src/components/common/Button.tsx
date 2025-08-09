@@ -1,27 +1,26 @@
-// File: apps/web/src/components/common/Button/Button.tsx (Phiên bản nâng cấp)
-
 import React from 'react';
 import './Button.scss';
 
-// Thêm một type để định nghĩa các loại variant mà nút có thể có
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+// ✅ BƯỚC 1: Mở rộng type để chấp nhận thêm các variant và size mới
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonSize = 'small' | 'medium' | 'large';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  variant?: ButtonVariant; // Cho phép nhận prop 'variant'
+  variant?: ButtonVariant;
+  size?: ButtonSize; // Thêm prop 'size'
 }
 
 const Button: React.FC<ButtonProps> = ({
   children,
-  variant = 'primary', // Đặt giá trị mặc định là 'primary'
-  className,          // Nhận cả className từ bên ngoài (ví dụ: "interest-tag")
+  variant = 'primary',
+  size = 'medium', // Đặt size mặc định
+  className,
   ...props
 }) => {
-  // ✅ LOGIC QUAN TRỌNG:
-  // Tự động tạo chuỗi class hoàn chỉnh.
-  // Ví dụ: nếu variant="secondary" và className="interest-tag",
-  // kết quả sẽ là "btn btn-secondary interest-tag".
-  const buttonClass = `btn btn-${variant} ${className || ''}`.trim();
+  // ✅ BƯỚC 2: Thêm class cho size vào chuỗi class CSS động
+  // Ví dụ kết quả: "btn btn-danger btn-small"
+  const buttonClass = `btn btn-${variant} btn-${size} ${className || ''}`.trim();
 
   return (
     <button className={buttonClass} {...props}>
