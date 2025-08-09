@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   User,
   UserDocument,
@@ -13,6 +13,8 @@ import {
   ModerationStatus,
 } from '../posts/schemas/post.schema';
 import { Comment, CommentDocument } from '../posts/schemas/comment.schema';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/schemas/notification.schema';
 
 @Injectable()
 export class AdminService {
@@ -56,6 +58,7 @@ export class AdminService {
 
     // (Tùy chọn) Thêm một cảnh báo để ghi lại lý do
     user.warnings.push({
+      _id: new Types.ObjectId(),
       reason: `Tạm khóa: ${reason}`,
       date: new Date(),
       by: admin._id,
@@ -76,6 +79,7 @@ export class AdminService {
     user.suspensionExpires = undefined; // Xóa ngày hết hạn nếu có
 
     user.warnings.push({
+      _id: new Types.ObjectId(),
       reason: `Khóa vĩnh viễn: ${reason}`,
       date: new Date(),
       by: admin._id,
@@ -91,24 +95,28 @@ export class AdminService {
   ): Promise<User> {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng.');
-
-    user.warnings.push({ reason, date: new Date(), by: admin._id });
-    return user.save();
-  }
-  async restoreUser(userId: string, admin: UserDocument): Promise<User> {
-    const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('Không tìm thấy người dùng.');
-
-    user.accountStatus = AccountStatus.ACTIVE;
-    user.suspensionExpires = undefined;
-
     user.warnings.push({
-      reason: `Khôi phục trạng thái hoạt động bởi Admin`,
+      _id: new Types.ObjectId(),
+      reason: `cảnh cáo :${reason}`,
       date: new Date(),
       by: admin._id,
     });
-
     return user.save();
+  }
+  async restoreUser(userId: string, admin: UserDocument): Promise<any> {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng.');
+    user.accountStatus = AccountStatus.ACTIVE;
+    user.suspensionExpires = undefined;
+
+    // In your service where you add warnings
+    user.warnings.push({
+      _id: new Types.ObjectId(), // This can be omitted if using the schema default
+      reason: `Khôi phục trạng thái hoạt động bởi Admin`,
+      date: new Date(),
+      by: admin.id,
+    });
+    await user.save();
   }
 
   async getModerationQueue(): Promise<{ posts: Post[]; comments: Comment[] }> {

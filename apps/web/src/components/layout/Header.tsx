@@ -95,12 +95,15 @@ const Header: React.FC = () => {
                     </div>
                 )}
             </div>
-            
-            <div className="user-actions">
-                <Link to="/notifications" className="notification-link">
-                    <FaBell className="icon" />
-                </Link>
-            </div>
+         <div className="user-actions">
+  <Link to="/user-reports/:userId" className="warning-link">
+    <span className="warning-icon">!</span>
+  </Link>
+  <Link to="/notifications" className="notification-link">
+    <FaBell className="icon" />
+  </Link>
+</div>
+
         </header>
     );
 };

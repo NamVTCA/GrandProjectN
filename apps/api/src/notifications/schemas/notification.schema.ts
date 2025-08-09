@@ -6,13 +6,14 @@ export type NotificationDocument = Notification & Document;
 
 // ✅ ĐÃ HOÀN THIỆN: Enum này giờ đã bao gồm tất cả các loại thông báo
 export enum NotificationType {
-  NEW_REACTION = 'NEW_REACTION',   // Cho một lượt "thích" hoặc bày tỏ cảm xúc
-  NEW_COMMENT = 'NEW_COMMENT',     // Cho một bình luận mới
-  NEW_FOLLOWER = 'NEW_FOLLOWER',   // Cho một người theo dõi mới
+  NEW_REACTION = 'NEW_REACTION', // Cho một lượt "thích" hoặc bày tỏ cảm xúc
+  NEW_COMMENT = 'NEW_COMMENT', // Cho một bình luận mới
+  NEW_FOLLOWER = 'NEW_FOLLOWER', // Cho một người theo dõi mới
   FRIEND_REQUEST = 'FRIEND_REQUEST', // Cho một lời mời kết bạn mới
-  FRIEND_REQUEST_ACCEPTED = 'FRIEND_ACCEPTED',// cho một lời đồng ý kết bạn
-  GAME_INVITE = 'GAME_INVITE',     // Cho một lời mời chơi game
-  NEW_NOTIFICATION='NEW_NOTIFICATION'
+  FRIEND_REQUEST_ACCEPTED = 'FRIEND_ACCEPTED', // cho một lời đồng ý kết bạn
+  GAME_INVITE = 'GAME_INVITE', // Cho một lời mời chơi game
+  NEW_NOTIFICATION = 'NEW_NOTIFICATION',
+  WARN = 'WARN',
   // Bạn có thể thêm các loại khác ở đây trong tương lai
 }
 
@@ -32,7 +33,7 @@ export class Notification {
 
   @Prop()
   link?: string;
-  
+
   @Prop({ type: Object })
   metadata?: {
     gameName?: string;

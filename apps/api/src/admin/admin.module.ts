@@ -6,11 +6,12 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
 import { Post, PostSchema } from '../posts/schemas/post.schema';
 import { Comment, CommentSchema } from '../posts/schemas/comment.schema';
-
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema },
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
       { name: Post.name, schema: PostSchema },
       { name: Comment.name, schema: CommentSchema },
     ]),

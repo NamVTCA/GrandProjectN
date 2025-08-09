@@ -33,11 +33,6 @@
     border-radius: $border-radius-md;
     transition: background-color 0.2s;
 
-    &.unread {
-      border-left: 4px solid $primary-color;
-background-color: color.adjust($surface-color, $lightness: 3%);
-    }
-
     img {
       width: 45px;
       height: 45px;
@@ -67,21 +62,69 @@ background-color: color.adjust($surface-color, $lightness: 3%);
       font-size: 14px;
       text-decoration: underline;
     }
-  }
-  .notification-item {
-  &.unread {
-    border-left: 4px solid $primary-color;
-    background-color: color.adjust($surface-color, $lightness: 5%);
+
+    &.unread {
+      border-left: 4px solid $primary-color;
+      background-color: color.adjust($surface-color, $lightness: 5%);
+    }
+
+    &.read {
+      opacity: 0.85;
+    }
+
+    &:hover {
+      background-color: color.adjust($surface-color, $lightness: 7%);
+    }
+
+    &.friend-request-item {
+      background-color: #f0f8ff;
+      border-left: 4px solid #4da6ff;
+    }
   }
 
-  &.read {
-    background-color: $surface-color;
-    opacity: 0.85;
+  .delete-btn {
+    background: transparent;
+    color: red;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    margin-left: 10px;
   }
 
-  &:hover {
-    background-color: color.adjust($surface-color, $lightness: 7%);
-  }
-}
+  .delete-warning-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background: #ff4d4f;
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
 
+    &:hover {
+      background: #d9363e;
+    }
+  }
+
+  .accept-btn,
+  .reject-btn {
+    margin-left: 8px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .accept-btn {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .reject-btn {
+    background-color: #f44336;
+    color: white;
+  }
 }

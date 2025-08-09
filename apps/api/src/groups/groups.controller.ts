@@ -10,43 +10,46 @@ import { GroupMemberGuard } from './guards/group-member.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
 export class GroupsController {
-    constructor(private readonly groupsService: GroupsService) {}
+  constructor(private readonly groupsService: GroupsService) {}
 
-    // --- CÁC ROUTE CỤ THỂ (KHÔNG CÓ THAM SỐ) ĐƯỢC ĐẶT LÊN ĐẦU ---
+  // --- CÁC ROUTE CỤ THỂ (KHÔNG CÓ THAM SỐ) ĐƯỢC ĐẶT LÊN ĐẦU ---
 
-    @Post()
-    create(@GetUser() user: UserDocument, @Body() createGroupDto: CreateGroupDto) {
-        return this.groupsService.createGroup(user, createGroupDto);
-    }
+  @Post()
+  create(
+    @GetUser() user: UserDocument,
+    @Body() createGroupDto: CreateGroupDto,
+  ) {
+    return this.groupsService.createGroup(user, createGroupDto);
+  }
 
-    @Get('me') // Route này sẽ được kiểm tra trước
-    findMyGroups(@GetUser() user: UserDocument) {
-        return this.groupsService.findGroupsForUser(user);
-    }
+  @Get('me') // Route này sẽ được kiểm tra trước
+  findMyGroups(@GetUser() user: UserDocument) {
+    return this.groupsService.findGroupsForUser(user);
+  }
 
-    @Get('suggestions') // Route này cũng được ưu tiên
-    getSuggestions(@GetUser() user: UserDocument) {
-        return this.groupsService.suggestGroups(user);
-    }
+  @Get('suggestions') // Route này cũng được ưu tiên
+  getSuggestions(@GetUser() user: UserDocument) {
+    return this.groupsService.suggestGroups(user);
+  }
 
-    // --- CÁC ROUTE CHUNG CHUNG (CÓ THAM SỐ) ĐƯỢC ĐẶT XUỐNG DƯỚI ---
+  // --- CÁC ROUTE CHUNG CHUNG (CÓ THAM SỐ) ĐƯỢC ĐẶT XUỐNG DƯỚI ---
 
-    @Get(':id') // Route này sẽ chỉ được dùng khi route ở trên không khớp
-    findOne(@Param('id') id: string) {
-        return this.groupsService.findOneById(id);
-    }
+  @Get(':id') // Route này sẽ chỉ được dùng khi route ở trên không khớp
+  findOne(@Param('id') id: string) {
+    return this.groupsService.findOneById(id);
+  }
 
-    @Post(':id/join')
-    join(@GetUser() user: UserDocument, @Param('id') groupId: string) {
-        return this.groupsService.joinGroup(user, groupId);
-    }
+  @Post(':id/join')
+  join(@GetUser() user: UserDocument, @Param('id') groupId: string) {
+    return this.groupsService.joinGroup(user, groupId);
+  }
 
-    @Delete(':id')
-    deleteGroup(@Param('id') groupId: string, @GetUser() user: UserDocument) {
-        return this.groupsService.deleteGroup(groupId, user);
-    }
+  @Delete(':id')
+  deleteGroup(@Param('id') groupId: string, @GetUser() user: UserDocument) {
+    return this.groupsService.deleteGroup(groupId, user);
+  }
 
-      // --- API QUẢN LÝ NHÓM ---
+  // --- API QUẢN LÝ NHÓM ---
 
   @Get(':id/requests') // Lấy danh sách yêu cầu tham gia
   @UseGuards(JwtAuthGuard, GroupOwnerGuard) // Bảo vệ route
@@ -63,8 +66,8 @@ export class GroupsController {
     // Truyền owner xuống service
     return this.groupsService.approveRequest(requestId, owner);
   }
-  
-  @Post(':id/requests/:requestId/reject')
+
+  @Post(':id/requests/:requestId/reject') // Từ chối yêu cầu
   @UseGuards(JwtAuthGuard, GroupOwnerGuard)
   rejectRequest(
     @GetUser() owner: UserDocument, // Lấy thông tin chủ nhóm
@@ -108,5 +111,9 @@ export class GroupsController {
     @Body('inviteeId') inviteeId: string,
   ) {
     return this.groupsService.createInvite(groupId, inviter, inviteeId);
+  }
+  @Get(':id/join-status')
+  getJoinStatus(@GetUser() user: UserDocument, @Param('id') groupId: string) {
+    return this.groupsService.getJoinStatus(user, groupId);
   }
 }

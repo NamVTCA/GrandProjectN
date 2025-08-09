@@ -137,5 +137,19 @@ export class UsersController {
     return this.usersService.GetUserDental(id);
   }
 
-  
+  @UseGuards(JwtAuthGuard)
+  @Get('warnings/get')
+  getWarnings(@GetUser() user: UserDocument) {
+    return this.usersService.getWarnings(user._id.toString());
+  }
+
+  // Update the deleteWarning route in users.controller.ts
+  @UseGuards(JwtAuthGuard)
+  @Delete('warnings/delete/:warningId')
+  deleteWarning(
+    @GetUser() user: UserDocument,
+    @Param('warningId') warningId: string,
+  ) {
+    return this.usersService.deleteWarning(user._id.toString(), warningId);
+  }
 }

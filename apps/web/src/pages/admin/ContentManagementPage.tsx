@@ -4,6 +4,17 @@ import { useToast } from '../../components/common/Toast/ToastContext';
 import type { ModeratedPost, ModeratedComment } from '../../features/admin/types/Moderation';
 import Button from '../../components/common/Button';
 import './AdminPages.scss';
+export interface Report {
+  _id: string;
+  type: 'POST' | 'COMMENT' | 'USER';
+  targetId: string;
+  reason: string;
+  createdAt: string;
+  reporter: {
+    username: string;
+    avatar: string;
+  };
+}
 
 const ContentManagementPage: React.FC = () => {
   const [posts, setPosts] = useState<ModeratedPost[]>([]);
@@ -37,6 +48,19 @@ const ContentManagementPage: React.FC = () => {
       addToast('Có lỗi xảy ra', 'error');
     }
   };
+const [reports, setReports] = useState<Report[]>([]);
+
+useEffect(() => {
+  const fetchReports = async () => {
+    try {
+      const res = await api.get('/reports/all');
+      setReports(res.data);
+    } catch (err) {
+      addToast('Lỗi khi tải danh sách báo cáo', 'error');
+    }
+  };
+  fetchReports();
+}, []);
 
   if (loading) return <p>Đang tải...</p>;
 
@@ -59,6 +83,22 @@ const ContentManagementPage: React.FC = () => {
           ))
         ) : <p>Không có bài đăng nào chờ duyệt.</p>}
       </div>
+<div className="content-section">
+  <h2>Tất cả báo cáo ({reports.length})</h2>
+  {reports.length > 0 ? (
+    reports.map(report => (
+      <div key={report._id} className="report-item">
+        <p>
+          <strong>@{report.reporter.username}</strong> đã báo cáo <strong>{report.type}</strong> với ID: <code>{report.targetId}</code>
+        </p>
+        <blockquote>{report.reason}</blockquote>
+        <small>{new Date(report.createdAt).toLocaleString()}</small>
+      </div>
+    ))
+  ) : (
+    <p>Không có báo cáo nào.</p>
+  )}
+</div>
 
       <div className="content-section">
         <h2>Bình luận chờ duyệt ({comments.length})</h2>
@@ -76,7 +116,9 @@ const ContentManagementPage: React.FC = () => {
           ))
         ) : <p>Không có bình luận nào chờ duyệt.</p>}
       </div>
+      
     </div>
+    
   );
 };
 

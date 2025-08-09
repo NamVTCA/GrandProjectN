@@ -40,7 +40,6 @@ import { SearchModule } from './search/search.module';
       envFilePath: ['.env'],
     }),
 
- 
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -52,7 +51,6 @@ import { SearchModule } from './search/search.module';
       }),
     }),
 
-   
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -75,7 +73,6 @@ import { SearchModule } from './search/search.module';
       }),
     }),
 
-   
     EventEmitterModule.forRoot(),
     MongooseModule.forRoot(
       process.env.MONGO_URI ??
@@ -84,7 +81,6 @@ import { SearchModule } from './search/search.module';
         })(),
     ),
 
-    
     AuthModule,
     UsersModule,
     PostsModule,

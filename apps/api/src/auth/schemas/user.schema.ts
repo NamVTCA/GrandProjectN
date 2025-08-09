@@ -29,14 +29,18 @@ export type UserDocument = User & Document & { _id: Types.ObjectId };
 
 @Schema({ _id: false })
 export class Warning {
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    default: () => new Types.ObjectId(),
+  })
+  _id: Types.ObjectId;
+
   @Prop({ required: true })
   reason: string;
 
   @Prop({ required: true, default: Date.now })
   date: Date;
 
-  // SỬA LỖI: Thay đổi kiểu dữ liệu từ `User` thành `mongoose.Schema.Types.ObjectId`
-  // để phá vỡ tham chiếu vòng. Mối quan hệ vẫn được giữ lại nhờ `ref: 'User'`.
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   by: Types.ObjectId;
 }

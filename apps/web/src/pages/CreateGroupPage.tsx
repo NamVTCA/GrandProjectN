@@ -1,169 +1,186 @@
-// File: src/pages/CreateGroupPage.tsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../features/auth/AuthContext';
+import type { GroupDetail } from '../features/groups/types/Group';
+import type { Post, ReactionType, PostVisibility } from '../features/feed/types/Post';
+import GroupHeader from '../features/groups/components/GroupHeader';
+import CreatePost from '../features/feed/components/CreatePost';
+import PostCard from '../features/feed/components/PostCard';
+import './GroupDetailPage.scss';
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";
-import type { CreateGroupDto, Interest } from "../features/groups/types/Group";
-import { useToast } from "../components/common/Toast/ToastContext";
-import Input from "../components/common/Input";
-import Button from "../components/common/Button";
-import "./CreateGroupPage.scss";
+const GroupDetailPage: React.FC = () => {
+    // --- STATE & HOOKS ---
+    const { id: groupId } = useParams<{ id: string }>();
+    const { user } = useAuth();
+    const [group, setGroup] = useState<GroupDetail | null>(null);
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isProcessingJoin, setIsProcessingJoin] = useState<boolean>(false);
+const [joinStatus, setJoinStatus] = useState<'MEMBER' | 'PENDING' | 'NONE'>('NONE');
 
-const CreateGroupPage: React.FC = () => {
-  const [formData, setFormData] = useState<CreateGroupDto>({
-    name: "",
-    description: "",
-    privacy: "public",
-    interestIds: [],
-  });
-
-  const [allInterests, setAllInterests] = useState<Interest[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { addToast } = useToast();
-  const navigate = useNavigate();
-
-  // API gọi danh sách sở thích
-  const getInterests = async (): Promise<Interest[]> => {
-    const response = await api.get("/interests");
-    return response.data;
-  };
-
-  // API tạo nhóm
-  const createGroup = async (group: CreateGroupDto) => {
-    const response = await api.post("/groups", group);
-    return response.data;
-  };
-
-  useEffect(() => {
-    const fetchInterests = async () => {
-      try {
-        const interests = await getInterests();
-        setAllInterests(interests);
-      } catch (error) {
-addToast(
-  "Không thể tải danh sách sở thích. Vui lòng thử lại sau.",
-  "error"
-);
-      }
+    // --- CÁC HÀM XỬ LÝ SỰ KIỆN CHO BÀI VIẾT ---
+    const handleReact = async (postId: string, reaction: ReactionType) => {
+        try {
+            const updatedPost = await api.post<Post>(`/posts/${postId}/react`, { type: reaction });
+            setPosts(currentPosts =>
+                currentPosts.map(p => p._id === postId ? updatedPost.data : p)
+            );
+        } catch (err) {
+            console.error("Lỗi khi bày tỏ cảm xúc:", err);
+        }
     };
-    fetchInterests();
-  }, [addToast]);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const handlePostDeleted = (postId: string) => {
+        setPosts(currentPosts => currentPosts.filter(p => p._id !== postId));
+        api.delete(`/posts/${postId}`).catch(err => {
+            console.error("Lỗi khi xóa bài viết:", err);
+        });
+    };
+    
+    const handleRepost = (postId: string, content: string, visibility: PostVisibility) => {
+        console.log(`Chia sẻ bài viết ${postId} với nội dung: ${content}`);
+    };
 
-  const handleInterestToggle = (interestId: string) => {
-    setFormData((prev) => {
-      const newInterestIds = prev.interestIds?.includes(interestId)
-        ? prev.interestIds.filter((id) => id !== interestId)
-        : [...(prev.interestIds || []), interestId];
-      return { ...prev, interestIds: newInterestIds };
-    });
-  };
+    const handleCommentChange = (postId: string, change: number) => {
+        setPosts(currentPosts =>
+            currentPosts.map(p =>
+                p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount + change) } : p
+            )
+        );
+    };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.description.trim()) {
-addToast("Vui lòng điền đầy đủ tên và mô tả nhóm.", "error");
-      return;
-    }
+    // --- CÁC HÀM TẢI DỮ LIỆU ---
+    const fetchPosts = useCallback(async () => {
+        if (!groupId) return;
+        try {
+            const response = await api.get<Post[]>(`/posts/group/${groupId}`);
+            setPosts(response.data);
+        } catch (err) {
+            console.error("Lỗi khi tải bài viết của nhóm:", err);
+        }
+    }, [groupId]);
 
-    setIsLoading(true);
-    try {
-      const newGroup = await createGroup(formData);
-      addToast(`Nhóm "${newGroup.name}" đã được tạo.`, "success");
-      navigate(`/groups/${newGroup._id}`);
-    } catch (error: any) {
-      addToast(
-        "Lỗi",
-        error.response?.data?.message || "Có lỗi xảy ra khi tạo nhóm."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="create-group-page">
-      <form onSubmit={handleSubmit} className="create-group-form">
-        <h1>Tạo Nhóm Mới</h1>
-        <p>Gắn kết cộng đồng và chia sẻ đam mê của bạn.</p>
-
-        <div className="form-group">
-          <label htmlFor="name">Tên nhóm</label>
-          <Input
-            id="name"
-            name="name"
-            type="text"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="description">Mô tả</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="privacy">Quyền riêng tư</label>
-          <select
-            id="privacy"
-            name="privacy"
-            value={formData.privacy}
-            onChange={handleChange}
-          >
-            <option value="public">Công khai</option>
-            <option value="private">Riêng tư</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Sở thích (Tùy chọn)</label>
-          <div className="interests-container">
-            {allInterests.map((interest) => (
-              <Button
-                key={interest._id}
-                type="button"
-                variant={
-                  formData.interestIds?.includes(interest._id)
-                    ? "primary"
-                    : "secondary"
-                }
-                onClick={() => handleInterestToggle(interest._id)}
-                className="interest-tag"
-              >
-                {interest.name}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={isLoading}
-          className="submit-btn"
-        >
-          {isLoading ? "Đang tạo..." : "Tạo Nhóm"}
-        </Button>
-      </form>
-    </div>
-  );
+    useEffect(() => {
+        if (!groupId) {
+            setLoading(false);
+            setError("Không tìm thấy ID của nhóm.");
+            return;
+        }
+     const fetchAllData = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const [groupResponse, joinStatusResponse] = await Promise.all([
+      api.get<GroupDetail>(`/groups/${groupId}`),
+      api.get<{ status: 'MEMBER' | 'PENDING' | 'NONE' }>(`/groups/${groupId}/join-status`),
+      fetchPosts()
+    ]);
+    setGroup(groupResponse.data);
+    setJoinStatus(joinStatusResponse.data.status);
+  } catch (err) {
+    setError("Không thể tải thông tin nhóm. Nhóm có thể không tồn tại hoặc đã bị xóa.");
+  } finally {
+    setLoading(false);
+  }
 };
 
-export default CreateGroupPage;
+        fetchAllData();
+    }, [groupId, fetchPosts]);
+
+    const isOwner = useMemo(() => {
+        if (!user || !group) return false;
+        return user._id === group.owner._id;
+    }, [user, group]);
+
+    const isMember = useMemo(() => {
+        if (!user || !group) return false;
+        return group.members.some(member => member.user?._id === user._id);
+    }, [user, group]);
+
+const handleJoinLeaveClick = async () => {
+  if (!group) return;
+  setIsProcessingJoin(true);
+  try {
+    const endpoint = isMember ? `/groups/${group._id}/leave` : `/groups/${group._id}/join`;
+    await api.post(endpoint);
+
+    // Cập nhật lại joinStatus
+    const joinStatusResponse = await api.get<{ status: 'MEMBER' | 'PENDING' | 'NONE' }>(`/groups/${group._id}/join-status`);
+    setJoinStatus(joinStatusResponse.data.status);
+
+    // Cập nhật lại group
+    const groupResponse = await api.get<GroupDetail>(`/groups/${group._id}`);
+    setGroup(groupResponse.data);
+  } catch (err) {
+    console.error("Lỗi khi tham gia/rời khỏi nhóm:", err);
+  } finally {
+    setIsProcessingJoin(false);
+  }
+};
+
+
+    // ✅ HÀM MỚI: Xử lý khi có bài viết mới được tạo
+    const handlePostCreated = (newPost: Post) => {
+        // Thêm bài viết mới vào đầu danh sách hiện tại để cập nhật UI ngay lập tức
+        setPosts(currentPosts => [newPost, ...currentPosts]);
+    };
+    
+    // --- RENDER ---
+    if (loading) {
+        return <div className="page-loading">Đang tải...</div>;
+    }
+    if (error) {
+        return <div className="page-loading error">{error}</div>;
+    }
+    if (!group) {
+        return <div className="page-loading">Không tìm thấy nhóm.</div>;
+    }
+
+    return (
+        <div className="group-detail-page">
+          <GroupHeader
+  group={group}
+  isOwner={isOwner}
+  isMember={isMember}
+  isProcessing={isProcessingJoin}
+  joinStatus={joinStatus}
+  onJoinLeaveClick={handleJoinLeaveClick}
+/>
+            <div className="group-body">
+                <div className="main-content">
+                    {isMember && (
+                        <CreatePost
+                            context="group"
+                            contextId={group._id}
+                            onPostCreated={handlePostCreated} // <-- SỬ DỤNG HÀM MỚI
+                        />
+                    )}
+                    <div className="post-list">
+                        {posts.length > 0 ? (
+                            posts.map(post => (
+                                <PostCard
+                                    key={post._id}
+                                    post={post}
+                                    onReact={handleReact}
+                                    onRepost={handleRepost}
+                                    onPostDeleted={handlePostDeleted}
+                                    onCommentAdded={() => handleCommentChange(post._id, 1)}
+                                    onCommentDeleted={() => handleCommentChange(post._id, -1)}
+                                />
+                            ))
+                        ) : (
+                             <p className="page-status">Chưa có bài viết nào trong nhóm này. Hãy là người đầu tiên!</p>
+                        )}
+                    </div>
+                </div>
+                <div className="sidebar-content">
+                    {/* ... (phần sidebar giữ nguyên) ... */}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default GroupDetailPage;
