@@ -23,7 +23,10 @@ import {
 import { CreateGroupDto } from './dto/create-group.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType } from '../notifications/schemas/notification.schema';
-import { GroupInvite, GroupInviteDocument } from './schemas/group-invite.schema';
+import {
+  GroupInvite,
+  GroupInviteDocument,
+} from './schemas/group-invite.schema';
 
 @Injectable()
 export class GroupsService {
@@ -274,6 +277,71 @@ export class GroupsService {
     });
 
     return { message: 'Đã từ chối yêu cầu.' };
+  }
+  async addXpToMember(
+    userId: string,
+    groupId: string,
+    xpAmount: number,
+  ): Promise<void> {
+    await this.groupMemberModel.findOneAndUpdate(
+      { user: userId, group: groupId },
+      { $inc: { xp: xpAmount } },
+    );
+  }
+
+  // --- HÀM MỚI (ĐÃ SỬA LỖI VÀ HOÀN THIỆN) ---
+  async deleteGroup(
+    groupId: string,
+    user: UserDocument,
+  ): Promise<{ message: string }> {
+    const group = await this.groupModel.findById(groupId);
+    if (!group) {
+      throw new NotFoundException('Không tìm thấy nhóm.');
+    }
+
+    // SỬA LỖI: Truy cập trực tiếp vào thuộc tính `globalRole` từ đối tượng `user`.
+    // TypeScript có thể không suy luận được kiểu phức tạp, nhưng chúng ta biết thuộc tính này tồn tại.
+    const userRole = user.globalRole;
+
+    // Kiểm tra quyền: phải là chủ nhóm hoặc Admin
+    if (
+      group.owner.toString() !== user._id.toString() &&
+      userRole !== GlobalRole.ADMIN
+    ) {
+      throw new UnauthorizedException('Bạn không có quyền xóa nhóm này.');
+    }
+
+    // === Xóa toàn bộ dữ liệu liên quan ===
+
+    // 1. Tìm tất cả bài đăng trong nhóm
+    const postsInGroup = await this.postModel
+      .find({ group: groupId })
+      .select('_id')
+      .exec();
+    const postIds = postsInGroup.map((p) => p._id);
+
+    // 2. Xóa tất cả bình luận thuộc các bài đăng đó
+    if (postIds.length > 0) {
+      await this.commentModel.deleteMany({ post: { $in: postIds } });
+    }
+
+    // 3. Xóa tất cả các bài đăng đó
+    await this.postModel.deleteMany({ group: groupId });
+
+    // 4. Xóa tất cả các bản ghi thành viên của nhóm
+    await this.groupMemberModel.deleteMany({ group: groupId });
+
+    // 5. Xóa nhóm
+    await group.deleteOne();
+
+    return { message: 'Đã xóa nhóm và tất cả dữ liệu liên quan thành công.' };
+  }
+
+  // ✅ BỔ SUNG HÀM LẤY DANH SÁCH THÀNH VIÊN
+  async getGroupMembers(groupId: string): Promise<GroupMember[]> {
+    return this.groupMemberModel
+      .find({ group: groupId })
+      .populate('user', 'username avatar');
   }
 
   async getJoinStatus(user: UserDocument, groupId: string) {
