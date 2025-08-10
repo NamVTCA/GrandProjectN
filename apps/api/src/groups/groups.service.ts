@@ -1,3 +1,4 @@
+// File: src/groups/groups.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -175,7 +176,6 @@ export class GroupsService {
     return { message: 'Đã xóa nhóm và tất cả dữ liệu liên quan thành công.' };
   }
 
-  // ✅ Bổ sung phương thức này nếu chưa có
   // ✅ THAY THẾ HOÀN TOÀN HÀM NÀY
   async findOneById(id: string): Promise<any> {
     // B1: Lấy thông tin cơ bản của nhóm
@@ -258,6 +258,7 @@ export class GroupsService {
     }
     return { message: 'Đã từ chối yêu cầu.' };
   }
+
   async getJoinStatus(
     user: UserDocument,
     groupId: string,
@@ -278,5 +279,26 @@ export class GroupsService {
     if (joinRequest) return { status: 'PENDING' };
 
     return { status: 'NONE' };
+  }
+
+  // ============================================================
+  // ✅ CÁC HÀM BỔ SUNG ĐỂ CONTROLLER UPLOAD HOẠT ĐỘNG
+  // ============================================================
+
+  // Cập nhật 1 nhóm theo id (dùng chung)
+  async updateById(id: string, data: Partial<Group>) {
+    const updated = await this.groupModel.findByIdAndUpdate(id, data, { new: true });
+    if (!updated) throw new NotFoundException('Không tìm thấy nhóm.');
+    return updated;
+  }
+
+  // Đổi ảnh bìa
+  async updateCoverImage(id: string, coverImage: string) {
+    return this.updateById(id, { coverImage });
+  }
+
+  // Đổi avatar
+  async updateAvatar(id: string, avatar: string) {
+    return this.updateById(id, { avatar });
   }
 }

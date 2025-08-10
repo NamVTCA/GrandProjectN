@@ -18,6 +18,7 @@ import api from "../../../services/api";
 import { useAuth } from "../../auth/AuthContext";
 import type { Post, Comment, ReactionType, PostVisibility } from "../types/Post";
 import { ReactionTypes } from "../types/Post";
+import UserAvatar from "../../../components/common/UserAvatar";
 import "./PostCard.scss";
 
 // --- Component Comment ---
@@ -91,13 +92,14 @@ const CommentSection: React.FC<{
       <div className="comment-list">
         {comments.map((comment) => (
           <div key={comment._id} className="comment">
-            <img
+            {/* avatar bình luận */}
+            <UserAvatar
+              size={32}
               src={
-                comment.author.avatarUrl || // Sửa thành avatar
-                "https://placehold.co/32x32/242526/b0b3b8?text=..."
+                (comment.author as any)?.avatarUrl ||
+                (comment.author as any)?.avatar ||
+                (comment.author as any)?.avatar_url
               }
-              alt={comment.author.username}
-              className="comment-author-avatar"
             />
             <div className="comment-content">
               <Link to={`/profile/${comment.author.username}`}>
@@ -207,12 +209,14 @@ const PostCard: React.FC<PostCardProps> = ({
       <>
         <div className="post-header">
           <Link to={`/profile/${p.author.username}`} className="author-info">
-            <img
+            {/* avatar tác giả */}
+            <UserAvatar
+              size={48}
               src={
-                p.author.avatarUrl ||
-                "https://placehold.co/48x48/242526/b0b3b8?text=..."
+                (p.author as any)?.avatarUrl ||
+                (p.author as any)?.avatar ||
+                (p.author as any)?.avatar_url
               }
-              alt={p.author.username}
             />
             <div>
               <strong>{p.author.username}</strong>
