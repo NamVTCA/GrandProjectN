@@ -1,40 +1,99 @@
-// @use 'src/styles/index' as *;
+.group-header { width: 100%; }
 
+.group-cover-photo {
+  position: relative;
+  height: 240px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  overflow: hidden;
 
-.group-detail-header {
-  background-color: $background-component;
-  border-radius: $border-radius-lg;
-  margin-bottom: 20px;
-  padding: 20px;
-  display: flex;
+  .cover-edit-slot {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+  }
+}
+
+.group-info-container {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(to top, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 40%);
+}
+
+.group-avatar {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255,255,255,.9);
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+}
+
+.group-details {
+  color: #fff;
+  h1 { font-size: 24px; font-weight: 800; margin: 0 0 6px 0; }
+  p { margin: 0; opacity: .9; }
+}
+
+.group-actions { align-self: end; }
+
+/* Nút cơ bản (dùng chung) */
+.edit-cover-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,.9);
+  color: #111;
+  font-weight: 600;
+  display: inline-flex;
   align-items: center;
-  gap: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  transition: filter .15s ease, transform .05s ease;
+  &:hover { filter: brightness(.95); }
+  &:active { transform: translateY(1px); }
+  &:disabled { opacity:.6; cursor: default; }
+}
 
-  .cover-image {
-    width: 120px;
-    height: 120px;
-    border-radius: $border-radius-md;
-    background: linear-gradient(45deg, $primary-dark, $primary-main);
-    flex-shrink: 0;
-  }
+/* Dropdown menu cho nút chỉnh sửa */
+.edit-menu { position: relative; display: inline-block; }
+.edit-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  color: #111;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  padding: 6px;
+  z-index: 5;
 
-  .group-info {
-    flex-grow: 1;
-    h2 {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-    p {
-      color: $text-secondary;
-    }
-  }
+  &__item {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font-weight: 600;
+    cursor: pointer;
 
-  .group-actions {
-    button, a button {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    &:hover { background: rgba(0,0,0,.06); }
+    &:disabled { opacity:.6; cursor: default; }
   }
+}
+
+/* backdrop để click ra ngoài đóng menu */
+.edit-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 4;
 }

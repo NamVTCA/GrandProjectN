@@ -1,12 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ItemType } from '../schemas/shop-item.schema';
 
 export class CreateShopItemDto {
@@ -23,11 +16,12 @@ export class CreateShopItemDto {
   type: ItemType;
 
   @IsNotEmpty()
-  @Type(() => Number) // <-- quan trọng!
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   price: number;
 
   @IsOptional()
+  @IsString()
   assetUrl?: string;
 }

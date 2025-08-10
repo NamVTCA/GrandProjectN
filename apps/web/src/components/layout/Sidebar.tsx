@@ -1,10 +1,10 @@
-// src/components/layout/Sidebar.tsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  FaHome, FaUsers, FaComments, FaStore, FaBoxOpen, FaUser, FaSignOutAlt
+  FaHome, FaUsers, FaComments, FaStore, FaBoxOpen, FaSignOutAlt
 } from 'react-icons/fa';
 import { useAuth } from '../../features/auth/AuthContext';
+import UserAvatar from '../common/UserAvatar';
 import './Sidebar.scss';
 
 const Sidebar: React.FC = () => {
@@ -18,6 +18,8 @@ const Sidebar: React.FC = () => {
     { path: '/inventory', label: 'Kho đồ', icon: <FaBoxOpen /> },
   ];
 
+  const profilePath = user?.username ? `/profile/${user.username}` : '/profile';
+
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
@@ -28,7 +30,11 @@ const Sidebar: React.FC = () => {
           <ul>
             {navItems.map((item) => (
               <li key={item.path}>
-                <NavLink to={item.path} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} end>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  end
+                >
                   <span className="icon">{item.icon}</span>
                   <span className="label">{item.label}</span>
                 </NavLink>
@@ -37,15 +43,19 @@ const Sidebar: React.FC = () => {
           </ul>
         </nav>
       </div>
+
       <div className="sidebar-footer">
         {user && (
-          <NavLink to={`/profile/${user.username}`} className="user-profile-link">
-            <img
-              src={user.avatar || 'https://via.placeholder.com/40'}
-              alt={user.username}
-              className="user-avatar"
+          <NavLink to={profilePath} className="user-profile-link">
+            <UserAvatar
+              size={32}
+              src={
+                (user as any)?.avatarUrl ||
+                (user as any)?.avatar ||
+                (user as any)?.avatar_url
+              }
             />
-            <span className="username">{user.username}</span>
+            <span className="username">{user.username || 'User'}</span>
           </NavLink>
         )}
         <button onClick={logout} className="logout-button" title="Đăng xuất">

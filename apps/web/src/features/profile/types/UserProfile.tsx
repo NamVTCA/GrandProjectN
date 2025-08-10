@@ -12,4 +12,11 @@ export interface UserProfile {
   createdAt: string;
   xp:number;
   xpToNextLevel: number;
+  // ✅ Thêm trường để lấy khung avatar từ backend
+  equippedAvatarFrame?: {
+    _id: string;
+    name: string;
+    assetUrl: string;
+    type?: string;
+  };
 }

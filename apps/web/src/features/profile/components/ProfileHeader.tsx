@@ -98,20 +98,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           className="cover-image"
         />
       </div>
+
       <div className="profile-info-bar">
         <div className="avatar-section">
-          <img
-            src={
-              userProfile.avatar
-                ? publicUrl(userProfile.avatar)
-                : "https://via.placeholder.com/150"
-            }
-            alt={userProfile.username}
-            className="profile-avatar"
-          />
-          <div className="name-section">
-            <h2>{userProfile.name || userProfile.username}</h2>
-            <p>@{userProfile.username}</p>
+<div className="avatar-section">
+  <div className="profile-avatar">
+    <AvatarWithFrame
+      avatarUrl={
+        userProfile.avatar
+          ? publicUrl(userProfile.avatar)
+          : "https://via.placeholder.com/150"
+      }
+      frameAssetUrl={userProfile.equippedAvatarFrame?.assetUrl}
+      size={96}
+    />
+  </div>
+
+  <div className="name-section">
+    <h2>{userProfile.name || userProfile.username}</h2>
+    <p>@{userProfile.username}</p>
+  </div>
+</div>
+
             <div className="user-level" style={{ color: levelInfo.color }}>
               <strong>
                 {levelInfo.icon} {levelInfo.level}
@@ -176,6 +184,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           }}
         />
       )}
+
     </header>
   );
 };
