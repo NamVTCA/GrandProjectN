@@ -5,6 +5,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { GroupOwnerGuard } from './guards/group-owner.guard';
+import { GroupMemberGuard } from './guards/group-member.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
@@ -56,16 +57,60 @@ export class GroupsController {
     return this.groupsService.getJoinRequests(groupId);
   }
 
-  @Post(':id/requests/:requestId/approve') // Chấp thuận yêu cầu
+  @Post(':id/requests/:requestId/approve')
   @UseGuards(JwtAuthGuard, GroupOwnerGuard)
-  approveRequest(@Param('requestId') requestId: string) {
-    return this.groupsService.approveRequest(requestId);
+  approveRequest(
+    @GetUser() owner: UserDocument, // Lấy thông tin chủ nhóm
+    @Param('requestId') requestId: string
+  ) {
+    // Truyền owner xuống service
+    return this.groupsService.approveRequest(requestId, owner);
   }
 
   @Post(':id/requests/:requestId/reject') // Từ chối yêu cầu
   @UseGuards(JwtAuthGuard, GroupOwnerGuard)
-  rejectRequest(@Param('requestId') requestId: string) {
-    return this.groupsService.rejectRequest(requestId);
+  rejectRequest(
+    @GetUser() owner: UserDocument, // Lấy thông tin chủ nhóm
+    @Param('requestId') requestId: string
+  ) {
+    // Truyền owner xuống service
+    return this.groupsService.rejectRequest(requestId, owner);
+  }
+
+    // ✅ BỔ SUNG ROUTE RỜI NHÓM
+  @Post(':id/leave')
+  @UseGuards(JwtAuthGuard)
+  leaveGroup(@GetUser() user: UserDocument, @Param('id') groupId: string) {
+    return this.groupsService.leaveGroup(user, groupId);
+  }
+
+  // ✅ BỔ SUNG ROUTE LẤY THÀNH VIÊN (CHO TRANG QUẢN LÝ)
+  @Get(':id/members')
+  @UseGuards(JwtAuthGuard, GroupOwnerGuard) // Chỉ chủ nhóm mới được xem
+  getGroupMembers(@Param('id') groupId: string) {
+    return this.groupsService.getGroupMembers(groupId);
+  }
+
+
+  // ✅ BỔ SUNG ROUTE XÓA THÀNH VIÊN
+  @Delete(':groupId/members/:memberUserId')
+  @UseGuards(JwtAuthGuard, GroupOwnerGuard) // Chỉ chủ nhóm mới có quyền
+  kickMember(
+    @Param('groupId') groupId: string,
+    @Param('memberUserId') memberUserId: string,
+  ) {
+    return this.groupsService.kickMember(groupId, memberUserId);
+  }
+
+    // ✅ BỔ SUNG API MỜI VÀO NHÓM
+  @Post(':id/invite')
+  @UseGuards(JwtAuthGuard, GroupMemberGuard) // Chỉ thành viên mới được mời
+  createInvite(
+    @Param('id') groupId: string,
+    @GetUser() inviter: UserDocument,
+    @Body('inviteeId') inviteeId: string,
+  ) {
+    return this.groupsService.createInvite(groupId, inviter, inviteeId);
   }
   @Get(':id/join-status')
   getJoinStatus(@GetUser() user: UserDocument, @Param('id') groupId: string) {

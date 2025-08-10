@@ -14,7 +14,9 @@ export enum NotificationType {
   GAME_INVITE = 'GAME_INVITE', // Cho một lời mời chơi game
   NEW_NOTIFICATION = 'NEW_NOTIFICATION',
   WARN = 'WARN',
-  // Bạn có thể thêm các loại khác ở đây trong tương lai
+  GROUP_REQUEST_ACCEPTED = 'GROUP_REQUEST_ACCEPTED', // ✅ THÊM DÒNG NÀY
+  GROUP_REQUEST_REJECTED = 'GROUP_REQUEST_REJECTED', // ✅ THÊM DÒNG NÀY
+  GROUP_INVITE = 'GROUP_INVITE', 
 }
 
 @Schema({ timestamps: true })
@@ -42,3 +44,5 @@ export class Notification {
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
+
+
