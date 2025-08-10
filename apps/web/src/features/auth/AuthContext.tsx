@@ -3,6 +3,14 @@ import type { ReactNode } from 'react';
 import api from '../../services/api';
 
 // Define the User type based on the backend's /auth/me response
+// ✅ Sửa: thêm kiểu EquippedItem và equippedAvatarFrame để hiển thị khung
+type EquippedItemType = 'AVATAR_FRAME' | 'PROFILE_BACKGROUND';
+interface EquippedItem {
+  _id: string;
+  assetUrl: string;
+  type: EquippedItemType;
+}
+
 interface User {
   _id: string;
   username: string;
@@ -17,6 +25,8 @@ interface User {
     name: string;
     boxArtUrl: string;
   };
+  // ✅ THÊM: trường khung đang trang bị (được populate từ backend)
+  equippedAvatarFrame?: EquippedItem | null;
 }
 
 // Define the shape of the context
@@ -49,13 +59,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Fetch user từ /auth/me nếu có token
+  // ✅ Sửa: gọi /users/me (đã populate equippedAvatarFrame ở backend)
   const fetchUser = useCallback(async () => {
     if (!token) {
       setIsLoading(false);
       return;
     }
     try {
-      const response = await api.get<User>('/auth/me');
+      const response = await api.get<User>('/users/me'); // <-- đổi endpoint
       setUser(response.data);
     } catch (error) {
       console.error("Auth token is invalid or expired. Logging out.", error);

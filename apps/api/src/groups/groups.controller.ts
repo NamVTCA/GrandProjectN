@@ -1,4 +1,8 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller, Get, Post, Delete, Body, Param, UseGuards,
+  UploadedFile, UseInterceptors, BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { GroupsService } from './groups.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -6,13 +10,14 @@ import { UserDocument } from '../auth/schemas/user.schema';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { GroupOwnerGuard } from './guards/group-owner.guard';
 import { GroupMemberGuard } from './guards/group-member.guard';
+import { imageMulterOptions } from '../common/upload/image-upload.config';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
-  // --- CÁC ROUTE CỤ THỂ (KHÔNG CÓ THAM SỐ) ĐƯỢC ĐẶT LÊN ĐẦU ---
+  // --- ROUTE KHÔNG THAM SỐ ---
 
   @Post()
   create(
@@ -22,29 +27,61 @@ export class GroupsController {
     return this.groupsService.createGroup(user, createGroupDto);
   }
 
-  @Get('me') // Route này sẽ được kiểm tra trước
+  @Get('me') // Lấy nhóm của user hiện tại
   findMyGroups(@GetUser() user: UserDocument) {
     return this.groupsService.findGroupsForUser(user);
   }
 
-  @Get('suggestions') // Route này cũng được ưu tiên
+  @Get('suggestions') // Gợi ý nhóm
   getSuggestions(@GetUser() user: UserDocument) {
     return this.groupsService.suggestGroups(user);
   }
 
-  // --- CÁC ROUTE CHUNG CHUNG (CÓ THAM SỐ) ĐƯỢC ĐẶT XUỐNG DƯỚI ---
+  // --- UPLOAD ẢNH (đặt trước :id) ---
 
-  @Get(':id') // Route này sẽ chỉ được dùng khi route ở trên không khớp
+  // POST /groups/:id/cover-image  (field: file)
+  @Post(':id/cover-image')
+  @UseGuards(GroupOwnerGuard) // chỉ chủ nhóm được đổi ảnh bìa
+  @UseInterceptors(FileInterceptor('file', imageMulterOptions('groups/covers')))
+  async uploadCover(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Không có file');
+    const rel = file.path.replace(process.cwd(), '').replace(/\\/g, '/');
+    const coverImage = rel.startsWith('/uploads') ? rel : `/uploads${rel}`;
+    await this.groupsService.updateById(id, { coverImage });
+    return { coverImage };
+  }
+
+  // POST /groups/:id/avatar  (field: file)
+  @Post(':id/avatar')
+  @UseGuards(GroupOwnerGuard) // chỉ chủ nhóm được đổi avatar
+  @UseInterceptors(FileInterceptor('file', imageMulterOptions('groups/avatars')))
+  async uploadAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Không có file');
+    const rel = file.path.replace(process.cwd(), '').replace(/\\/g, '/');
+    const avatar = rel.startsWith('/uploads') ? rel : `/uploads${rel}`;
+    await this.groupsService.updateById(id, { avatar });
+    return { avatar };
+  }
+
+  // --- ROUTE CÓ THAM SỐ ---
+
+  @Get(':id') // Lấy chi tiết nhóm
   findOne(@Param('id') id: string) {
     return this.groupsService.findOneById(id);
   }
 
-  @Post(':id/join')
+  @Post(':id/join') // Gửi yêu cầu/Tham gia nhóm
   join(@GetUser() user: UserDocument, @Param('id') groupId: string) {
     return this.groupsService.joinGroup(user, groupId);
   }
 
-  @Delete(':id')
+  @Delete(':id') // Xóa nhóm (tuỳ quyền xử lý trong service)
   deleteGroup(@Param('id') groupId: string, @GetUser() user: UserDocument) {
     return this.groupsService.deleteGroup(groupId, user);
   }
@@ -52,49 +89,45 @@ export class GroupsController {
   // --- API QUẢN LÝ NHÓM ---
 
   @Get(':id/requests') // Lấy danh sách yêu cầu tham gia
-  @UseGuards(JwtAuthGuard, GroupOwnerGuard) // Bảo vệ route
+  @UseGuards(GroupOwnerGuard)
   getJoinRequests(@Param('id') groupId: string) {
     return this.groupsService.getJoinRequests(groupId);
   }
 
-  @Post(':id/requests/:requestId/approve')
-  @UseGuards(JwtAuthGuard, GroupOwnerGuard)
+  @Post(':id/requests/:requestId/approve') // Chấp thuận yêu cầu
+  @UseGuards(GroupOwnerGuard)
   approveRequest(
-    @GetUser() owner: UserDocument, // Lấy thông tin chủ nhóm
-    @Param('requestId') requestId: string
+    @GetUser() owner: UserDocument,
+    @Param('requestId') requestId: string,
   ) {
-    // Truyền owner xuống service
     return this.groupsService.approveRequest(requestId, owner);
   }
 
   @Post(':id/requests/:requestId/reject') // Từ chối yêu cầu
-  @UseGuards(JwtAuthGuard, GroupOwnerGuard)
+  @UseGuards(GroupOwnerGuard)
   rejectRequest(
-    @GetUser() owner: UserDocument, // Lấy thông tin chủ nhóm
-    @Param('requestId') requestId: string
+    @GetUser() owner: UserDocument,
+    @Param('requestId') requestId: string,
   ) {
-    // Truyền owner xuống service
     return this.groupsService.rejectRequest(requestId, owner);
   }
 
-    // ✅ BỔ SUNG ROUTE RỜI NHÓM
+  // Rời nhóm
   @Post(':id/leave')
-  @UseGuards(JwtAuthGuard)
   leaveGroup(@GetUser() user: UserDocument, @Param('id') groupId: string) {
     return this.groupsService.leaveGroup(user, groupId);
   }
 
-  // ✅ BỔ SUNG ROUTE LẤY THÀNH VIÊN (CHO TRANG QUẢN LÝ)
+  // Lấy danh sách thành viên (trang quản lý)
   @Get(':id/members')
-  @UseGuards(JwtAuthGuard, GroupOwnerGuard) // Chỉ chủ nhóm mới được xem
+  @UseGuards(GroupOwnerGuard) // Chỉ chủ nhóm
   getGroupMembers(@Param('id') groupId: string) {
     return this.groupsService.getGroupMembers(groupId);
   }
 
-
-  // ✅ BỔ SUNG ROUTE XÓA THÀNH VIÊN
+  // Kick thành viên
   @Delete(':groupId/members/:memberUserId')
-  @UseGuards(JwtAuthGuard, GroupOwnerGuard) // Chỉ chủ nhóm mới có quyền
+  @UseGuards(GroupOwnerGuard)
   kickMember(
     @Param('groupId') groupId: string,
     @Param('memberUserId') memberUserId: string,
@@ -102,9 +135,9 @@ export class GroupsController {
     return this.groupsService.kickMember(groupId, memberUserId);
   }
 
-    // ✅ BỔ SUNG API MỜI VÀO NHÓM
+  // Mời vào nhóm
   @Post(':id/invite')
-  @UseGuards(JwtAuthGuard, GroupMemberGuard) // Chỉ thành viên mới được mời
+  @UseGuards(GroupMemberGuard) // Chỉ thành viên mới được mời
   createInvite(
     @Param('id') groupId: string,
     @GetUser() inviter: UserDocument,
@@ -112,7 +145,8 @@ export class GroupsController {
   ) {
     return this.groupsService.createInvite(groupId, inviter, inviteeId);
   }
-  @Get(':id/join-status')
+
+  @Get(':id/join-status') // Trạng thái tham gia của user đối với nhóm
   getJoinStatus(@GetUser() user: UserDocument, @Param('id') groupId: string) {
     return this.groupsService.getJoinStatus(user, groupId);
   }

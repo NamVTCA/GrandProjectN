@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 
 @Schema()
@@ -25,6 +25,9 @@ export class User {
 
   @Prop({ type: String, default: null })
   activeItem: string | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'ShopItem' })
+  equippedAvatarFrame?: Types.ObjectId;
 }
 
 export type UserDocument = User & Document;

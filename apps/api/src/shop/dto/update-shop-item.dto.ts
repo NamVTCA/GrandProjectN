@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsNumber, Min, IsEnum, IsUrl } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, IsEnum } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ItemType } from '../schemas/shop-item.schema';
 
 export class UpdateShopItemDto {
@@ -15,11 +16,12 @@ export class UpdateShopItemDto {
   type?: ItemType;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   price?: number;
 
   @IsOptional()
-  @IsUrl()
+  @IsString()
   assetUrl?: string;
 }

@@ -1,65 +1,137 @@
-// @use '../../../styles/index' as *;
-// @import "../../../styles/_variables.scss"; 
-
-.group-card {
-  background-color: $background-component;
-  border: 1px solid $surface-color;
+.group-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto; // Ảnh - Nội dung - Actions
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
   border-radius: $border-radius-lg;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: $background-component;
+  border: 1px solid $surface-color;
+  transition: background .15s ease, border-color .15s ease;
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: $card-shadow-hover;
+  &:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
+
+  &__thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: block;
+
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
   }
 
-  .group-card-header {
-    height: 120px;
-    background: linear-gradient(45deg, $primary-main, $primary-accent);
-    // A placeholder pattern
-    background-image: 
-      linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
-      linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.05) 75%),
-      linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.05) 75%);
-    background-size: 20px 20px;
+  &__content {
+    min-width: 0;         // ⬅️ cho phép co lại
+    overflow: hidden;     // ⬅️ không tràn sang cột actions
   }
 
-  .group-card-body {
-    padding: 20px;
-    flex-grow: 1;
-    h3 { 
-      font-size: 18px; 
-      margin-bottom: 10px; 
-      font-weight: 600;
-    }
-    p { 
-      font-size: 14px; 
-      color: $text-secondary; 
-      margin-bottom: 15px;
-      line-height: 1.5;
-    }
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      .tag {
-        background-color: $surface-color;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-      }
+  &__title {
+    font-weight: 700;
+    font-size: 16px;
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 2px;
+    white-space: nowrap;       // ⬅️ một dòng
+    overflow: hidden;
+    text-overflow: ellipsis;   // ⬅️ …
+    &:hover { text-decoration: underline; }
+  }
+
+  &__meta {
+    font-size: 13px;
+    opacity: .85;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;      // ⬅️ đủ chỗ thì 1 dòng, thiếu chỗ tự xuống
+    white-space: normal;  // ⬅️ cho phép xuống hàng
+
+    .dot { opacity: .65; }
+
+    .chip {
+      margin-left: 8px;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.09);
     }
   }
 
-  .group-card-footer {
-    padding: 0 20px 20px 20px;
-    button { 
-      width: 100%; 
-      font-size: 14px;
-    }
+  &__actions {
+    position: static;       // ⬅️ tuyệt đối không đè nội dung
+    justify-self: end;      // ⬅️ ép sát mép phải
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* Nút "Chỉnh sửa" + dropdown tái sử dụng */
+.edit-cover-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  transition: filter .15s ease, transform .05s ease;
+  &:hover { filter: brightness(.96); }
+  &:active { transform: translateY(1px); }
+}
+
+.edit-menu { position: relative; }
+.edit-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  color: #111;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  padding: 6px;
+  z-index: 5;
+
+  &__item {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { background: rgba(0,0,0,.06); }
+  }
+}
+.edit-menu__backdrop { position: fixed; inset: 0; background: transparent; z-index: 4; }
+
+/* Nút tham gia / đã gửi */
+.join-btn {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color .2s ease, filter .15s ease;
+  background: #2374e1;
+  color: #fff;
+
+  &:hover:not(:disabled) { background: #166fe5; }
+  &:active:not(:disabled) { filter: brightness(.96); }
+  &:disabled {
+    background: #4b4d50;
+    color: #e4e6eb;
+    cursor: default;
+    filter: none;
   }
 }

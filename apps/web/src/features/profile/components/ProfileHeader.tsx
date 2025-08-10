@@ -1,4 +1,3 @@
-// File: src/features/profile/components/ProfileHeader.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile } from '../types/UserProfile';
@@ -6,19 +5,23 @@ import { useAuth } from '../../auth/AuthContext';
 import Button from '../../../components/common/Button';
 import './ProfileHeader.scss';
 import { publicUrl } from '../../../untils/publicUrl';
+import AvatarWithFrame from '../../../components/common/AvatarWithFrame';
+
 
 interface ProfileHeaderProps {
   userProfile: UserProfile;
   isFollowing: boolean;
   onFollowToggle: () => void;
 }
+
 type UserLevelInfo = {
-   level: string;
+  level: string;
   description: string;
   color: string;
   icon?: string;
   xpToNextLevel: number;
 };
+
 const getUserLevelInfo = (xp: number): UserLevelInfo => {
   if (xp >= 20000) {
     return {
@@ -67,7 +70,6 @@ const getUserLevelInfo = (xp: number): UserLevelInfo => {
   }
 };
 
-
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   userProfile,
   isFollowing,
@@ -95,35 +97,39 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           className="cover-image"
         />
       </div>
+
       <div className="profile-info-bar">
         <div className="avatar-section">
-          <img
-            src={
-              userProfile.avatar
-                ? publicUrl(userProfile.avatar)
-                : 'https://via.placeholder.com/150'
-            }
-            alt={userProfile.username}
-            className="profile-avatar"
-          />
-          
-         <div className="name-section">
-  <h2>{userProfile.name || userProfile.username}</h2>
-  <p>@{userProfile.username}</p>
-<div className="user-level" style={{ color: levelInfo.color }}>
-  <strong>
-    {levelInfo.icon} {levelInfo.level}
-  </strong>
-  <p className="xp">
-    {userProfile.xp} / {levelInfo.xpToNextLevel} XP
-  </p>
-  <p className="desc">{levelInfo.description}</p>
-</div>
+          {/* Avatar + khung (thay cho <img className="profile-avatar" />) */}
+          <div className="profile-avatar">
+            <AvatarWithFrame
+              avatarUrl={
+                userProfile.avatar
+                  ? publicUrl(userProfile.avatar)
+                  : 'https://via.placeholder.com/150'
+              }
+              // populated từ backend: equippedAvatarFrame.assetUrl
+              frameAssetUrl={userProfile.equippedAvatarFrame?.assetUrl}
+              size={96}
+            />
+          </div>
 
+          <div className="name-section">
+            <h2>{userProfile.name || userProfile.username}</h2>
+            <p>@{userProfile.username}</p>
 
-</div>
-
+            <div className="user-level" style={{ color: levelInfo.color }}>
+              <strong>
+                {levelInfo.icon} {levelInfo.level}
+              </strong>
+              <p className="xp">
+                {userProfile.xp} / {levelInfo.xpToNextLevel} XP
+              </p>
+              <p className="desc">{levelInfo.description}</p>
+            </div>
+          </div>
         </div>
+
         <div className="stats-section">
           <div className="stat">
             <strong>{userProfile.following.length}</strong>
@@ -134,6 +140,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <span>Người theo dõi</span>
           </div>
         </div>
+
         <div className="action-section">
           {isMyProfile ? (
             <Button onClick={handleEditProfile} variant="secondary">
@@ -149,9 +156,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
         </div>
       </div>
-      {userProfile.bio && (
-        <p className="profile-bio">{userProfile.bio}</p>
-      )}
+
+      {userProfile.bio && <p className="profile-bio">{userProfile.bio}</p>}
     </header>
   );
 };

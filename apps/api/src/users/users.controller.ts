@@ -1,4 +1,3 @@
-// File: apps/api/src/users/users.controller.ts
 import {
   Controller,
   Get,
@@ -23,6 +22,13 @@ import { UserDocument } from '../auth/schemas/user.schema';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // (MỚI) Route được bảo vệ: lấy thông tin chính mình (populate equippedAvatarFrame)
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMe(@GetUser() user: UserDocument) {
+    return this.usersService.getMe(user._id.toString());
+  }
 
   // Route công khai để xem profile theo username
   @Get(':username')
