@@ -1,5 +1,5 @@
 @use '../../../styles/index' as *;
-
+@use "sass:color";
 // // Nếu cần dùng @import (cũ)
 // @import '../../../styles/_variables.scss';
 
@@ -364,4 +364,19 @@
       }
     }
   }
+  button.report-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e0245e;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    color: color.adjust(#e0245e, $lightness: 10%);
+  }
+}
+
 }

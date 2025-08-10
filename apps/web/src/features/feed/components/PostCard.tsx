@@ -62,9 +62,7 @@ const CommentSection: React.FC<{
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    // Sử dụng modal tùy chỉnh thay vì window.confirm nếu muốn
     if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) return;
-
     try {
       await api.delete(`/posts/comments/${commentId}`);
       setComments((prev) => prev.filter((c) => c._id !== commentId));
@@ -93,7 +91,7 @@ const CommentSection: React.FC<{
           <div key={comment._id} className="comment">
             <img
               src={
-                comment.author.avatarUrl || // Sửa thành avatar
+                comment.author.avatarUrl ||
                 "https://placehold.co/32x32/242526/b0b3b8?text=..."
               }
               alt={comment.author.username}
@@ -133,6 +131,40 @@ const reactionDetails: {
   ANGRY: { icon: <FaAngry />, text: "Phẫn nộ", color: "#e0245e" },
 };
 
+// --- ReportModal ---
+const ReportModal: React.FC<{
+  onClose: () => void;
+  onSubmit: (reason: string) => void;
+}> = ({ onClose, onSubmit }) => {
+  const [reason, setReason] = useState("");
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>🚩 Gửi báo cáo</h3>
+        <textarea
+          placeholder="Nhập lý do bạn muốn báo cáo..."
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <div className="modal-actions">
+          <button onClick={onClose}>Hủy</button>
+          <button
+            onClick={() => {
+              if (!reason.trim()) {
+                alert("Vui lòng nhập lý do báo cáo.");
+                return;
+              }
+              onSubmit(reason);
+            }}
+          >
+            Gửi
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main PostCard Component ---
 interface PostCardProps {
   post: Post;
@@ -158,8 +190,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [visibility, setVisibility] = useState<PostVisibility>("FRIENDS_ONLY");
   const [showReactions, setShowReactions] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
-  // ✅ THÊM STATE MỚI ĐỂ QUẢN LÝ MODAL XÁC NHẬN XÓA
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isReportModalOpen, setReportModalOpen] = useState(false);
 
   useEffect(() => {
     setLocalCommentCount(post.commentCount);
@@ -180,16 +212,9 @@ const PostCard: React.FC<PostCardProps> = ({
     setRepostContent("");
   };
 
-  // ✅ CẬP NHẬT HÀM XÓA
-  const handleDelete = () => {
-    // Thay vì gọi window.confirm, chúng ta sẽ mở modal
-    setDeleteModalOpen(true);
-  };
-
-  // ✅ HÀM MỚI: Xử lý khi người dùng xác nhận xóa từ modal
   const confirmDelete = () => {
     onPostDeleted(post._id);
-    setDeleteModalOpen(false); // Đóng modal sau khi xóa
+    setDeleteModalOpen(false);
   };
 
   const renderVisibilityIcon = (v: PostVisibility) => {
@@ -221,17 +246,25 @@ const PostCard: React.FC<PostCardProps> = ({
               </span>
             </div>
           </Link>
-          {isAuthor && isOriginalPost && (
-            <div className="post-options">
-              <FaEllipsisH />
-              <div className="options-menu">
-                <button onClick={handleDelete}>
+
+          {/* Menu Xóa hoặc Báo cáo */}
+          <div className="post-options">
+            <FaEllipsisH />
+            <div className="options-menu">
+              {isAuthor && isOriginalPost && (
+                <button onClick={() => setDeleteModalOpen(true)}>
                   <FaTrash /> Xóa
                 </button>
-              </div>
+              )}
+              {!isAuthor && (
+                <button onClick={() => setReportModalOpen(true)}>
+                  🚩 Báo cáo
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
+
         <div className="post-visibility">{renderVisibilityIcon(p.visibility)}</div>
         {p.content && <p className="post-content">{p.content}</p>}
         {p.mediaUrls && p.mediaUrls.length > 0 && (
@@ -348,6 +381,7 @@ const PostCard: React.FC<PostCardProps> = ({
         />
       )}
 
+      {/* Modal chia sẻ */}
       {isRepostModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -373,10 +407,22 @@ const PostCard: React.FC<PostCardProps> = ({
         </div>
       )}
 
-      {/* ✅ THÊM MODAL XÁC NHẬN XÓA */}
+      {/* Modal báo cáo */}
+      {isReportModalOpen && (
+        <ReportModal
+          onClose={() => setReportModalOpen(false)}
+          onSubmit={async (reason) => {
+            await api.post("/reports", { type: "POST", targetId: post._id, reason });
+            alert("✅ Cảm ơn bạn đã báo cáo bài viết này.");
+            setReportModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Modal xác nhận xóa */}
       {isDeleteModalOpen && (
         <div className="modal-overlay" onClick={() => setDeleteModalOpen(false)}>
-          <div className="modal-content confirm-delete-modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-content confirm-delete-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Xác nhận xóa</h3>
             <p>Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.</p>
             <div className="modal-actions">

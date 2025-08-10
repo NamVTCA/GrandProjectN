@@ -4,11 +4,12 @@ import React from 'react';
 import './Button.scss';
 
 // Thêm một type để định nghĩa các loại variant mà nút có thể có
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | "danger";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   variant?: ButtonVariant; // Cho phép nhận prop 'variant'
+  size?: "small" | "medium" | "large";
 }
 
 const Button: React.FC<ButtonProps> = ({

@@ -1,0 +1,31 @@
+@use "sass:color";
+@use "../../styles/variables" as *;
+
+.report-modal {
+  textarea {
+    width: 100%;
+    min-height: 80px;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    background: $surface-color;
+    color: $text-light;
+    border: none;
+    resize: vertical;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    button:last-child {
+      background: #e0245e;
+      color: white;
+
+      &:hover {
+        background: color.adjust(#e0245e, $lightness: 10%);
+      }
+    }
+  }
+}
