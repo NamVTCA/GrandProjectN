@@ -1,6 +1,16 @@
 import {
-  Controller, Post, Body, Patch, Param, Delete,
-  UseGuards, UploadedFile, UseInterceptors, BadRequestException
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { CreateShopItemDto } from './dto/create-shop-item.dto';
@@ -14,18 +24,27 @@ import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { extname, join } from 'path';
 import * as fs from 'fs';
+import { ItemType } from './schemas/shop-item.schema';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Admin Shop')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(GlobalRole.ADMIN)
 @Controller('admin/shop')
 export class AdminShopController {
   constructor(private readonly shopService: ShopService) {}
 
+  @Get('items')
+  async getAllItems(@Query('types') types?: string) {
+    const itemTypes = types ? (types.split(',') as ItemType[]) : undefined;
+    return this.shopService.listItems(itemTypes);
+  }
+
   @Post('items')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        // Lưu file vào thư mục uploads/shop-items
         destination: (req, file, cb) => {
           const dir = join(process.cwd(), 'uploads', 'shop-items');
           fs.mkdirSync(dir, { recursive: true });
@@ -36,6 +55,9 @@ export class AdminShopController {
           cb(null, `${uuidv4()}${ext}`);
         },
       }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
           return cb(new BadRequestException('Chỉ chấp nhận file ảnh'), false);
@@ -44,23 +66,33 @@ export class AdminShopController {
       },
     }),
   )
+  @ApiConsumes('multipart/form-data')
   async createItem(
     @Body() dto: CreateShopItemDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    if (!file && !dto.assetUrl) {
+      throw new BadRequestException(
+        'Vui lòng tải lên ảnh hoặc cung cấp URL ảnh',
+      );
+    }
+
     if (file) {
-      dto.assetUrl = `/uploads/shop-items/${file.filename}`; // link public FE dùng
+      dto.assetUrl = `/uploads/shop-items/${file.filename}`;
     }
     return this.shopService.createItem(dto);
   }
 
   @Patch('items/:id')
-  updateItem(@Param('id') id: string, @Body() updateShopItemDto: UpdateShopItemDto) {
+  async updateItem(
+    @Param('id') id: string,
+    @Body() updateShopItemDto: UpdateShopItemDto,
+  ) {
     return this.shopService.updateItem(id, updateShopItemDto);
   }
 
   @Delete('items/:id')
-  deleteItem(@Param('id') id: string) {
+  async deleteItem(@Param('id') id: string) {
     return this.shopService.deleteItem(id);
   }
 }

@@ -1,3 +1,4 @@
+// AdminDashboardPage.tsx
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import './AdminPages.scss';
@@ -7,11 +8,20 @@ interface Interest {
   name: string;
 }
 
+interface ShopItem {
+  _id: string;
+  name: string;
+  description: string;
+  type: string;
+  price: number;
+  assetUrl: string;
+}
+
 const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<any>({});
   const [reports, setReports] = useState<any[]>([]);
   const [interests, setInterests] = useState<Interest[]>([]);
-  const [selectedInterestIds, setSelectedInterestIds] = useState<string[]>([]);
+  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [newItem, setNewItem] = useState({
     name: '',
     description: '',
@@ -31,13 +41,28 @@ const AdminDashboardPage: React.FC = () => {
   const [existingPackages, setExistingPackages] = useState<string[]>([]);
 
   useEffect(() => {
-    api.get('/admin/stats').then(res => setStats(res.data)).catch(err => console.error('Lỗi tải thống kê', err));
-    api.get('/reports/all').then(res => setReports(res.data)).catch(err => console.error('Lỗi tải báo cáo', err));
-    api.get('/coin-packages')
-      .then(res => setExistingPackages(res.data.map((p: any) => p.packageId)))
-      .catch(err => console.error('Lỗi tải gói coin:', err));
-    api.get('/interests').then(res => setInterests(res.data)).catch(err => console.error('Lỗi tải sở thích:', err));
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const [statsRes, reportsRes, packagesRes, interestsRes, shopItemsRes] = await Promise.all([
+        api.get('/admin/stats'),
+        api.get('/reports/all'),
+        api.get('/coin-packages'),
+        api.get('/interests'),
+        api.get('/admin/shop/items')
+      ]);
+      
+      setStats(statsRes.data);
+      setReports(reportsRes.data);
+      setExistingPackages(packagesRes.data.map((p: any) => p.packageId));
+      setInterests(interestsRes.data);
+      setShopItems(shopItemsRes.data);
+    } catch (err) {
+      console.error('Lỗi tải dữ liệu:', err);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -62,8 +87,22 @@ const AdminDashboardPage: React.FC = () => {
       alert('Tạo vật phẩm thành công!');
       setNewItem({ name: '', description: '', type: 'AVATAR_FRAME', price: 0, asset: null });
       setPreviewUrl(null);
+      fetchData();
     } catch (err) {
-      console.log(`Lỗi tạo vật phẩm:${err}`);
+      console.error('Lỗi tạo vật phẩm:', err);
+      alert('Lỗi khi tạo vật phẩm');
+    }
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xoá vật phẩm này?')) return;
+    try {
+      await api.delete(`/admin/shop/items/${id}`);
+      alert('Xoá vật phẩm thành công!');
+      fetchData();
+    } catch (err) {
+      console.error('Lỗi xoá vật phẩm:', err);
+      alert('Lỗi khi xoá vật phẩm');
     }
   };
 
@@ -72,6 +111,7 @@ const AdminDashboardPage: React.FC = () => {
       await api.post('/coin-packages', newPackage);
       alert('Tạo gói coin thành công!');
       setNewPackage({ packageId: '', name: '', coinsAmount: 0, price: 0, currency: 'VND' });
+      fetchData();
     } catch (err) {
       console.error('Lỗi tạo gói coin:', err);
     }
@@ -82,8 +122,7 @@ const AdminDashboardPage: React.FC = () => {
       await api.post('/admin/interests', { name: newInterest });
       setNewInterest('');
       alert('Tạo sở thích thành công!');
-      const updated = await api.get('/interests');
-      setInterests(updated.data);
+      fetchData();
     } catch (err) {
       console.error('Lỗi tạo sở thích:', err);
     }
@@ -93,7 +132,7 @@ const AdminDashboardPage: React.FC = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xoá sở thích này?')) return;
     try {
       await api.delete(`/admin/interests/${id}`);
-      setInterests(prev => prev.filter(i => i._id !== id));
+      fetchData();
     } catch (err) {
       console.error('Lỗi xoá sở thích:', err);
     }
@@ -127,6 +166,41 @@ const AdminDashboardPage: React.FC = () => {
         <input type="file" accept="image/*" onChange={handleFileChange} />
         {previewUrl && <img src={previewUrl} alt="Xem trước" style={{ width: 100, marginTop: 10 }} />}
         <button onClick={handleCreateItem}>Tạo vật phẩm</button>
+
+        <h3 style={{ marginTop: '2rem' }}>Danh sách vật phẩm</h3>
+        <table className="shop-items-table">
+          <thead>
+            <tr>
+              <th>Tên</th>
+              <th>Loại</th>
+              <th>Giá</th>
+              <th>Hình ảnh</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shopItems.map(item => (
+              <tr key={item._id}>
+                <td>{item.name}</td>
+                <td>{item.type}</td>
+                <td>{item.price} VNĐ</td>
+                <td>
+                  {item.assetUrl && (
+                    <img src={item.assetUrl} alt={item.name} style={{ width: 50, height: 50, objectFit: 'cover' }} />
+                  )}
+                </td>
+                <td>
+                  <button 
+                    onClick={() => handleDeleteItem(item._id)} 
+                    className="delete-btn"
+                  >
+                    Xoá
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="admin-section">
@@ -176,7 +250,7 @@ const AdminDashboardPage: React.FC = () => {
               <tr key={interest._id}>
                 <td>{interest.name}</td>
                 <td>
-                  <button onClick={() => handleDeleteInterest(interest._id)} className="text-red-600 hover:underline">Xoá</button>
+                  <button onClick={() => handleDeleteInterest(interest._id)} className="delete-btn">Xoá</button>
                 </td>
               </tr>
             ))}
@@ -189,26 +263,24 @@ const AdminDashboardPage: React.FC = () => {
 
       <div className="admin-section">
         <h2>Báo cáo người dùng</h2>
-        <table className="report-table">
-          <thead>
-            <tr>
-              <th>Người báo cáo</th>
-              <th>Đối tượng</th>
-              <th>Lý do</th>
-              <th>Thời gian</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reports.map((report) => (
-              <tr key={report._id}>
-                <td>{report.reporter?.username || 'Ẩn danh'}</td>
-                <td>{report.targetType} - {report.targetId}</td>
-                <td>{report.reason}</td>
-                <td>{new Date(report.createdAt).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="reports-grid">
+          {reports.map((report) => (
+            <div key={report._id} className="report-card">
+              <div className="report-header">
+                <span className="reporter">{report.reporter?.username || 'Ẩn danh'}</span>
+                <span className="report-date">{new Date(report.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="report-target">
+                <span className="target-type">{report.targetType}</span>
+                <span className="target-id">{report.targetId}</span>
+              </div>
+              <div className="report-reason">
+                <p>{report.reason}</p>
+              </div>
+            </div>
+          ))}
+          {reports.length === 0 && <p>Không có báo cáo nào.</p>}
+        </div>
       </div>
     </div>
   );
