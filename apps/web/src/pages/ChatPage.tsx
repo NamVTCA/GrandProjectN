@@ -1,4 +1,3 @@
-// File: src/pages/ChatPage.tsx (Đã sửa lỗi)
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useSocket } from '../hooks/useSocket';

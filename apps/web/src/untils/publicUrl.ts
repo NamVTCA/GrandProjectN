@@ -1,5 +1,3 @@
-// File: apps/web/src/utils/publicUrl.ts
-
 /**
  * Chuyển đổi một đường dẫn tài nguyên tương đối từ API thành một URL đầy đủ.
  * @param path Đường dẫn tương đối từ API
