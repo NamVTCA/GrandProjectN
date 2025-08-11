@@ -1,9 +1,11 @@
+// ContentManagementPage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../components/common/Toast/ToastContext';
 import type { ModeratedPost, ModeratedComment } from '../../features/admin/types/Moderation';
 import Button from '../../components/common/Button';
 import './AdminPages.scss';
+
 export interface Report {
   _id: string;
   type: 'POST' | 'COMMENT' | 'USER';
@@ -21,15 +23,20 @@ const ContentManagementPage: React.FC = () => {
   const [comments, setComments] = useState<ModeratedComment[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
+  const [reports, setReports] = useState<Report[]>([]);
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/admin/moderation-queue');
-      setPosts(response.data.posts);
-      setComments(response.data.comments);
+      const [queueRes, reportsRes] = await Promise.all([
+        api.get('/admin/moderation-queue'),
+        api.get('/reports/all')
+      ]);
+      setPosts(queueRes.data.posts);
+      setComments(queueRes.data.comments);
+      setReports(reportsRes.data);
     } catch (error) {
-      addToast("Lỗi khi tải hàng đợi kiểm duyệt", 'error');
+      addToast("Lỗi khi tải dữ liệu", 'error');
     } finally {
       setLoading(false);
     }
@@ -43,24 +50,11 @@ const ContentManagementPage: React.FC = () => {
     try {
       await api.patch(`/admin/${type}/${id}/status`, { status });
       addToast(`Đã ${status === 'APPROVED' ? 'phê duyệt' : 'từ chối'} nội dung.`, 'success');
-      fetchQueue(); // Tải lại danh sách
+      fetchQueue();
     } catch (error) {
       addToast('Có lỗi xảy ra', 'error');
     }
   };
-const [reports, setReports] = useState<Report[]>([]);
-
-useEffect(() => {
-  const fetchReports = async () => {
-    try {
-      const res = await api.get('/reports/all');
-      setReports(res.data);
-    } catch (err) {
-      addToast('Lỗi khi tải danh sách báo cáo', 'error');
-    }
-  };
-  fetchReports();
-}, []);
 
   if (loading) return <p>Đang tải...</p>;
 
@@ -83,22 +77,28 @@ useEffect(() => {
           ))
         ) : <p>Không có bài đăng nào chờ duyệt.</p>}
       </div>
-<div className="content-section">
-  <h2>Tất cả báo cáo ({reports.length})</h2>
-  {reports.length > 0 ? (
-    reports.map(report => (
-      <div key={report._id} className="report-item">
-        <p>
-          <strong>@{report.reporter.username}</strong> đã báo cáo <strong>{report.type}</strong> với ID: <code>{report.targetId}</code>
-        </p>
-        <blockquote>{report.reason}</blockquote>
-        <small>{new Date(report.createdAt).toLocaleString()}</small>
+
+      <div className="content-section">
+        <h2>Tất cả báo cáo ({reports.length})</h2>
+        <div className="reports-grid">
+          {reports.map(report => (
+            <div key={report._id} className="report-card">
+              <div className="report-header">
+                <span className="reporter">@{report.reporter.username}</span>
+                <span className="report-date">{new Date(report.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="report-meta">
+                <span className="report-type">{report.type}</span>
+                <span className="report-id">ID: {report.targetId}</span>
+              </div>
+              <div className="report-content">
+                <p>{report.reason}</p>
+              </div>
+            </div>
+          ))}
+          {reports.length === 0 && <p>Không có báo cáo nào.</p>}
+        </div>
       </div>
-    ))
-  ) : (
-    <p>Không có báo cáo nào.</p>
-  )}
-</div>
 
       <div className="content-section">
         <h2>Bình luận chờ duyệt ({comments.length})</h2>
@@ -116,9 +116,7 @@ useEffect(() => {
           ))
         ) : <p>Không có bình luận nào chờ duyệt.</p>}
       </div>
-      
     </div>
-    
   );
 };
 

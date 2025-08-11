@@ -1,266 +1,285 @@
-// @use 'src/styles/index' as *;
-@use "sass:color";
+// AdminPages.scss
+.admin-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: #c1cd78;
+  }
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  .stat-box {
+    background: #0e4420;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+
+    h3 {
+      font-size: 1rem;
+      color: #d5e4c3;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #c1cd78;
+    }
+  }
+}
 
 .admin-section {
-  margin-top: 2.5rem;
-  padding: 2rem;
-  border-radius: 12px;
-  background-color: #1b3606;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
-  max-width: 600px;
+  background: #0e4420;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   h2 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: #333;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #c1cd78;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.5rem 0 1rem;
+    color: #444;
   }
 
   input, select {
-    display: block;
     width: 100%;
-    max-width: 100%;
-    padding: 10px 12px;
+    padding: 0.75rem;
     margin-bottom: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: border-color 0.2s ease;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
 
     &:focus {
-      border-color: #0077cc;
       outline: none;
+      border-color: #0077cc;
     }
-  }
-
-  input[type="file"] {
-    padding: 5px;
-    font-size: 14px;
-    background-color: #fff;
-    border: none;
-  }
-
-  img {
-    margin-top: 10px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
   }
 
   button {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 10px 20px;
-    background-color: #0077cc;
+    background: #0077cc;
     color: white;
-    font-size: 15px;
     border: none;
-    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    transition: background 0.2s;
 
     &:hover {
-      background-color: #005fa3;
-    }
-  }
-}
-
-.admin-page {
-  h1 {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 30px;
-  }
-}
-
-.admin-table-container {
-  background-color: $background-component;
-  border-radius: $border-radius-lg;
-  overflow-x: auto;
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-
-    th, td {
-      padding: 15px;
-      text-align: left;
-      border-bottom: 1px solid $surface-color;
+      background: #005fa3;
     }
 
-    thead th {
-      background-color: $surface-color;
-      font-weight: 600;
-      color: $text-secondary;
-      text-transform: uppercase;
-      font-size: 12px;
-    }
+    &.delete-btn {
+      background: #dc3545;
 
-    tbody tr:hover {
-      background-color: color.adjust($background-component, $lightness: 3%);
-    }
-    
-    .role-badge, .status-badge {
-      padding: 4px 8px;
-      border-radius: $border-radius-md;
-      font-size: 12px;
-      font-weight: 600;
-      
-      &.user, &.active { background-color: rgba($success-color, 0.2); color: $success-color; }
-      &.moderator { background-color: rgba($primary-accent, 0.2); color: $primary-accent; }
-      &.admin { background-color: rgba($error-color, 0.2); color: $error-color; }
-      &.suspended { background-color: rgba(orange, 0.2); color: orange; }
-      &.banned { background-color: rgba($error-color, 0.4); color: $error-color; }
-    }
-    
-    .actions-cell button {
-      background: none;
-      border: 1px solid $surface-color;
-      color: $text-secondary;
-      padding: 5px 10px;
-      border-radius: $border-radius-sm;
-      margin-right: 5px;
-      cursor: pointer;
       &:hover {
-        background-color: $surface-color;
-        color: $text-light;
+        background: #bb2d3b;
       }
     }
   }
 }
-// --- BỔ SUNG STYLE CHO QUẢN LÝ NỘI DUNG ---
-.content-section {
-  margin-bottom: 40px;
-  h2 {
-    font-size: 20px;
+
+.shop-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  th {
+    background: #f5f5f5;
     font-weight: 600;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid $surface-color;
+  }
+
+  img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+}
+
+.interest-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  th {
+    background: #f5f5f5;
+    font-weight: 600;
+  }
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+
+  .report-card {
+    background: #0e4420;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #dc3545;
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+
+      .reporter {
+        font-weight: 600;
+        color: #c1cd78;
+      }
+
+      .report-date {
+        color: #d5e4c3;
+        font-size: 0.85rem;
+      }
+    }
+
+    .report-meta {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+
+      .report-type {
+        background: #d5e4c3;
+        color: #0e4420;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+      }
+
+      .report-id {
+        color: #c1cd78;
+      }
+    }
+
+    .report-content {
+      p {
+        margin: 0;
+        color: #c1cd78;
+      }
+    }
+  }
+}
+
+.content-section {
+  background: #0e4420;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #c1cd78;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
   }
 }
 
 .moderation-item {
-  background-color: $background-component;
-  padding: 20px;
-  border-radius: $border-radius-md;
-  margin-bottom: 15px;
-  border-left: 4px solid $primary-main;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
 
   p {
-    color: $text-secondary;
-    margin-bottom: 10px;
+    color: #0e4420;
   }
 
   blockquote {
-    background-color: $background-body;
-    padding: 15px;
-    border-radius: $border-radius-sm;
-    margin: 10px 0;
+    margin: 0.5rem 0;
+    padding: 0.5rem 1rem;
+    background: #0e4420;
+    color: #c1cd78;
+    border-left: 3px solid #0077cc;
     font-style: italic;
 
     &.parent-post {
-      opacity: 0.7;
-      border-left: 3px solid $surface-color;
-      font-size: 14px;
-    }
-    &.main-content {
-      font-size: 16px;
+      font-size: 0.9rem;
+      opacity: 0.8;
     }
   }
 
   .actions {
-    margin-top: 15px;
     display: flex;
-    gap: 10px;
-    button {
-      font-size: 14px;
-      padding: 8px 16px;
-    }
-  }
-  .admin-section {
-  margin-top: 2rem;
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-
-  input {
-    display: block;
-    margin: 0.5rem 0;
-    padding: 0.4rem;
-    width: 100%;
-    max-width: 400px;
-  }
-
-  button {
-    margin-top: 0.5rem;
-    padding: 0.5rem 1rem;
-    background-color: #0077cc;
-    color: white;
-    border: none;
-    border-radius: 5px;
+    gap: 0.5rem;
+    margin-top: 1rem;
   }
 }
 
-.report-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1.5rem;
-  font-size: 15px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+/* === Styles bổ sung riêng cho ContentManagementPage === */
+.content-section {
+  .moderation-item {
+    border: 1px solid #c1cd78;
 
-  thead {
-    background-color: #f0f4f8;
-
-    th {
-      text-align: left;
-      padding: 12px 16px;
-      font-weight: 600;
-      color: #333;
-      border-bottom: 1px solid #dcdcdc;
-      text-transform: uppercase;
-      font-size: 13px;
-    }
-  }
-
-  tbody {
-    tr {
-      &:nth-child(even) {
-        background-color: #11582e;
-      }
+    button {
+      background: #0077cc;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
 
       &:hover {
-        background-color: #11582e;
+        background: #005fa3;
       }
 
-      td {
-        padding: 12px 16px;
-        border-bottom: 1px solid #eee;
-        color: #555;
+      &.secondary {
+        background: #dc3545;
+
+        &:hover {
+          background: #bb2d3b;
+        }
       }
     }
   }
-}
 
-.report-item {
-  background: #f9f9f9;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  border-left: 4px solid crimson;
+  .reports-grid {
+    .report-card {
+      transition: transform 0.2s, box-shadow 0.2s;
 
-  blockquote {
-    margin: 6px 0;
-    padding-left: 10px;
-    border-left: 2px solid #ddd;
-    font-style: italic;
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      }
+    }
   }
-
-  small {
-    color: gray;
-  }
-}
-
 }

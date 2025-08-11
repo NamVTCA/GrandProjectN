@@ -18,15 +18,17 @@ import {
 export class CoinPackagesController {
   constructor(private readonly coinPackagesService: CoinPackagesService) {}
 
-  @UseGuards(JwtAuthGuard) // Bất kỳ ai đăng nhập cũng có thể xem
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll() {
     return this.coinPackagesService.findAll();
   }
+
   @Post()
   async create(@Body() dto: CoinPackageDocument): Promise<CoinPackage> {
     return this.coinPackagesService.createCoinPackage(dto);
   }
+
   @UseGuards(JwtAuthGuard)
   @Get(':packageId')
   async getById(@Param('packageId') packageId: string): Promise<CoinPackage> {
