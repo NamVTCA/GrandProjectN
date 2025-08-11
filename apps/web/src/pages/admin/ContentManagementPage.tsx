@@ -89,7 +89,8 @@ const ContentManagementPage: React.FC = () => {
               </div>
               <div className="report-meta">
                 <span className="report-type">{report.type}</span>
-                <span className="report-id">ID: {report.targetId}</span>
+                <span className="report-id">Reason: {report.reason}</span>
+                
               </div>
               <div className="report-content">
                 <p>{report.reason}</p>

@@ -1,5 +1,14 @@
 import {
-  Controller, Get, Post, Body, Param, Delete, Patch, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Patch,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -24,14 +33,16 @@ export class PostsController {
     return this.postsService.createPost(user, createPostDto);
   }
 
-  @Get('feed') // ✅ Route này sẽ được kiểm tra trước
+  @Get('feed')
   @UseGuards(JwtAuthGuard)
-  getForFeed(@GetUser() user: UserDocument) {
-    return this.postsService.findAllForFeed(user);
+  async getForFeed(@GetUser() user: UserDocument) {
+    const posts = await this.postsService.findAllForFeed(user);
+    console.log('Số bài viết trả về:', posts.length); // Debug log
+    return posts;
   }
-  
+
   // --- CÁC ROUTE CÓ THAM SỐ NHƯNG CỤ THỂ ---
-  
+
   @Get('group/:groupId')
   @UseGuards(JwtAuthGuard)
   findAllByGroup(@Param('groupId') groupId: string) {
@@ -52,7 +63,7 @@ export class PostsController {
   ) {
     return this.postsService.updateComment(commentId, user, updateCommentDto);
   }
-  
+
   @UseGuards(JwtAuthGuard)
   @Delete('comments/:id')
   deleteComment(@Param('id') id: string) {

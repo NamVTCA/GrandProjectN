@@ -283,3 +283,114 @@
     }
   }
 }
+
+/* === Styles riêng cho UserManagementPage === */
+.admin-table-container {
+  background: #0e4420;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #d5e4c3;
+
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    th {
+      background: #c1cd78;
+      color: #0e4420;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .role-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+
+      &.user {
+        background: #d5e4c3;
+        color: #0e4420;
+      }
+
+      &.moderator {
+        background: #0077cc;
+        color: #fff;
+      }
+
+      &.admin {
+        background: #dc3545;
+        color: #fff;
+      }
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+
+      &.active {
+        background: #28a745;
+        color: #fff;
+      }
+
+      &.suspended {
+        background: #ffc107;
+        color: #0e4420;
+      }
+
+      &.banned {
+        background: #dc3545;
+        color: #fff;
+      }
+    }
+
+    .actions-cell {
+      button {
+        background: #0077cc;
+        color: #fff;
+        border: none;
+        padding: 0.4rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        margin-right: 0.3rem;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #005fa3;
+        }
+
+        &:nth-child(3) {
+          background: #dc3545;
+
+          &:hover {
+            background: #bb2d3b;
+          }
+        }
+
+        &:last-child {
+          background: #28a745;
+
+          &:hover {
+            background: #1e7e34;
+          }
+        }
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import {
   FaSurprise,
   FaSadTear,
   FaAngry,
+  FaFlag,
 } from "react-icons/fa";
 import api from "../../../services/api";
 import { useAuth } from "../../auth/AuthContext";
@@ -95,7 +96,7 @@ const CommentSection: React.FC<{
               size={32}
               src={
                 comment.author.avatarUrl ||
-                "https://placehold.co/32x32/242526/b0b3b8?text=..."
+                "https://placehold.co/32x32/242526/b0b3b8?text=..." ||
                 (comment.author as any)?.avatarUrl ||
                 (comment.author as any)?.avatar ||
                 (comment.author as any)?.avatar_url
@@ -262,11 +263,6 @@ const PostCard: React.FC<PostCardProps> = ({
                   <FaTrash /> Xóa
                 </button>
               )}
-              {!isAuthor && (
-                <button onClick={() => setReportModalOpen(true)}>
-                  🚩 Báo cáo
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -362,6 +358,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
         <button className="action-button" onClick={() => setShowComments(!showComments)}>
           <FaRegCommentAlt /> Bình luận
+        </button>
+
+        <button
+          className="action-button"
+          onClick={() => setReportModalOpen(true)}
+        >
+          <FaFlag /> Báo cáo
         </button>
 
         <button

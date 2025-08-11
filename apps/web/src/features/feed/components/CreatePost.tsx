@@ -58,28 +58,28 @@ const CreatePost: React.FC<CreatePostProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!content.trim() && mediaFiles.length === 0) return;
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!content.trim() && mediaFiles.length === 0) return;
 
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const mediaUrls = await Promise.all(
-        mediaFiles.map(file => uploadFile(file))
-      );
+  setIsSubmitting(true);
+  setError(null);
+  try {
+    const mediaUrls = mediaFiles.length > 0 
+      ? await Promise.all(mediaFiles.map(file => uploadFile(file)))
+      : [];
 
-      // Thêm 'visibility' vào payload
-      const payload = {
-        content,
-        mediaUrls,
-        groupId: context === 'group' ? contextId : undefined,
-        visibility,
-      };
+    const payload = {
+      content,
+      mediaUrls,
+      groupId: context === 'group' ? contextId : undefined,
+      visibility,
+    };
 
-      const response = await api.post<Post>('/posts', payload);
-      
-      // Reset form
+    const response = await api.post<Post>('/posts', payload);
+    
+    // Kiểm tra dữ liệu trả về
+    if (response.data && response.data._id) {
       setContent('');
       setMediaFiles([]);
       setVisibility('PUBLIC');
@@ -87,16 +87,17 @@ const CreatePost: React.FC<CreatePostProps> = ({
         fileInputRef.current.value = "";
       }
       
-      // Gửi bài viết mới về cho component cha để cập nhật UI ngay lập tức
       onPostCreated(response.data);
-
-    } catch (err: any) {
-      console.error("Lỗi khi đăng bài:", err);
-      setError(err.response?.data?.message || "Đã có lỗi xảy ra.");
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      throw new Error('Dữ liệu bài viết trả về không hợp lệ');
     }
-  };
+  } catch (err: any) {
+    console.error("Lỗi khi đăng bài:", err);
+    setError(err.response?.data?.message || err.message || "Đã có lỗi xảy ra.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="create-post-card">

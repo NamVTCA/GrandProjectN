@@ -12,19 +12,24 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const fetchPosts = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Gọi API mới, an toàn và hiệu quả hơn
-      const response = await api.get('/posts/feed');
-      // Không cần lọc ở frontend nữa
+const fetchPosts = useCallback(async () => {
+  setLoading(true);
+  try {
+    const response = await api.get('/posts/feed');
+    // Đảm bảo response.data là mảng Post[]
+    if (Array.isArray(response.data)) {
       setPosts(response.data);
-    } catch (error) {
-      console.error("Lỗi khi tải bài đăng:", error);
-    } finally {
-      setLoading(false);
+    } else {
+      console.error("Dữ liệu trả về không hợp lệ:", response.data);
+      setPosts([]);
     }
-  }, []);
+  } catch (error) {
+    console.error("Lỗi khi tải bài đăng:", error);
+    setPosts([]); // Đặt posts thành mảng rỗng nếu có lỗi
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     fetchPosts();
