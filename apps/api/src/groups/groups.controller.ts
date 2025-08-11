@@ -1,23 +1,20 @@
-import {
-  Controller, Get, Post, Delete, Body, Param, UseGuards,
-  UploadedFile, UseInterceptors, BadRequestException,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, Patch,  UseInterceptors, UploadedFile, } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
 import { CreateGroupDto } from './dto/create-group.dto';
+import { UpdateGroupDto } from './dto/update-group.dto'; // <-- THÊM DTO MỚI
 import { GroupOwnerGuard } from './guards/group-owner.guard';
 import { GroupMemberGuard } from './guards/group-member.guard';
-import { imageMulterOptions } from '../common/upload/image-upload.config';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
-
-  // --- ROUTE KHÔNG THAM SỐ ---
 
   @Post()
   create(
@@ -27,105 +24,85 @@ export class GroupsController {
     return this.groupsService.createGroup(user, createGroupDto);
   }
 
-  @Get('me') // Lấy nhóm của user hiện tại
+  @Get('me')
   findMyGroups(@GetUser() user: UserDocument) {
     return this.groupsService.findGroupsForUser(user);
   }
 
-  @Get('suggestions') // Gợi ý nhóm
+  @Get('suggestions')
   getSuggestions(@GetUser() user: UserDocument) {
     return this.groupsService.suggestGroups(user);
   }
 
-  // --- UPLOAD ẢNH (đặt trước :id) ---
-
-  // POST /groups/:id/cover-image  (field: file)
-  @Post(':id/cover-image')
-  @UseGuards(GroupOwnerGuard) // chỉ chủ nhóm được đổi ảnh bìa
-  @UseInterceptors(FileInterceptor('file', imageMulterOptions('groups/covers')))
-  async uploadCover(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) throw new BadRequestException('Không có file');
-    const rel = file.path.replace(process.cwd(), '').replace(/\\/g, '/');
-    const coverImage = rel.startsWith('/uploads') ? rel : `/uploads${rel}`;
-    await this.groupsService.updateById(id, { coverImage });
-    return { coverImage };
-  }
-
-  // POST /groups/:id/avatar  (field: file)
-  @Post(':id/avatar')
-  @UseGuards(GroupOwnerGuard) // chỉ chủ nhóm được đổi avatar
-  @UseInterceptors(FileInterceptor('file', imageMulterOptions('groups/avatars')))
-  async uploadAvatar(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) throw new BadRequestException('Không có file');
-    const rel = file.path.replace(process.cwd(), '').replace(/\\/g, '/');
-    const avatar = rel.startsWith('/uploads') ? rel : `/uploads${rel}`;
-    await this.groupsService.updateById(id, { avatar });
-    return { avatar };
-  }
-
-  // --- ROUTE CÓ THAM SỐ ---
-
-  @Get(':id') // Lấy chi tiết nhóm
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.groupsService.findOneById(id);
   }
-
-  @Post(':id/join') // Gửi yêu cầu/Tham gia nhóm
-  join(@GetUser() user: UserDocument, @Param('id') groupId: string) {
-    return this.groupsService.joinGroup(user, groupId);
+  
+  // ✅ [BỔ SUNG] ENDPOINT CẬP NHẬT NHÓM
+  @Patch(':id')
+  @UseGuards(GroupOwnerGuard) // Chỉ chủ nhóm mới có quyền sửa
+  updateGroup(
+      @Param('id') groupId: string,
+      @Body() updateGroupDto: UpdateGroupDto
+  ) {
+      return this.groupsService.updateGroup(groupId, updateGroupDto);
   }
 
-  @Delete(':id') // Xóa nhóm (tuỳ quyền xử lý trong service)
+
+  @Delete(':id')
+  @UseGuards(GroupOwnerGuard) // Mở rộng: Admin cũng có thể xóa
   deleteGroup(@Param('id') groupId: string, @GetUser() user: UserDocument) {
     return this.groupsService.deleteGroup(groupId, user);
   }
 
-  // --- API QUẢN LÝ NHÓM ---
-
-  @Get(':id/requests') // Lấy danh sách yêu cầu tham gia
-  @UseGuards(GroupOwnerGuard)
-  getJoinRequests(@Param('id') groupId: string) {
-    return this.groupsService.getJoinRequests(groupId);
+  @Get(':id/join-status')
+  getJoinStatus(@GetUser() user: UserDocument, @Param('id') groupId: string) {
+    return this.groupsService.getJoinStatus(user, groupId);
+  }
+  
+  @Post(':id/join')
+  join(@GetUser() user: UserDocument, @Param('id') groupId: string) {
+    return this.groupsService.joinGroup(user, groupId);
   }
 
-  @Post(':id/requests/:requestId/approve') // Chấp thuận yêu cầu
-  @UseGuards(GroupOwnerGuard)
-  approveRequest(
-    @GetUser() owner: UserDocument,
-    @Param('requestId') requestId: string,
-  ) {
-    return this.groupsService.approveRequest(requestId, owner);
-  }
-
-  @Post(':id/requests/:requestId/reject') // Từ chối yêu cầu
-  @UseGuards(GroupOwnerGuard)
-  rejectRequest(
-    @GetUser() owner: UserDocument,
-    @Param('requestId') requestId: string,
-  ) {
-    return this.groupsService.rejectRequest(requestId, owner);
-  }
-
-  // Rời nhóm
   @Post(':id/leave')
   leaveGroup(@GetUser() user: UserDocument, @Param('id') groupId: string) {
     return this.groupsService.leaveGroup(user, groupId);
   }
 
-  // Lấy danh sách thành viên (trang quản lý)
+  // --- API QUẢN LÝ NHÓM ---
+
+  @Get(':id/requests')
+  @UseGuards(GroupOwnerGuard)
+  getJoinRequests(@Param('id') groupId: string) {
+    return this.groupsService.getJoinRequests(groupId);
+  }
+
+  @Post(':id/requests/:requestId/approve')
+  @UseGuards(GroupOwnerGuard)
+  approveRequest(
+    @GetUser() owner: UserDocument,
+    @Param('requestId') requestId: string
+  ) {
+    return this.groupsService.approveRequest(requestId, owner);
+  }
+
+  @Post(':id/requests/:requestId/reject')
+  @UseGuards(GroupOwnerGuard)
+  rejectRequest(
+    @GetUser() owner: UserDocument,
+    @Param('requestId') requestId: string
+  ) {
+    return this.groupsService.rejectRequest(requestId, owner);
+  }
+
   @Get(':id/members')
-  @UseGuards(GroupOwnerGuard) // Chỉ chủ nhóm
+  @UseGuards(GroupMemberGuard) // Sửa: Cho phép thành viên xem danh sách
   getGroupMembers(@Param('id') groupId: string) {
     return this.groupsService.getGroupMembers(groupId);
   }
 
-  // Kick thành viên
   @Delete(':groupId/members/:memberUserId')
   @UseGuards(GroupOwnerGuard)
   kickMember(
@@ -135,9 +112,8 @@ export class GroupsController {
     return this.groupsService.kickMember(groupId, memberUserId);
   }
 
-  // Mời vào nhóm
   @Post(':id/invite')
-  @UseGuards(GroupMemberGuard) // Chỉ thành viên mới được mời
+  @UseGuards(GroupMemberGuard)
   createInvite(
     @Param('id') groupId: string,
     @GetUser() inviter: UserDocument,
@@ -146,8 +122,45 @@ export class GroupsController {
     return this.groupsService.createInvite(groupId, inviter, inviteeId);
   }
 
-  @Get(':id/join-status') // Trạng thái tham gia của user đối với nhóm
-  getJoinStatus(@GetUser() user: UserDocument, @Param('id') groupId: string) {
-    return this.groupsService.getJoinStatus(user, groupId);
+    // ✅ BỔ SUNG: API UPLOAD AVATAR
+  @Patch(':id/avatar')
+  @UseGuards(GroupOwnerGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/groups/avatars',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  uploadAvatar(@Param('id') groupId: string, @UploadedFile() file: Express.Multer.File) {
+    return this.groupsService.updateGroupImage(groupId, file.path, 'avatar');
+  }
+
+  // ✅ BỔ SUNG: API UPLOAD ẢNH BÌA
+  @Patch(':id/cover')
+  @UseGuards(GroupOwnerGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/groups/covers',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  uploadCover(@Param('id') groupId: string, @UploadedFile() file: Express.Multer.File) {
+    return this.groupsService.updateGroupImage(groupId, file.path, 'cover');
   }
 }

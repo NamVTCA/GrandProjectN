@@ -1,89 +1,80 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import type { Group } from "../types/Group";
-import { toAssetUrl } from "../../../untils/img";
-import CoverAvatarEditMenu from "./CoverAvatarEditMenu";
-import api from "../../../services/api";
-import "./GroupCard.scss";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import type { Group } from '../types/Group';
+import Button from '../../../components/common/Button';
+import api from '../../../services/api';
+import './GroupCard.scss';
+import { publicUrl } from '../../../untils/publicUrl'; // ✅ BƯỚC 1: Import publicUrl
 
-type Props = {
+interface GroupCardProps {
   group: Group;
-  isMember?: boolean;                  
-  isOwner?: boolean;
-  joinStatus?: "MEMBER" | "PENDING" | "NONE"; 
-  onGroupUpdate?: () => void;
-};
+  isMember: boolean;
+  isOwner: boolean;
+  onGroupUpdate: () => void;
+}
 
-const AVATAR_FALLBACK = "https://placehold.co/80x80/2a2a2a/ffffff?text=G";
+const GroupCard: React.FC<GroupCardProps> = ({ group, isMember, isOwner, onGroupUpdate }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
-export default function GroupCard({
-  group,
-  isMember = false,
-  isOwner = false,
-  joinStatus,
-  onGroupUpdate,
-}: Props) {
-  const [avatar, setAvatar] = useState<string | undefined>(group.avatar);
-  const [status, setStatus] = useState<"MEMBER" | "PENDING" | "NONE">(
-    joinStatus ?? (isMember ? "MEMBER" : "NONE")
-  );
-  const [joining, setJoining] = useState(false);
-
-  const handleJoin = async () => {
+  const handleJoinClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsProcessing(true);
     try {
-      setJoining(true);
       await api.post(`/groups/${group._id}/join`);
-      setStatus("PENDING");              
-      onGroupUpdate?.();                 
-    } catch (e: any) {
-      setStatus("PENDING");
+      onGroupUpdate();
+    } catch (error) {
+      console.error("Lỗi khi tham gia nhóm:", error);
     } finally {
-      setJoining(false);
+      setIsProcessing(false);
     }
   };
 
-  return (
-    <div className="group-item">
-      <Link to={`/groups/${group._id}`} className="group-item__thumb">
-        <img
-          src={avatar ? toAssetUrl(avatar) : AVATAR_FALLBACK}
-          alt={group.name}
-          loading="lazy"
-        />
-      </Link>
+  const handleCardClick = () => {
+    navigate(`/groups/${group._id}`);
+  };
 
-      <div className="group-item__content">
-        <Link to={`/groups/${group._id}`} className="group-item__title">
-          {group.name}
+  const renderActionButton = () => {
+    if (isOwner) {
+      return (
+        <Link to={`/groups/${group._id}/manage`} onClick={e => e.stopPropagation()} className="action-link">
+          <Button variant="secondary">Quản lý</Button>
         </Link>
-        <div className="group-item__meta">
-          {group.privacy === "public" ? "Nhóm Công khai" : "Nhóm Riêng tư"}
-          <span className="dot">•</span>
-          <span>{group.memberCount} thành viên</span>
-          {status === "MEMBER" && <span className="chip">Bạn là thành viên</span>}
-        </div>
-      </div>
+      );
+    }
+    if (isMember) {
+      return (
+        <Link to={`/groups/${group._id}`} onClick={e => e.stopPropagation()} className="action-link">
+          <Button variant="primary">Xem nhóm</Button>
+        </Link>
+      );
+    }
+    return (
+      <Button variant="primary" onClick={handleJoinClick} disabled={isProcessing}>
+        {isProcessing ? 'Đang xử lý...' : 'Tham gia'}
+      </Button>
+    );
+  };
 
-      <div className="group-item__actions">
-        {status === "MEMBER" ? (
-          isOwner && (
-            <CoverAvatarEditMenu
-              groupId={group._id}
-              onCoverUploaded={() => onGroupUpdate?.()}
-              onAvatarUploaded={(url) => {
-                setAvatar(url);
-                onGroupUpdate?.();
-              }}
-            />
-          )
-        ) : status === "PENDING" ? (
-          <button className="join-btn" disabled>Đã gửi yêu cầu</button>
-        ) : (
-          <button className="join-btn" onClick={handleJoin} disabled={joining}>
-            {joining ? "Đang gửi..." : "Tham gia"}
-          </button>
-        )}
+  return (
+    <div onClick={handleCardClick} className="group-card" role="link" tabIndex={0}>
+      <div className="card-banner">
+        {/* ✅ BƯỚC 2: Sử dụng publicUrl cho ảnh bìa */}
+        <img src={publicUrl(group.coverImage) || 'https://placehold.co/300x120/25282e/a9b3c1?text=Cover'} alt={`${group.name} cover`} />
+      </div>
+      <div className="card-content">
+        <div className="card-avatar">
+          {/* ✅ BƯỚC 2: Sử dụng publicUrl cho avatar */}
+          <img src={publicUrl(group.avatar) || 'https://placehold.co/80x80/363a41/f0f2f5?text=Logo'} alt={`${group.name} avatar`} />
+        </div>
+        <h3 className="group-name">{group.name}</h3>
+        <p className="member-count">{group.memberCount} thành viên</p>
+        <div className="card-actions">
+          {renderActionButton()}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default GroupCard;

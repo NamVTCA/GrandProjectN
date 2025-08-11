@@ -27,6 +27,7 @@ import {
   GroupInvite,
   GroupInviteDocument,
 } from './schemas/group-invite.schema';
+import { UpdateGroupDto } from './dto/update-group.dto'
 
 @Injectable()
 export class GroupsService {
@@ -44,9 +45,6 @@ export class GroupsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  // ======================================
-  // TẠO NHÓM
-  // ======================================
   async createGroup(
     owner: UserDocument,
     createGroupDto: CreateGroupDto,
@@ -68,9 +66,56 @@ export class GroupsService {
     return savedGroup;
   }
 
-  // ======================================
-  // THAM GIA NHÓM
-  // ======================================
+    // ✅ [BỔ SUNG] HÀM CẬP NHẬT THÔNG TIN NHÓM
+async updateGroup(
+  groupId: string,
+  updateGroupDto: UpdateGroupDto,
+): Promise<Group> {
+  // Tạo một đối tượng để cập nhật
+  const updatePayload: any = { ...updateGroupDto };
+
+  // ✅ SỬA LỖI: Kiểm tra nếu 'interestIds' tồn tại trước khi gán
+  if (updateGroupDto.interestIds) {
+    updatePayload.interests = updateGroupDto.interestIds;
+    delete updatePayload.interestIds; // Xóa key cũ để tránh lỗi
+  }
+
+  const updatedGroup = await this.groupModel.findByIdAndUpdate(
+    groupId,
+    updatePayload,
+    { new: true },
+  );
+
+  if (!updatedGroup) {
+    throw new NotFoundException(`Không tìm thấy nhóm với ID: ${groupId}`);
+  }
+  return updatedGroup;
+}
+
+  // ✅ BỔ SUNG: HÀM CẬP NHẬT ẢNH (AVATAR HOẶC COVER)
+  async updateGroupImage(
+    groupId: string,
+    filePath: string,
+    imageType: 'avatar' | 'cover',
+  ): Promise<Group> {
+    const fieldToUpdate = imageType === 'avatar' ? 'avatar' : 'coverImage';
+    
+    // Chuyển đổi đường dẫn file để client có thể truy cập được
+    // Ví dụ: 'uploads\\groups\\avatars\\...' -> '/uploads/groups/avatars/...'
+    const accessiblePath = filePath.replace(/\\/g, '/');
+
+    const updatedGroup = await this.groupModel.findByIdAndUpdate(
+      groupId,
+      { [fieldToUpdate]: accessiblePath },
+      { new: true },
+    );
+
+    if (!updatedGroup) {
+      throw new NotFoundException(`Không tìm thấy nhóm với ID: ${groupId}`);
+    }
+    return updatedGroup;
+  }
+
   async joinGroup(
     user: UserDocument,
     groupId: string,
@@ -111,7 +156,6 @@ export class GroupsService {
     return { message: 'Đã gửi yêu cầu tham gia nhóm. Vui lòng chờ phê duyệt.' };
   }
 
-  // Rời nhóm
   async leaveGroup(user: UserDocument, groupId: string) {
     const membership = await this.groupMemberModel.findOne({
       user: user._id,
@@ -128,7 +172,6 @@ export class GroupsService {
     return this.findOneById(groupId);
   }
 
-  // Mời vào nhóm
   async createInvite(
     groupId: string,
     inviter: UserDocument,
@@ -169,7 +212,6 @@ export class GroupsService {
     return savedInvite;
   }
 
-  // Gợi ý nhóm
   async suggestGroups(user: UserDocument): Promise<Group[]> {
     const userMemberships = await this.groupMemberModel
       .find({ user: user._id })
@@ -188,7 +230,6 @@ export class GroupsService {
       .exec();
   }
 
-  // Lấy chi tiết nhóm + members
   async findOneById(id: string) {
     const group = await this.groupModel
       .findById(id)
@@ -209,7 +250,6 @@ export class GroupsService {
     return { ...group, members, memberCount };
   }
 
-  // Kick thành viên
   async kickMember(groupId: string, memberUserId: string) {
     const membership = await this.groupMemberModel.findOne({
       group: groupId,
@@ -224,7 +264,6 @@ export class GroupsService {
     return { message: 'Đã xóa thành viên khỏi nhóm.' };
   }
 
-  // Lấy các nhóm của user
   async findGroupsForUser(user: UserDocument): Promise<Group[]> {
     const memberships = await this.groupMemberModel
       .find({ user: user._id })
@@ -238,14 +277,12 @@ export class GroupsService {
       .exec();
   }
 
-  // Lấy danh sách yêu cầu tham gia (pending)
   async getJoinRequests(groupId: string) {
     return this.joinRequestModel
       .find({ group: groupId, status: 'PENDING' })
       .populate('user', 'username avatar');
   }
 
-  // Duyệt yêu cầu (có owner để notify)
   async approveRequest(requestId: string, owner: UserDocument) {
     const request = await this.joinRequestModel
       .findById(requestId)
@@ -274,7 +311,6 @@ export class GroupsService {
     return { message: 'Đã chấp thuận thành viên.' };
   }
 
-  // Từ chối yêu cầu (có owner để notify)
   async rejectRequest(requestId: string, owner: UserDocument) {
     const request = await this.joinRequestModel
       .findById(requestId)
@@ -293,19 +329,73 @@ export class GroupsService {
 
     return { message: 'Đã từ chối yêu cầu.' };
   }
+  async addXpToMember(
+    userId: string,
+    groupId: string,
+    xpAmount: number,
+  ): Promise<void> {
+    await this.groupMemberModel.findOneAndUpdate(
+      { user: userId, group: groupId },
+      { $inc: { xp: xpAmount } },
+    );
+  }
 
-  // Lấy danh sách thành viên (cho trang quản lý)
+  // --- HÀM MỚI (ĐÃ SỬA LỖI VÀ HOÀN THIỆN) ---
+  async deleteGroup(
+    groupId: string,
+    user: UserDocument,
+  ): Promise<{ message: string }> {
+    const group = await this.groupModel.findById(groupId);
+    if (!group) {
+      throw new NotFoundException('Không tìm thấy nhóm.');
+    }
+
+    // SỬA LỖI: Truy cập trực tiếp vào thuộc tính `globalRole` từ đối tượng `user`.
+    // TypeScript có thể không suy luận được kiểu phức tạp, nhưng chúng ta biết thuộc tính này tồn tại.
+    const userRole = user.globalRole;
+
+    // Kiểm tra quyền: phải là chủ nhóm hoặc Admin
+    if (
+      group.owner.toString() !== user._id.toString() &&
+      userRole !== GlobalRole.ADMIN
+    ) {
+      throw new UnauthorizedException('Bạn không có quyền xóa nhóm này.');
+    }
+
+    // === Xóa toàn bộ dữ liệu liên quan ===
+
+    // 1. Tìm tất cả bài đăng trong nhóm
+    const postsInGroup = await this.postModel
+      .find({ group: groupId })
+      .select('_id')
+      .exec();
+    const postIds = postsInGroup.map((p) => p._id);
+
+    // 2. Xóa tất cả bình luận thuộc các bài đăng đó
+    if (postIds.length > 0) {
+      await this.commentModel.deleteMany({ post: { $in: postIds } });
+    }
+
+    // 3. Xóa tất cả các bài đăng đó
+    await this.postModel.deleteMany({ group: groupId });
+
+    // 4. Xóa tất cả các bản ghi thành viên của nhóm
+    await this.groupMemberModel.deleteMany({ group: groupId });
+
+    // 5. Xóa nhóm
+    await group.deleteOne();
+
+    return { message: 'Đã xóa nhóm và tất cả dữ liệu liên quan thành công.' };
+  }
+
+  // ✅ BỔ SUNG HÀM LẤY DANH SÁCH THÀNH VIÊN
   async getGroupMembers(groupId: string): Promise<GroupMember[]> {
     return this.groupMemberModel
       .find({ group: groupId })
       .populate('user', 'username avatar');
   }
 
-  // Trạng thái tham gia của user đối với nhóm
-  async getJoinStatus(
-    user: UserDocument,
-    groupId: string,
-  ): Promise<{ status: 'MEMBER' | 'PENDING' | 'NONE' }> {
+  async getJoinStatus(user: UserDocument, groupId: string) {
     const membership = await this.groupMemberModel.findOne({
       user: user._id,
       group: groupId,
@@ -320,72 +410,5 @@ export class GroupsService {
     if (joinRequest) return { status: 'PENDING' };
 
     return { status: 'NONE' };
-  }
-
-  // XP cho thành viên
-  async addXpToMember(
-    userId: string,
-    groupId: string,
-    xpAmount: number,
-  ): Promise<void> {
-    await this.groupMemberModel.findOneAndUpdate(
-      { user: userId, group: groupId },
-      { $inc: { xp: xpAmount } },
-    );
-  }
-
-  // Xóa nhóm (kèm dữ liệu liên quan)
-  async deleteGroup(
-    groupId: string,
-    user: UserDocument,
-  ): Promise<{ message: string }> {
-    const group = await this.groupModel.findById(groupId);
-    if (!group) {
-      throw new NotFoundException('Không tìm thấy nhóm.');
-    }
-
-    const userRole = user.globalRole;
-
-    if (
-      group.owner.toString() !== user._id.toString() &&
-      userRole !== GlobalRole.ADMIN
-    ) {
-      throw new UnauthorizedException('Bạn không có quyền xóa nhóm này.');
-    }
-
-    const postsInGroup = await this.postModel
-      .find({ group: groupId })
-      .select('_id')
-      .exec();
-    const postIds = postsInGroup.map((p) => p._id);
-
-    if (postIds.length > 0) {
-      await this.commentModel.deleteMany({ post: { $in: postIds } });
-    }
-
-    await this.postModel.deleteMany({ group: groupId });
-    await this.groupMemberModel.deleteMany({ group: groupId });
-    await group.deleteOne();
-
-    return { message: 'Đã xóa nhóm và tất cả dữ liệu liên quan thành công.' };
-  }
-
-  // ============================================================
-  // HỖ TRỢ UPDATE ẢNH (cho controller upload)
-  // ============================================================
-  async updateById(id: string, data: Partial<Group>) {
-    const updated = await this.groupModel.findByIdAndUpdate(id, data, {
-      new: true,
-    });
-    if (!updated) throw new NotFoundException('Không tìm thấy nhóm.');
-    return updated;
-  }
-
-  async updateCoverImage(id: string, coverImage: string) {
-    return this.updateById(id, { coverImage });
-  }
-
-  async updateAvatar(id: string, avatar: string) {
-    return this.updateById(id, { avatar });
   }
 }
