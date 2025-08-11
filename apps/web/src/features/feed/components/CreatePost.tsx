@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import api from '../../../services/api';
 import { useAuth } from '../../auth/AuthContext';
 import type { Post, PostVisibility } from '../types/Post';
+import UserAvatar from '../../../components/common/UserAvatar';
 import './CreatePost.scss';
 
 // Cập nhật interface để onPostCreated có thể nhận bài viết mới
@@ -100,7 +101,15 @@ const CreatePost: React.FC<CreatePostProps> = ({
   return (
     <div className="create-post-card">
       <div className="card-header">
-        <img src={user?.avatar || 'https://via.placeholder.com/48'} alt="User Avatar" className="user-avatar" />
+        {/* Avatar người đăng – không dùng placeholder */}
+        <UserAvatar
+          size={40}
+          src={
+            (user as any)?.avatarUrl ||
+            (user as any)?.avatar ||
+            (user as any)?.avatar_url
+          }
+        />
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}

@@ -1,13 +1,6 @@
 import {
-  Controller,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  UploadedFile,
-  UseInterceptors,
+  Controller, Post, Body, Patch, Param, Delete,
+  UseGuards, UploadedFile, UseInterceptors, BadRequestException
 } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { CreateShopItemDto } from './dto/create-shop-item.dto';
@@ -19,9 +12,8 @@ import { GlobalRole } from '../auth/schemas/user.schema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
-import { extname } from 'path';
-
-import path from 'path';
+import { extname, join } from 'path';
+import * as fs from 'fs';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(GlobalRole.ADMIN)
@@ -33,16 +25,20 @@ export class AdminShopController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads/shop-items',
+        // Lưu file vào thư mục uploads/shop-items
+        destination: (req, file, cb) => {
+          const dir = join(process.cwd(), 'uploads', 'shop-items');
+          fs.mkdirSync(dir, { recursive: true });
+          cb(null, dir);
+        },
         filename: (req, file, cb) => {
-          const ext = extname(file.originalname);
-          const fileName = `${uuidv4()}${ext}`;
-          cb(null, fileName);
+          const ext = extname(file.originalname).toLowerCase();
+          cb(null, `${uuidv4()}${ext}`);
         },
       }),
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
-          return cb(new Error('Chỉ chấp nhận file ảnh'), false);
+          return cb(new BadRequestException('Chỉ chấp nhận file ảnh'), false);
         }
         cb(null, true);
       },
@@ -50,21 +46,16 @@ export class AdminShopController {
   )
   async createItem(
     @Body() dto: CreateShopItemDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      dto.assetUrl = `/uploads/shop-items/${file.filename}`;
+      dto.assetUrl = `/uploads/shop-items/${file.filename}`; // link public FE dùng
     }
-    console.log(dto);
-    console.log(file);
     return this.shopService.createItem(dto);
   }
 
   @Patch('items/:id')
-  updateItem(
-    @Param('id') id: string,
-    @Body() updateShopItemDto: UpdateShopItemDto,
-  ) {
+  updateItem(@Param('id') id: string, @Body() updateShopItemDto: UpdateShopItemDto) {
     return this.shopService.updateItem(id, updateShopItemDto);
   }
 

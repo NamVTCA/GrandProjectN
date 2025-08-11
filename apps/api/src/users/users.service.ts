@@ -27,6 +27,7 @@ export class UsersService {
     const user = await this.userModel
       .findOne({ username })
       .select('-password -email')
+      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' }) // <-- hiển thị khung khi xem profile
       .exec();
 
     if (!user) {
@@ -241,6 +242,7 @@ export class UsersService {
     }
     return user.friends;
   }
+
   async getWarnings(userId: string) {
     const user = await this.userModel
       .findById(userId)
@@ -278,5 +280,21 @@ export class UsersService {
     await user.save();
 
     return { message: 'Xoá cảnh cáo thành công.' };
+  }
+
+  // Lấy thông tin chính mình + populate khung đang trang bị
+  async getMe(userId: string | Types.ObjectId) {
+    const me = await this.userModel
+      .findById(userId)
+      .select(
+        // các field FE đang dùng để tránh redirect và hiển thị đầy đủ
+        'username email avatar coins hasSelectedInterests globalRole friends currentGame coverImage equippedAvatarFrame'
+      )
+      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' }) // <-- quan trọng
+      .lean()
+      .exec();
+
+    if (!me) throw new NotFoundException('Không tìm thấy người dùng');
+    return me;
   }
 }
