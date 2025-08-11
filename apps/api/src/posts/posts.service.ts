@@ -26,7 +26,7 @@ import { RepostDto } from './dto/repost.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { UsersService } from 'src/users/users.service';
-import { GroupDocument } from '../groups/schemas/group.schema'; 
+import { GroupDocument } from '../groups/schemas/group.schema';
 @Injectable()
 export class PostsService {
   constructor(
@@ -39,14 +39,15 @@ export class PostsService {
 
     private eventEmitter: EventEmitter2,
   ) {}
-
   async createPost(
     user: UserDocument,
     createPostDto: CreatePostDto,
   ): Promise<Post> {
     // --- XỬ LÝ REPOST ---
     if (createPostDto.repostOf) {
-      const originalPost = await this.postModel.findById(createPostDto.repostOf);
+      const originalPost = await this.postModel.findById(
+        createPostDto.repostOf,
+      );
       if (!originalPost) {
         throw new NotFoundException('Bài viết gốc không tồn tại.');
       }
@@ -55,7 +56,7 @@ export class PostsService {
         content: createPostDto.content || '',
         author: user._id,
         repostOf: originalPost._id,
-        visibility: createPostDto.visibility,
+        visibility: createPostDto.visibility || 'FRIENDS_ONLY',
         moderationStatus: ModerationStatus.APPROVED,
       });
 
@@ -63,30 +64,35 @@ export class PostsService {
       await originalPost.save();
       await this.userService.receiveXP(10, 'repost', user.id);
       const savedRepost = await repost.save();
-      
+
       return savedRepost.populate([
-          { path: 'author', select: 'username avatar' },
-          { 
-              path: 'repostOf',
-              populate: { path: 'author', select: 'username avatar' }
-          }
+        { path: 'author', select: 'username avatar' },
+        {
+          path: 'repostOf',
+          populate: { path: 'author', select: 'username avatar' },
+        },
       ]);
     }
 
     // --- XỬ LÝ BÀI VIẾT THƯỜNG ---
-    const textModeration = await this.moderationService.checkText(createPostDto.content);
+    const textModeration = await this.moderationService.checkText(
+      createPostDto.content,
+    );
     if (textModeration.status === ModerationStatus.REJECTED) {
-      throw new BadRequestException(`Nội dung của bạn không phù hợp: ${textModeration.reason}`);
+      throw new BadRequestException(
+        `Nội dung của bạn không phù hợp: ${textModeration.reason}`,
+      );
     }
 
-    const isVideoPost = createPostDto.mediaUrls && createPostDto.mediaUrls[0]?.includes('.mp4');
+    const isVideoPost =
+      createPostDto.mediaUrls && createPostDto.mediaUrls[0]?.includes('.mp4');
 
     const newPost = new this.postModel({
       content: createPostDto.content,
       mediaUrls: createPostDto.mediaUrls,
       author: user._id,
       group: createPostDto.groupId,
-      visibility: createPostDto.visibility,
+      visibility: createPostDto.visibility || 'PUBLIC',
       moderationStatus: isVideoPost
         ? ModerationStatus.PROCESSING
         : ModerationStatus.APPROVED,
@@ -108,53 +114,47 @@ export class PostsService {
         10,
       );
     }
-    
+
     return savedPost.populate({ path: 'author', select: 'username avatar' });
   }
-  
-  // ✅ HÀM DÀNH CHO TRANG CHỦ
-  // ✅ THAY THẾ HÀM findAllPosts BẰNG HÀM NÀY
-async findAllForFeed(currentUser: UserDocument): Promise<Post[]> {
-    // Lấy danh sách ID của bạn bè VÀ những người mình đang theo dõi
-    const friendIds = currentUser.friends.map(friend => friend._id);
-    const followingIds = currentUser.following.map(followedUser => followedUser._id);
-    
-    // Gộp 2 danh sách lại và thêm chính mình vào
-    const relevantUserIds = [...new Set([...friendIds, ...followingIds, currentUser._id])];
+
+  async findAllForFeed(currentUser: UserDocument): Promise<Post[]> {
+    const friendIds = currentUser.friends.map((friend) => friend._id);
+    const followingIds = currentUser.following.map(
+      (followedUser) => followedUser._id,
+    );
+
+    const relevantUserIds = [
+      ...new Set([...friendIds, ...followingIds, currentUser._id]),
+    ];
 
     return this.postModel
       .find({
-        group: { $exists: false }, // Vẫn lọc bài trong nhóm
-        
-        // Điều kiện hiển thị mới
+        group: { $exists: false },
         $or: [
-          // 1. Tất cả bài viết CÔNG KHAI
-          { visibility: PostVisibility.PUBLIC },
-          // 2. Bài viết BẠN BÈ & RIÊNG TƯ của những người có liên quan
-          { 
+          {
+            moderationStatus: ModerationStatus.APPROVED,
+            visibility: PostVisibility.PUBLIC,
+          },
+          {
             author: { $in: relevantUserIds },
-            visibility: { $in: [PostVisibility.FRIENDS_ONLY, PostVisibility.PRIVATE] } 
+            moderationStatus: ModerationStatus.APPROVED,
+            visibility: {
+              $in: [PostVisibility.FRIENDS_ONLY, PostVisibility.PRIVATE],
+            },
           },
         ],
       })
-      // Lọc lại một lần nữa để đảm bảo tính riêng tư
-      .lean() // Dùng lean để có thể lọc thủ công
-      .then(posts => posts.filter(post => {
-        if (post.visibility === PostVisibility.PUBLIC) return true;
-        if (post.visibility === PostVisibility.PRIVATE) return post.author.toString() === currentUser._id.toString();
-        if (post.visibility === PostVisibility.FRIENDS_ONLY) {
-          const authorId = post.author.toString();
-          return authorId === currentUser._id.toString() || friendIds.map(id => id.toString()).includes(authorId);
-        }
-        return false;
-      }))
-      .then(filteredPosts => this.postModel.populate(filteredPosts, [
+      .sort({ createdAt: -1 }) // Thêm sắp xếp theo thời gian mới nhất
+      .populate([
         { path: 'author', select: 'username avatar' },
-        { path: 'repostOf', populate: { path: 'author', select: 'username avatar' } },
-      ]));
+        {
+          path: 'repostOf',
+          populate: { path: 'author', select: 'username avatar' },
+        },
+      ])
+      .exec();
   }
-
-
   async findPostById(id: string): Promise<Post> {
     const post = await this.postModel
       .findById(id)
@@ -178,8 +178,11 @@ async findAllForFeed(currentUser: UserDocument): Promise<Post[]> {
     user: UserDocument,
   ): Promise<{ message: string }> {
     // B1: Tìm bài viết và "làm đầy" thông tin quan trọng (tác giả và nhóm)
-    const post = await this.postModel.findById(postId).populate('author').populate('group');
-    
+    const post = await this.postModel
+      .findById(postId)
+      .populate('author')
+      .populate('group');
+
     if (!post) {
       throw new NotFoundException('Không tìm thấy bài đăng.');
     }
@@ -187,7 +190,7 @@ async findAllForFeed(currentUser: UserDocument): Promise<Post[]> {
     // B2: Xây dựng các quy tắc về quyền hạn
     const isAuthor = post.author._id.toString() === user._id.toString();
     const isGlobalAdmin = user.globalRole === 'ADMIN'; // Giả sử bạn có globalRole
-    
+
     let isGroupOwner = false;
     if (post.group) {
       // Nếu là bài viết trong nhóm, kiểm tra xem người xóa có phải chủ nhóm không
@@ -429,8 +432,7 @@ async findAllForFeed(currentUser: UserDocument): Promise<Post[]> {
     return await this.commentModel.findByIdAndDelete(id);
   }
 
-
-    // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
+  // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
   // ✅ HÀM DÀNH RIÊNG CHO TRANG NHÓM
   async findAllByGroup(groupId: string): Promise<Post[]> {
     return this.postModel
