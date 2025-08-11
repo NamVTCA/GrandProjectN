@@ -27,6 +27,7 @@ import {
   GroupInvite,
   GroupInviteDocument,
 } from './schemas/group-invite.schema';
+import { UpdateGroupDto } from './dto/update-group.dto'
 
 @Injectable()
 export class GroupsService {
@@ -63,6 +64,56 @@ export class GroupsService {
     }).save();
 
     return savedGroup;
+  }
+
+    // ✅ [BỔ SUNG] HÀM CẬP NHẬT THÔNG TIN NHÓM
+async updateGroup(
+  groupId: string,
+  updateGroupDto: UpdateGroupDto,
+): Promise<Group> {
+  // Tạo một đối tượng để cập nhật
+  const updatePayload: any = { ...updateGroupDto };
+
+  // ✅ SỬA LỖI: Kiểm tra nếu 'interestIds' tồn tại trước khi gán
+  if (updateGroupDto.interestIds) {
+    updatePayload.interests = updateGroupDto.interestIds;
+    delete updatePayload.interestIds; // Xóa key cũ để tránh lỗi
+  }
+
+  const updatedGroup = await this.groupModel.findByIdAndUpdate(
+    groupId,
+    updatePayload,
+    { new: true },
+  );
+
+  if (!updatedGroup) {
+    throw new NotFoundException(`Không tìm thấy nhóm với ID: ${groupId}`);
+  }
+  return updatedGroup;
+}
+
+  // ✅ BỔ SUNG: HÀM CẬP NHẬT ẢNH (AVATAR HOẶC COVER)
+  async updateGroupImage(
+    groupId: string,
+    filePath: string,
+    imageType: 'avatar' | 'cover',
+  ): Promise<Group> {
+    const fieldToUpdate = imageType === 'avatar' ? 'avatar' : 'coverImage';
+    
+    // Chuyển đổi đường dẫn file để client có thể truy cập được
+    // Ví dụ: 'uploads\\groups\\avatars\\...' -> '/uploads/groups/avatars/...'
+    const accessiblePath = filePath.replace(/\\/g, '/');
+
+    const updatedGroup = await this.groupModel.findByIdAndUpdate(
+      groupId,
+      { [fieldToUpdate]: accessiblePath },
+      { new: true },
+    );
+
+    if (!updatedGroup) {
+      throw new NotFoundException(`Không tìm thấy nhóm với ID: ${groupId}`);
+    }
+    return updatedGroup;
   }
 
   async joinGroup(

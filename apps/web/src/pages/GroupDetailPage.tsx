@@ -1,190 +1,139 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import api from '../services/api';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as groupApi from '../services/group.api';
+import * as postApi from '../services/post.api'; // Giả sử bạn có service này
 import { useAuth } from '../features/auth/AuthContext';
-import type { GroupDetail } from '../features/groups/types/Group';
-import type { Post, ReactionType, PostVisibility } from '../features/feed/types/Post';
 import GroupHeader from '../features/groups/components/GroupHeader';
 import CreatePost from '../features/feed/components/CreatePost';
 import PostCard from '../features/feed/components/PostCard';
+import Button from '../components/common/Button';
 import './GroupDetailPage.scss';
+import type { Post, ReactionType } from '../features/feed/types/Post';
 
 const GroupDetailPage: React.FC = () => {
-    const { id: groupId } = useParams<{ id: string }>();
-    const { user } = useAuth();
-    const [group, setGroup] = useState<GroupDetail | null>(null);
-    const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isProcessingJoin, setIsProcessingJoin] = useState<boolean>(false);
-const [joinStatus, setJoinStatus] = useState<'MEMBER' | 'PENDING' | 'NONE'>('NONE');
+  const { id: groupId } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
-    const handleReact = async (postId: string, reaction: ReactionType) => {
-        try {
-            const updatedPost = await api.post<Post>(`/posts/${postId}/react`, { type: reaction });
-            setPosts(currentPosts =>
-                currentPosts.map(p => p._id === postId ? updatedPost.data : p)
-            );
-        } catch (err) {
-            console.error("Lỗi khi bày tỏ cảm xúc:", err);
-        }
-    };
+  // --- QUERIES ---
+  const { data: group, isLoading, isError } = useQuery({
+    queryKey: ['group', groupId],
+    queryFn: () => groupApi.getGroupById(groupId!),
+    enabled: !!groupId, // Chỉ chạy query khi groupId tồn tại
+  });
 
-    const handlePostDeleted = (postId: string) => {
-        setPosts(currentPosts => currentPosts.filter(p => p._id !== postId));
-        api.delete(`/posts/${postId}`).catch(err => {
-            console.error("Lỗi khi xóa bài viết:", err);
-        });
-    };
+  const { data: joinStatusData } = useQuery({
+    queryKey: ['group', groupId, 'joinStatus'],
+    queryFn: () => groupApi.getGroupJoinStatus(groupId!),
+    enabled: !!groupId && !!user,
+  });
 
-    const handleRepost = (postId: string, content: string, visibility: PostVisibility) => {
-        console.log(`Chia sẻ bài viết ${postId} với nội dung: ${content}`);
-    };
+  const { data: posts = [] } = useQuery({
+    queryKey: ['posts', 'group', groupId],
+    queryFn: () => postApi.getPostsByGroup(groupId!),
+    enabled: !!groupId && joinStatusData?.status === 'MEMBER',
+  });
 
-    const handleCommentChange = (postId: string, change: number) => {
-        setPosts(currentPosts =>
-            currentPosts.map(p =>
-                p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount + change) } : p
-            )
-        );
-    };
+  const joinStatus = joinStatusData?.status || 'NONE';
+  const isOwner = user?._id === group?.owner._id;
+  const isMember = joinStatus === 'MEMBER';
 
-    const fetchPosts = useCallback(async () => {
-        if (!groupId) return;
-        try {
-            const response = await api.get<Post[]>(`/posts/group/${groupId}`);
-            setPosts(response.data);
-        } catch (err) {
-            console.error("Lỗi khi tải bài viết của nhóm:", err);
-        }
-    }, [groupId]);
+  // --- MUTATIONS ---
+  const joinLeaveMutation = useMutation<unknown, Error>({
+    mutationFn: () => (isMember ? groupApi.leaveGroup(groupId!) : groupApi.joinGroup(groupId!)),
+    onSuccess: () => {
+      // Tải lại tất cả dữ liệu liên quan để UI được cập nhật
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['groups', 'me'] });
+    },
+  });
 
-    useEffect(() => {
-        if (!groupId) {
-            setLoading(false);
-            setError("Không tìm thấy ID của nhóm.");
-            return;
-        }
-        const fetchAllData = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const [groupResponse] = await Promise.all([
-                    api.get<GroupDetail>(`/groups/${groupId}`),
-                    fetchPosts()
-                ]);
-                setGroup(groupResponse.data);
-            } catch (err) {
-                setError("Không thể tải thông tin nhóm. Nhóm có thể không tồn tại hoặc đã bị xóa.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAllData();
-    }, [groupId, fetchPosts]);
-
-    const isOwner = useMemo(() => {
-        if (!user || !group) return false;
-        return user._id === group.owner._id;
-    }, [user, group]);
-
-    const isMember = useMemo(() => {
-        if (!user || !group) return false;
-        return group.members.some(member => member.user?._id === user._id);
-    }, [user, group]);
-
-   const handleJoinLeaveClick = async () => {
-  if (!group) return;
-  setIsProcessingJoin(true);
-  try {
-    const endpoint = isMember ? `/groups/${group._id}/leave` : `/groups/${group._id}/join`;
-    await api.post(endpoint);
-    const joinStatusResponse = await api.get<{ status: 'MEMBER' | 'PENDING' | 'NONE' }>(`/groups/${group._id}/join-status`);
-    setJoinStatus(joinStatusResponse.data.status);
-  } catch (err) {
-    console.error("Lỗi khi tham gia/rời khỏi nhóm:", err);
-  } finally {
-    setIsProcessingJoin(false);
-  }
-};
-
-const fetchAllData = async () => {
-  setLoading(true);
-  setError(null);
-  try {
-    const [groupResponse, joinStatusResponse] = await Promise.all([
-      api.get<GroupDetail>(`/groups/${groupId}`),
-      api.get<{ status: 'MEMBER' | 'PENDING' | 'NONE' }>(`/groups/${groupId}/join-status`),
-      fetchPosts(),
-    ]);
-    setGroup(groupResponse.data);
-    setJoinStatus(joinStatusResponse.data.status);
-  } catch (err) {
-    setError("Không thể tải thông tin nhóm. Nhóm có thể không tồn tại hoặc đã bị xóa.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-    const handlePostCreated = (newPost: Post) => {
-        setPosts(currentPosts => [newPost, ...currentPosts]);
-    };
-
-    if (loading) {
-        return <div className="page-loading">Đang tải...</div>;
+  const reactionMutation = useMutation({
+    mutationFn: ({ postId, reaction }: { postId: string; reaction: ReactionType }) =>
+      postApi.reactToPost(postId, reaction),
+    onSuccess: (updatedPost) => {
+      queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
+        oldData?.map(p => p._id === updatedPost._id ? updatedPost : p)
+      );
     }
-    if (error) {
-        return <div className="page-loading error">{error}</div>;
-    }
-    if (!group) {
-        return <div className="page-loading">Không tìm thấy nhóm.</div>;
-    }
+  });
 
-    return (
-        <div className="group-detail-page">
-            <GroupHeader
-                group={group}
-                isOwner={isOwner}
-                isMember={isMember}
-                isProcessing={isProcessingJoin}
-                onJoinLeaveClick={handleJoinLeaveClick}
-                joinStatus={joinStatus}
-            />
-            <div className="group-body">
-                <div className="main-content">
-                    {isMember && (
-                        <CreatePost
-                            context="group"
-                            contextId={group._id}
-                            onPostCreated={handlePostCreated}
-                        />
-                    )}
-                    <div className="post-list">
-                        {posts.length > 0 ? (
-                            posts.map(post => (
-                                <PostCard
-                                    key={post._id}
-                                    post={post}
-                                    onReact={handleReact}
-                                    onRepost={handleRepost}
-                                    onPostDeleted={handlePostDeleted}
-                                    onCommentAdded={() => handleCommentChange(post._id, 1)}
-                                    onCommentDeleted={() => handleCommentChange(post._id, -1)}
-                                />
-                            ))
-                        ) : (
-                            <p className="page-status">
-                                Chưa có bài viết nào trong nhóm này. Hãy là người đầu tiên!
-                            </p>
-                        )}
-                    </div>
-                </div>
-                <div className="sidebar-content">
-                    {/* Sidebar content here */}
-                </div>
+  const deletePostMutation = useMutation({
+      mutationFn: (postId: string) => postApi.deletePost(postId),
+      onSuccess: (_, postId) => {
+          queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
+            oldData?.filter(p => p._id !== postId)
+          );
+      }
+  });
+
+  // --- HANDLERS ---
+  const handlePostCreated = (newPost: Post) => {
+      queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) => 
+        oldData ? [newPost, ...oldData] : [newPost]
+      );
+  };
+
+  const handleReact = (postId: string, reaction: ReactionType) => {
+      reactionMutation.mutate({ postId, reaction });
+  };
+  
+  const handlePostDeleted = (postId: string) => {
+      deletePostMutation.mutate(postId);
+  };
+
+  if (isLoading) return <p className="page-status">Đang tải nhóm...</p>;
+  if (isError || !group) return <p className="page-status">Không tìm thấy nhóm.</p>;
+
+  return (
+    <div className="group-detail-page">
+      <GroupHeader
+        group={group}
+        isOwner={isOwner}
+        isMember={isMember}
+        joinStatus={joinStatus}
+        isProcessing={joinLeaveMutation.isPending}
+        onJoinLeaveClick={() => joinLeaveMutation.mutate()}
+      />
+      <div className="group-content-layout">
+        <div className="main-content">
+          {isMember ? (
+            <>
+              <CreatePost context="group" contextId={group._id} onPostCreated={handlePostCreated} />
+              <div className="post-list">
+                {posts.map(post => (
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    onReact={handleReact}
+                    onPostDeleted={handlePostDeleted}
+                    onCommentAdded={() => queryClient.invalidateQueries({ queryKey: ['posts', 'group', groupId]})}
+                    onCommentDeleted={() => queryClient.invalidateQueries({ queryKey: ['posts', 'group', groupId]})}
+                    onRepost={() => {}}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+             <div className="non-member-view">
+              <h2>Bạn phải là thành viên để xem và đăng bài.</h2>
             </div>
+          )}
         </div>
-    );
+        <div className="sidebar-content">
+          <h3>Giới thiệu</h3>
+          <p>{group.description}</p>
+          {isMember && (
+            <Button variant="secondary" onClick={() => setInviteModalOpen(true)}>
+              Mời bạn bè
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default GroupDetailPage;

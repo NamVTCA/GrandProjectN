@@ -1,156 +1,241 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../services/api';
-import type { JoinRequest, GroupMember } from '../features/groups/types/Group';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as groupApi from '../services/group.api';
 import Button from '../components/common/Button';
 import './GroupManagementPage.scss';
+import type { UpdateGroupDto } from '../features/groups/types/GroupDto';
+import { FaCamera, FaSave, FaTrash } from 'react-icons/fa';
+import { useToast } from '../components/common/Toast/ToastContext';
+import { publicUrl } from '../untils/publicUrl';
 
-type ManagementTab = 'requests' | 'members';
+type ManagementTab = 'settings' | 'members' | 'requests' | 'danger';
 
 const GroupManagementPage: React.FC = () => {
-    const { id: groupId } = useParams<{ id: string }>();
-    const [activeTab, setActiveTab] = useState<ManagementTab>('requests');
-    const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
-    const [members, setMembers] = useState<GroupMember[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const { id: groupId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+  const [activeTab, setActiveTab] = useState<ManagementTab>('settings');
+  const [formState, setFormState] = useState<UpdateGroupDto>({});
 
-    const fetchData = useCallback(async () => {
-        if (!groupId) return;
-        setLoading(true);
-        setError(null);
-        try {
-            if (activeTab === 'requests') {
-                const response = await api.get(`/groups/${groupId}/requests`);
-                setJoinRequests(response.data);
-            } else if (activeTab === 'members') {
-                const response = await api.get(`/groups/${groupId}/members`);
-                setMembers(response.data);
-            }
-        } catch (err: any) {
-            console.error(`Lỗi khi tải dữ liệu cho tab ${activeTab}:`, err);
-            setError(err.response?.data?.message || 'Không thể tải dữ liệu.');
-        } finally {
-            setLoading(false);
-        }
-    }, [groupId, activeTab]);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+  // --- QUERIES ---
+  const { data: group, isLoading: isLoadingGroup } = useQuery({
+    queryKey: ['group', groupId],
+    queryFn: () => groupApi.getGroupById(groupId!),
+    enabled: !!groupId,
+  });
 
-    // ✅ ĐÃ ĐIỀN ĐẦY ĐỦ LOGIC
-    const handleApprove = async (requestId: string) => {
-        try {
-            await api.post(`/groups/${groupId}/requests/${requestId}/approve`);
-            // Xóa yêu cầu khỏi danh sách ngay lập tức để UI mượt hơn
-            setJoinRequests(current => current.filter(req => req._id !== requestId));
-        } catch (error) {
-            console.error("Lỗi khi chấp thuận yêu cầu:", error);
-            alert("Đã có lỗi xảy ra.");
-        }
-    };
+  const { data: members = [], refetch: refetchMembers } = useQuery({
+    queryKey: ['groupMembers', groupId],
+    queryFn: () => groupApi.getGroupMembers(groupId!),
+    enabled: !!groupId,
+  });
 
-    // ✅ ĐÃ ĐIỀN ĐẦY ĐỦ LOGIC
-    const handleReject = async (requestId: string) => {
-        try {
-            await api.post(`/groups/${groupId}/requests/${requestId}/reject`);
-            // Xóa yêu cầu khỏi danh sách ngay lập tức
-            setJoinRequests(current => current.filter(req => req._id !== requestId));
-        } catch (error) {
-            console.error("Lỗi khi từ chối yêu cầu:", error);
-            alert("Đã có lỗi xảy ra.");
-        }
-    };
+  const { data: requests = [], refetch: refetchRequests } = useQuery({
+    queryKey: ['groupRequests', groupId],
+    queryFn: () => groupApi.getGroupJoinRequests(groupId!),
+    enabled: !!groupId,
+  });
 
-    const handleKickMember = async (memberUserId: string) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa thành viên này khỏi nhóm?")) {
-            try {
-                await api.delete(`/groups/${groupId}/members/${memberUserId}`);
-                // Tải lại danh sách thành viên sau khi kick
-                fetchData();
-            } catch (error) {
-                console.error("Lỗi khi xóa thành viên:", error);
-                alert("Đã có lỗi xảy ra khi xóa thành viên.");
-            }
-        }
-    };
+  useEffect(() => {
+    if (group) {
+      setFormState({
+        name: group.name,
+        description: group.description,
+        privacy: group.privacy,
+      });
+    }
+  }, [group]);
 
-    const renderTabContent = () => {
-        if (loading) return <p className="page-status">Đang tải...</p>;
-        if (error) return <p className="page-status error">{error}</p>;
+  // --- MUTATIONS ---
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdateGroupDto) => groupApi.updateGroup({ groupId: groupId!, groupData: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      addToast('Cập nhật thông tin thành công!', 'success');
+    },
+    onError: () => addToast('Cập nhật thất bại!', 'error'),
+  });
 
-        if (activeTab === 'requests') {
-            return (
-                <div className="list-container">
-                    {joinRequests.length > 0 ? (
-                        joinRequests.map(req => (
-                            <div key={req._id} className="item-row">
-                                <Link to={`/profile/${req.user.username}`} className="user-info">
-                                    <img src={req.user.avatar || 'https://via.placeholder.com/48'} alt={req.user.username} />
-                                    <strong>{req.user.username}</strong>
-                                </Link>
-                                <div className="actions">
-                                    <Button onClick={() => handleApprove(req._id)}>Chấp nhận</Button>
-                                    <Button onClick={() => handleReject(req._id)} variant="secondary">Từ chối</Button>
-                                </div>
-                            </div>
-                        ))
-                    ) : <p className="page-status">Không có yêu cầu tham gia nào.</p>}
+  const uploadImageMutation = useMutation({
+    mutationFn: groupApi.uploadGroupImage,
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+        addToast('Cập nhật ảnh thành công!', 'success');
+    },
+    onError: () => addToast('Tải ảnh lên thất bại!', 'error'),
+  });
+
+  const deleteMutation = useMutation({
+      mutationFn: () => groupApi.deleteGroup(groupId!),
+      onSuccess: () => {
+          addToast('Đã xóa nhóm thành công.', 'success');
+          queryClient.invalidateQueries({ queryKey: ['groups'] });
+          navigate('/groups');
+      },
+      onError: () => addToast('Xóa nhóm thất bại!', 'error'),
+  });
+
+  const kickMutation = useMutation({
+    mutationFn: (memberUserId: string) => groupApi.kickMember({ groupId: groupId!, memberUserId }),
+    onSuccess: () => {
+        addToast('Đã xóa thành viên.', 'success');
+        refetchMembers();
+        queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (requestId: string) => groupApi.approveJoinRequest(groupId!, requestId),
+    onSuccess: () => {
+      addToast('Đã chấp thuận thành viên.', 'success');
+      refetchRequests();
+      refetchMembers();
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+    },
+  });
+  
+  const rejectMutation = useMutation({
+    mutationFn: (requestId: string) => groupApi.rejectJoinRequest(groupId!, requestId),
+    onSuccess: () => {
+      addToast('Đã từ chối yêu cầu.', 'info');
+      refetchRequests();
+    },
+  });
+
+  // --- HANDLERS ---
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormState(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, imageType: 'avatar' | 'cover') => {
+      const file = e.target.files?.[0];
+      if (file && groupId) {
+          uploadImageMutation.mutate({ groupId, imageType, file });
+      }
+  };
+
+  const renderTabContent = () => {
+    if (isLoadingGroup) return <p>Đang tải...</p>;
+
+    switch (activeTab) {
+      case 'settings':
+        return (
+          <div className="settings-tab">
+            <h3>Hình ảnh</h3>
+            <div className="image-editors">
+                <div className="image-editor">
+                    <label>Ảnh đại diện</label>
+                    <div className="avatar-preview" onClick={() => avatarInputRef.current?.click()}>
+                        <img src={publicUrl(group?.avatar) || 'https://placehold.co/150x150/2a2a2a/ffffff?text=Avatar'} alt="Avatar Preview" />
+                        <div className="overlay"><FaCamera /></div>
+                    </div>
+                    <input type="file" ref={avatarInputRef} onChange={(e) => handleImageChange(e, 'avatar')} accept="image/*" style={{ display: 'none' }} />
                 </div>
-            );
-        }
-
-        if (activeTab === 'members') {
-            return (
-                <div className="list-container">
-                    {members.map(member => (
-                        <div key={member.user._id} className="item-row">
-                            <Link to={`/profile/${member.user.username}`} className="user-info">
-                                <img src={member.user.avatar || 'https://via.placeholder.com/48'} alt={member.user.username} />
-                                <div className="name-role">
-                                    <strong>{member.user.username}</strong>
-                                    <span className="role-badge">{member.role}</span>
-                                </div>
-                            </Link>
-                            <div className="actions">
-                                {member.role !== 'OWNER' && (
-                                    <>
-                                        <Button variant="secondary" size="small">Đổi vai trò</Button>
-                                        <Button variant="danger" size="small" onClick={() => handleKickMember(member.user._id)}>Kick</Button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                <div className="image-editor">
+                    <label>Ảnh bìa</label>
+                    <div className="cover-preview" onClick={() => coverInputRef.current?.click()}>
+                        <img src={publicUrl(group?.coverImage) || 'https://placehold.co/600x200/2a2a2a/404040?text=Cover'} alt="Cover Preview" />
+                        <div className="overlay"><FaCamera /></div>
+                    </div>
+                    <input type="file" ref={coverInputRef} onChange={(e) => handleImageChange(e, 'cover')} accept="image/*" style={{ display: 'none' }} />
                 </div>
-            );
-        }
-        return null;
-    };
+            </div>
+            <hr />
+            <h3>Thông tin cơ bản</h3>
+            <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(formState); }}>
+              <label>Tên nhóm</label>
+              <input name="name" value={formState.name || ''} onChange={handleInputChange} />
+              <label>Mô tả</label>
+              <textarea name="description" value={formState.description || ''} onChange={handleInputChange} rows={4} />
+              <label>Quyền riêng tư</label>
+              <select name="privacy" value={formState.privacy || 'public'} onChange={handleInputChange}>
+                <option value="public">Công khai</option>
+                <option value="private">Riêng tư</option>
+              </select>
+              <Button type="submit" disabled={updateMutation.isPending}><FaSave /> Lưu thay đổi</Button>
+            </form>
+          </div>
+        );
 
-    return (
-        <div className="group-management-page">
-            <h1>Quản lý Nhóm</h1>
-            <div className="management-tabs">
-                <button 
-                    className={`tab-button ${activeTab === 'requests' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('requests')}
-                >
-                    Yêu cầu ({joinRequests.length})
-                </button>
-                <button 
-                    className={`tab-button ${activeTab === 'members' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('members')}
-                >
-                    Thành viên ({members.length})
-                </button>
+      case 'members':
+        return (
+          <div className="list-container">
+            {members.map(member => (
+              <div key={member.user._id} className="item-row">
+                <Link to={`/profile/${member.user.username}`} className="user-info">
+                  <img src={publicUrl(member.user.avatar) || 'https://via.placeholder.com/48'} alt={member.user.username} />
+                  <strong>{member.user.username}</strong>
+                  <span className="role-badge">{member.role}</span>
+                </Link>
+                <div className="actions">
+                  {member.role !== 'OWNER' && (
+                    <Button variant="danger" size="small" onClick={() => kickMutation.mutate(member.user._id)} disabled={kickMutation.isPending}>
+                      Kick
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'requests':
+        return (
+          <div className="list-container">
+            {requests.length > 0 ? (
+              requests.map(req => (
+                <div key={req._id} className="item-row">
+                  <Link to={`/profile/${req.user.username}`} className="user-info">
+                    <img src={publicUrl(req.user.avatar) || 'https://via.placeholder.com/48'} alt={req.user.username} />
+                    <strong>{req.user.username}</strong>
+                  </Link>
+                  <div className="actions">
+                    <Button onClick={() => approveMutation.mutate(req._id)} disabled={approveMutation.isPending}>Chấp nhận</Button>
+                    <Button onClick={() => rejectMutation.mutate(req._id)} variant="secondary" disabled={rejectMutation.isPending}>Từ chối</Button>
+                  </div>
+                </div>
+              ))
+            ) : <p className="page-status">Không có yêu cầu tham gia nào.</p>}
+          </div>
+        );
+
+      case 'danger':
+        return (
+            <div className="danger-zone">
+                <h3>Xóa nhóm</h3>
+                <p>Hành động này không thể hoàn tác. Tất cả bài viết và dữ liệu liên quan sẽ bị xóa vĩnh viễn.</p>
+                <Button variant="danger" onClick={() => {
+                    if (window.confirm('Bạn có chắc chắn muốn xóa nhóm này?')) {
+                        deleteMutation.mutate();
+                    }
+                }} disabled={deleteMutation.isPending}>
+                    <FaTrash /> Xóa nhóm này
+                </Button>
             </div>
-            <div className="tab-content">
-                {renderTabContent()}
-            </div>
-        </div>
-    );
+        );
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="group-management-page">
+      <h1>Quản lý nhóm: {group?.name}</h1>
+      <div className="management-tabs">
+        <button className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>Cài đặt</button>
+        <button className={`tab-button ${activeTab === 'members' ? 'active' : ''}`} onClick={() => setActiveTab('members')}>Thành viên ({members.length})</button>
+        <button className={`tab-button ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>Yêu cầu ({requests.length})</button>
+        <button className={`tab-button ${activeTab === 'danger' ? 'active' : ''}`} onClick={() => setActiveTab('danger')}>Vùng nguy hiểm</button>
+      </div>
+      <div className="tab-content">
+        {renderTabContent()}
+      </div>
+    </div>
+  );
 };
 
 export default GroupManagementPage;
