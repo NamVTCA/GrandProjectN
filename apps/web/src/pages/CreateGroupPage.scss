@@ -110,3 +110,39 @@
   width: 100%;
   margin-top: 1.5rem;
 }
+
+/* --- Thêm vào CreateGroupPage.scss --- */
+
+.interest-selection-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.interest-tag {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  user-select: none; // Ngăn người dùng vô tình bôi đen text khi nhấp đúp
+
+  // Ẩn ô checkbox gốc đi
+  input[type="checkbox"] {
+    display: none;
+  }
+
+  // Thay đổi style khi thẻ được chọn (khi checkbox bên trong nó được check)
+  &:has(input:checked) {
+    background-color: #007bff; // Màu xanh dương
+    color: white;
+    border-color: #007bff;
+  }
+
+  // Hiệu ứng khi di chuột
+  &:not(:has(input:checked)):hover {
+    background-color: #f0f0f0;
+  }
+}

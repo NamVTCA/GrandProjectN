@@ -56,6 +56,13 @@ export class GroupsController {
     return this.groupsService.deleteGroup(groupId, user);
   }
 
+    // ✅ BỔ SUNG PHƯƠNG THỨC MỚI ĐỂ XỬ LÝ LỖI 404
+  @Get(':id/posts')
+  @UseGuards(GroupMemberGuard) // Đảm bảo chỉ thành viên mới xem được bài đăng
+  getPosts(@Param('id') id: string) {
+    return this.groupsService.getPosts(id);
+  }
+
   @Get(':id/join-status')
   getJoinStatus(@GetUser() user: UserDocument, @Param('id') groupId: string) {
     return this.groupsService.getJoinStatus(user, groupId);

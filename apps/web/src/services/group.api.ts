@@ -6,6 +6,7 @@ import type {
   JoinRequest,
 } from '../features/groups/types/Group';
 import type { CreateGroupDto, UpdateGroupDto } from '../features/groups/types/GroupDto';
+import type { Post } from '../features/feed/types/Post'; // Import kiểu dữ liệu Post
 
 // === QUERIES (LẤY DỮ LIỆU) ===
 
@@ -33,6 +34,9 @@ export const getGroupJoinStatus = (
 
 export const createGroup = (groupData: CreateGroupDto): Promise<Group> =>
   api.post('/groups', groupData).then((res) => res.data);
+
+export const getGroupPosts = (groupId: string): Promise<Post[]> =>
+  api.get(`/groups/${groupId}/posts`).then((res) => res.data);
 
 export const updateGroup = ({
   groupId,

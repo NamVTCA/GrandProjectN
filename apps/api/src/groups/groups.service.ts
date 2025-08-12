@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Group, GroupDocument } from './schemas/group.schema';
 import {
   GroupMember,
@@ -154,6 +154,17 @@ async updateGroup(
     }).save();
 
     return { message: 'Đã gửi yêu cầu tham gia nhóm. Vui lòng chờ phê duyệt.' };
+  }
+
+    // ✅ BƯỚC 3: THÊM LOGIC LẤY BÀI ĐĂNG
+  async getPosts(groupId: string) {
+    // Tìm tất cả các bài đăng có trường `group` khớp với groupId
+    // Sắp xếp để bài mới nhất hiển thị trước
+    // Populate để lấy kèm thông tin chi tiết của tác giả
+    return this.postModel
+      .find({ group: new Types.ObjectId(groupId) })
+      .sort({ createdAt: -1 })
+      .populate('author', '_id fullName username avatar');
   }
 
   async leaveGroup(user: UserDocument, groupId: string) {
