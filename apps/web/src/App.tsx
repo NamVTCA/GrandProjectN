@@ -36,6 +36,7 @@ import TopUpPage from './pages/TopUpPage';
 // Route Guards
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import BannedPage from './pages/BannedPage';
 
 // Wrapper để force remount ProfilePage
 const ProfilePageWithKey: React.FC = () => {
@@ -93,6 +94,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/banned" element={<BannedPage />} />
+
       </Route>
       <Route path="/verify-email" element={<VerifyEmailPage />} />
 
