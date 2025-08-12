@@ -93,7 +93,7 @@ const ContentManagementPage: React.FC = () => {
                 
               </div>
               <div className="report-content">
-                <p>{report.reason}</p>
+                {/* <p>{report.reason}</p> */}
               </div>
             </div>
           ))}
