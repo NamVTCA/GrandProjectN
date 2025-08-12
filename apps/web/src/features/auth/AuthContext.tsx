@@ -9,9 +9,10 @@ interface EquippedItem {
   _id: string;
   assetUrl: string;
   type: EquippedItemType;
-}
+}export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED';
 
-interface User {
+
+export interface User {
   _id: string;
   username: string;
   email: string;
@@ -19,13 +20,13 @@ interface User {
   coins: number;
   hasSelectedInterests: boolean;
   globalRole: 'USER' | 'MODERATOR' | 'ADMIN';
-  friends: string[]; // ✅ THÊM DÒNG NÀY
+  accountStatus: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
+  friends: string[];
   currentGame?: {
     igdbId: string;
     name: string;
     boxArtUrl: string;
   };
-  // ✅ THÊM: trường khung đang trang bị (được populate từ backend)
   equippedAvatarFrame?: EquippedItem | null;
 }
 

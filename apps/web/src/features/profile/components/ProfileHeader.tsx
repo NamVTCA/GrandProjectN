@@ -56,10 +56,20 @@ type UserLevelInfo = {
   description: string;
   color: string;
   icon?: string;
-  xpToNextLevel: number;
+  xpToNextLevel: number | string;
 };
 
-const getUserLevelInfo = (xp: number): UserLevelInfo => {
+const getUserLevelInfo = (xp: number, isAdmin: boolean): UserLevelInfo => {
+  if (isAdmin) {
+    return {
+      level: "Chúa trời",
+      description: "Quản trị viên tối cao",
+      color: "#ff0000",
+      icon: "👑",
+      xpToNextLevel: "∞",
+    };
+  }
+
   if (xp >= 20000)
     return {
       level: "Bậc thầy mạng xã hội",
@@ -113,12 +123,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   const isMyProfile = user?._id === userProfile._id;
-  const levelInfo = getUserLevelInfo(userProfile.xp);
+  const isAdmin = userProfile.globalRole === "ADMIN";
+  const levelInfo = getUserLevelInfo(userProfile.xp, isAdmin);
 
   const [isReportModalOpen, setReportModalOpen] = useState(false);
 
   const handleEditProfile = () => {
     navigate(`/profile/${userProfile.username}/edit`);
+  };
+
+  const handleGoToAdminDashboard = () => {
+    navigate("/admin/dashboard");
   };
 
   return (
@@ -159,7 +174,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {levelInfo.icon} {levelInfo.level}
             </strong>
             <p className="xp">
-              {userProfile.xp} / {levelInfo.xpToNextLevel} XP
+              {isAdmin ? "∞" : userProfile.xp} / {levelInfo.xpToNextLevel} XP
             </p>
             <p className="desc">{levelInfo.description}</p>
           </div>
@@ -179,9 +194,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
       <div className="action-section">
         {isMyProfile ? (
-          <Button onClick={handleEditProfile} variant="secondary" size="small">
-            Chỉnh sửa hồ sơ
-          </Button>
+          <div className="profile-actions">
+            <Button onClick={handleEditProfile} variant="secondary" size="small">
+              Chỉnh sửa hồ sơ
+            </Button>
+            {isAdmin && (
+              <Button 
+                onClick={handleGoToAdminDashboard} 
+                variant="primary" 
+                size="small"
+                className="admin-dashboard-btn"
+              >
+                Trang quản trị
+              </Button>
+            )}
+          </div>
         ) : (
           <>
             <Button

@@ -12,6 +12,8 @@ export interface UserProfile {
   createdAt: string;
   xp:number;
   xpToNextLevel: number;
+      globalRole: 'USER' | 'MODERATOR' | 'ADMIN';
+
   // ✅ Thêm trường để lấy khung avatar từ backend
   equippedAvatarFrame?: {
     _id: string;

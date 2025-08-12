@@ -1,25 +1,36 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../../features/auth/AuthContext';
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
-  // ✅ Đang xác thực → hiện loading
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh"
+      }}>
         Đang tải...
       </div>
     );
   }
 
-  // ✅ Nếu chưa đăng nhập → chuyển hướng login
+  // ❌ Chưa đăng nhập
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // ✅ Nếu đã đăng nhập nhưng chưa chọn sở thích → chuyển hướng
+  // 🚫 Bị ban
+  if (user?.accountStatus === "BANNED") {
+    return <Navigate to="/banned" replace />;
+  }
+
+  // 👑 Admin → sang trang quản trị
+
+
   if (user && !user.hasSelectedInterests) {
     return <Navigate to="/select-interests" replace />;
   }

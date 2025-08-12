@@ -1,7 +1,7 @@
 // File: src/layouts/AdminLayout.tsx
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { FaTachometerAlt, FaUsers, FaEdit } from 'react-icons/fa';
+import { NavLink, Outlet, Link } from 'react-router-dom';
+import { FaTachometerAlt, FaUsers, FaEdit, FaHome } from 'react-icons/fa';
 import './AdminLayout.scss';
 
 const AdminLayout: React.FC = () => {
@@ -27,6 +27,11 @@ const AdminLayout: React.FC = () => {
               <NavLink to="/admin/content">
                 <FaEdit /> Quản lý Nội dung
               </NavLink>
+            </li>
+            <li className="home-link">
+              <Link to="/home">
+                <FaHome /> Trở về trang chủ
+              </Link>
             </li>
           </ul>
         </nav>
