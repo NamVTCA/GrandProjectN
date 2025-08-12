@@ -11,6 +11,7 @@ const EditProfileUser: React.FC = () => {
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null); // ← trạng thái lỗi tên hiển thị
 
   // 1) Lấy về data ban đầu
   useEffect(() => {
@@ -28,6 +29,16 @@ const EditProfileUser: React.FC = () => {
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
+
+    // ✅ Kiểm tra riêng trường username: giới hạn 6–12 ký tự
+    if (name === 'username') {
+      const len = value.trim().length;
+      if (len < 6 || len > 12) {
+        setNameError('Tên hiển thị phải từ 6 đến 12 ký tự');
+      } else {
+        setNameError(null);
+      }
+    }
   };
 
   // 3) Chọn file avatar → preview
@@ -55,6 +66,14 @@ const EditProfileUser: React.FC = () => {
   // 5) Submit: patch text trước, sau đó upload avatar & cover
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // ✅ Chặn submit nếu username không hợp lệ
+    const nameLen = (profile.username?.trim().length ?? 0);
+    if (nameLen < 6 || nameLen > 12) {
+      alert('Tên hiển thị phải từ 6 đến 12 ký tự');
+      return;
+    }
+
     try {
       // PATCH username + bio
       const { data: updatedProfile } = await api.patch<UserProfile>(
@@ -145,8 +164,12 @@ const EditProfileUser: React.FC = () => {
             name="username"                       // ← đổi name
             value={profile.username || ''}
             onChange={handleChange}
+            minLength={6}                          // ← HTML5 ràng buộc tối thiểu
+            maxLength={12}                         // ← HTML5 ràng buộc tối đa
+            required
           />
         </label>
+        {nameError && <small style={{ color: 'salmon' }}>{nameError}</small>}
 
         {/* Bio */}
         <label>
@@ -161,7 +184,7 @@ const EditProfileUser: React.FC = () => {
 
         {/* Buttons */}
         <div className={styles.buttons}>
-          <button type="submit" className={styles.save}>
+          <button type="submit" className={styles.save} disabled={!!nameError}>
             Lưu
           </button>
           <button
