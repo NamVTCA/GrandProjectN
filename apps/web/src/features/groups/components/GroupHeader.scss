@@ -1,99 +1,76 @@
-.group-header { width: 100%; }
+// File: src/features/groups/components/GroupHeader.scss
 
-.group-cover-photo {
-  position: relative;
-  height: 240px;
-  background-size: cover;
-  background-position: center;
-  border-radius: 12px;
-  overflow: hidden;
+.group-header {
+  background-color: $background-component;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+
+  .group-cover-photo {
+    position: relative;
+    height: 350px;                 // Chiều cao mặc định
+    max-height: 40vh;              // Chiều cao tối đa bằng 40% chiều cao màn hình
+    min-height: 200px;             // Chiều cao tối thiểu
+    background-size: cover;
+    background-position: center;
+    border-radius: 0 0 $border-radius-lg $border-radius-lg; // Bo góc dưới
+    display: flex;
+    align-items: flex-end;
+    padding: 24px;
+  }
 
   .cover-edit-slot {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 3;
+    bottom: 20px;
+    right: 20px;
   }
-}
 
-.group-info-container {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
-  gap: 16px;
-  padding: 16px;
-  background: linear-gradient(to top, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 40%);
-}
-
-.group-avatar {
-  width: 96px; height: 96px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid rgba(255,255,255,.9);
-  img { width: 100%; height: 100%; object-fit: cover; display: block; }
-}
-
-.group-details {
-  color: #fff;
-  h1 { font-size: 24px; font-weight: 800; margin: 0 0 6px 0; }
-  p { margin: 0; opacity: .9; }
-}
-
-.group-actions { align-self: end; }
-
-/* Nút cơ bản (dùng chung) */
-.edit-cover-btn {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255,255,255,.9);
-  color: #111;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,.15);
-  transition: filter .15s ease, transform .05s ease;
-  &:hover { filter: brightness(.95); }
-  &:active { transform: translateY(1px); }
-  &:disabled { opacity:.6; cursor: default; }
-}
-
-/* Dropdown menu cho nút chỉnh sửa */
-.edit-menu { position: relative; display: inline-block; }
-.edit-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 180px;
-  background: #fff;
-  color: #111;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.18);
-  padding: 6px;
-  z-index: 5;
-
-  &__item {
+  .group-info-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
     width: 100%;
-    padding: 10px 12px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    text-align: left;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover { background: rgba(0,0,0,.06); }
-    &:disabled { opacity:.6; cursor: default; }
+    position: relative;
+    top: 20px;
   }
-}
 
-/* backdrop để click ra ngoài đóng menu */
-.edit-menu__backdrop {
-  position: fixed;
-  inset: 0;
-  background: transparent;
-  z-index: 4;
+  .group-avatar {
+    width: 168px;
+    height: 168px;
+    min-width: 168px;
+    border-radius: 50%;
+    border: 4px solid $background-component;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background-color: $surface-color;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+  }
+
+  .group-details {
+    color: $text-light;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    flex-grow: 1;
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+    p {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: $text-secondary;
+    }
+  }
+
+  .group-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
 }

@@ -4,7 +4,8 @@ import type { GroupDetail } from '../types/Group';
 import Button from '../../../components/common/Button';
 import { FaCog, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import CoverAvatarEditMenu from './CoverAvatarEditMenu';
-import { toAssetUrl } from '../../../untils/img';
+// ✅ BƯỚC 1: Đổi import từ 'toAssetUrl' sang 'publicUrl' cho nhất quán
+import { publicUrl } from '../../../untils/publicUrl';
 import './GroupHeader.scss';
 
 type GroupHeaderProps = {
@@ -37,7 +38,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   }, [group._id, group.coverImage, group.avatar]);
 
   const renderActionButton = () => {
-    if (mode === 'create') return null; // Trang tạo: không hiển thị nút
+    if (mode === 'create') return null; 
 
     if (isOwner) {
       return (
@@ -73,7 +74,8 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       <div
         className="group-cover-photo"
         style={{
-          backgroundImage: `url(${coverImage ? toAssetUrl(coverImage) : 'https://placehold.co/1200x400/2a2a2a/404040?text=Cover'})`,
+          // ✅ BƯỚC 2: Sử dụng hàm publicUrl cho ảnh bìa
+          backgroundImage: `url(${publicUrl(coverImage) || 'https://placehold.co/1200x400/2a2a2a/404040?text=Cover'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -91,7 +93,8 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         <div className="group-info-container">
           <div className="group-avatar">
             <img
-              src={avatar ? toAssetUrl(avatar) : 'https://placehold.co/150x150/2a2a2a/ffffff?text=G'}
+              // ✅ BƯỚC 3: Sử dụng hàm publicUrl cho avatar
+              src={publicUrl(avatar) || 'https://placehold.co/150x150/2a2a2a/ffffff?text=G'}
               alt={`${group.name} avatar`}
             />
           </div>
@@ -100,7 +103,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
             <h1>{group.name}</h1>
             <p>
               {group.privacy === 'public' ? 'Công khai' : 'Riêng tư'}
-              {' • '}
+              {' · '}
               {group.memberCount} thành viên
             </p>
           </div>

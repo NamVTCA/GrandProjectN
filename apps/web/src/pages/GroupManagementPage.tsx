@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as groupApi from '../services/group.api';
+// ✅ Import service để lấy danh sách sở thích
+import { getInterests } from '../services/interest.api';
 import Button from '../components/common/Button';
 import './GroupManagementPage.scss';
 import type { UpdateGroupDto } from '../features/groups/types/GroupDto';
@@ -17,7 +19,8 @@ const GroupManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<ManagementTab>('settings');
-  const [formState, setFormState] = useState<UpdateGroupDto>({});
+  // Mở rộng formState để chứa interestIds
+  const [formState, setFormState] = useState<UpdateGroupDto & { interestIds?: string[] }>({});
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +43,12 @@ const GroupManagementPage: React.FC = () => {
     queryFn: () => groupApi.getGroupJoinRequests(groupId!),
     enabled: !!groupId,
   });
+  
+  // ✅ Query mới để lấy TẤT CẢ sở thích có sẵn
+  const { data: allInterests = [] } = useQuery({
+    queryKey: ['interests'],
+    queryFn: getInterests,
+  });
 
   useEffect(() => {
     if (group) {
@@ -47,13 +56,16 @@ const GroupManagementPage: React.FC = () => {
         name: group.name,
         description: group.description,
         privacy: group.privacy,
+        // ✅ Cập nhật interestIds vào state khi có dữ liệu nhóm
+        interestIds: group.interests.map(interest => interest._id),
       });
     }
   }, [group]);
 
   // --- MUTATIONS ---
   const updateMutation = useMutation({
-    mutationFn: (data: UpdateGroupDto) => groupApi.updateGroup({ groupId: groupId!, groupData: data }),
+    mutationFn: (data: UpdateGroupDto & { interestIds?: string[] }) => 
+      groupApi.updateGroup({ groupId: groupId!, groupData: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group', groupId] });
       addToast('Cập nhật thông tin thành công!', 'success');
@@ -85,7 +97,7 @@ const GroupManagementPage: React.FC = () => {
     onSuccess: () => {
         addToast('Đã xóa thành viên.', 'success');
         refetchMembers();
-        queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+        queryClient.invalidateQueries({ queryKey: ['group', groupId] }); // Cập nhật memberCount
     },
   });
 
@@ -117,6 +129,17 @@ const GroupManagementPage: React.FC = () => {
       if (file && groupId) {
           uploadImageMutation.mutate({ groupId, imageType, file });
       }
+  };
+
+  // ✅ Handler mới để xử lý chọn/bỏ chọn sở thích
+  const handleInterestToggle = (interestId: string) => {
+    setFormState(prev => {
+      const currentIds = prev.interestIds || [];
+      const newIds = currentIds.includes(interestId)
+        ? currentIds.filter(id => id !== interestId)
+        : [...currentIds, interestId];
+      return { ...prev, interestIds: newIds };
+    });
   };
 
   const renderTabContent = () => {
@@ -157,7 +180,25 @@ const GroupManagementPage: React.FC = () => {
                 <option value="public">Công khai</option>
                 <option value="private">Riêng tư</option>
               </select>
-              <Button type="submit" disabled={updateMutation.isPending}><FaSave /> Lưu thay đổi</Button>
+              
+              <hr />
+              <h3>Sở thích của nhóm</h3>
+              <div className="interest-selection-container">
+                {allInterests.map(interest => (
+                  <label key={interest._id} className="interest-tag">
+                    <input
+                      type="checkbox"
+                      checked={formState.interestIds?.includes(interest._id) || false}
+                      onChange={() => handleInterestToggle(interest._id)}
+                    />
+                    {interest.name}
+                  </label>
+                ))}
+              </div>
+              
+              <Button type="submit" disabled={updateMutation.isPending} style={{ marginTop: '20px' }}>
+                <FaSave /> Lưu thay đổi
+              </Button>
             </form>
           </div>
         );
@@ -167,16 +208,20 @@ const GroupManagementPage: React.FC = () => {
           <div className="list-container">
             {members.map(member => (
               <div key={member.user._id} className="item-row">
-                <Link to={`/profile/${member.user.username}`} className="user-info">
-                  <img src={publicUrl(member.user.avatar) || 'https://via.placeholder.com/48'} alt={member.user.username} />
-                  <strong>{member.user.username}</strong>
-                  <span className="role-badge">{member.role}</span>
-                </Link>
-                <div className="actions">
+                <div className="item-details">
+                  <Link to={`/profile/${member.user.username}`}>
+                    <img className="item-avatar" src={publicUrl(member.user.avatar) || 'https://via.placeholder.com/48'} alt={member.user.username}/>
+                  </Link>
+                  <div className="item-text-info">
+                    <Link to={`/profile/${member.user.username}`}>
+                      <strong>{member.user.username}</strong>
+                    </Link>
+                    <span className="role-badge">{member.role}</span>
+                  </div>
+                </div>
+                <div className="item-actions">
                   {member.role !== 'OWNER' && (
-                    <Button variant="danger" size="small" onClick={() => kickMutation.mutate(member.user._id)} disabled={kickMutation.isPending}>
-                      Kick
-                    </Button>
+                    <Button variant="danger" size="small" onClick={() => kickMutation.mutate(member.user._id)} disabled={kickMutation.isPending}>Kick</Button>
                   )}
                 </div>
               </div>
@@ -190,11 +235,17 @@ const GroupManagementPage: React.FC = () => {
             {requests.length > 0 ? (
               requests.map(req => (
                 <div key={req._id} className="item-row">
-                  <Link to={`/profile/${req.user.username}`} className="user-info">
-                    <img src={publicUrl(req.user.avatar) || 'https://via.placeholder.com/48'} alt={req.user.username} />
-                    <strong>{req.user.username}</strong>
-                  </Link>
-                  <div className="actions">
+                  <div className="item-details">
+                    <Link to={`/profile/${req.user.username}`}>
+                      <img className="item-avatar" src={publicUrl(req.user.avatar) || 'https://via.placeholder.com/48'} alt={req.user.username} />
+                    </Link>
+                    <div className="item-text-info">
+                       <Link to={`/profile/${req.user.username}`}>
+                         <strong>{req.user.username}</strong>
+                       </Link>
+                    </div>
+                  </div>
+                  <div className="item-actions">
                     <Button onClick={() => approveMutation.mutate(req._id)} disabled={approveMutation.isPending}>Chấp nhận</Button>
                     <Button onClick={() => rejectMutation.mutate(req._id)} variant="secondary" disabled={rejectMutation.isPending}>Từ chối</Button>
                   </div>
@@ -227,7 +278,7 @@ const GroupManagementPage: React.FC = () => {
       <h1>Quản lý nhóm: {group?.name}</h1>
       <div className="management-tabs">
         <button className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>Cài đặt</button>
-        <button className={`tab-button ${activeTab === 'members' ? 'active' : ''}`} onClick={() => setActiveTab('members')}>Thành viên ({members.length})</button>
+        <button className={`tab-button ${activeTab === 'members' ? 'active' : ''}`} onClick={() => setActiveTab('members')}>Thành viên ({group?.memberCount || 0})</button>
         <button className={`tab-button ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>Yêu cầu ({requests.length})</button>
         <button className={`tab-button ${activeTab === 'danger' ? 'active' : ''}`} onClick={() => setActiveTab('danger')}>Vùng nguy hiểm</button>
       </div>

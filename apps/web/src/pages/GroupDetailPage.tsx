@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as groupApi from '../services/group.api';
-import * as postApi from '../services/post.api'; // Giả sử bạn có service này
+import * as postApi from '../services/post.api';
 import { useAuth } from '../features/auth/AuthContext';
 import GroupHeader from '../features/groups/components/GroupHeader';
 import CreatePost from '../features/feed/components/CreatePost';
@@ -18,10 +18,11 @@ const GroupDetailPage: React.FC = () => {
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
   // --- QUERIES ---
-  const { data: group, isLoading, isError } = useQuery({
+
+  const { data: group, isLoading: isLoadingGroup, isError } = useQuery({
     queryKey: ['group', groupId],
     queryFn: () => groupApi.getGroupById(groupId!),
-    enabled: !!groupId, // Chỉ chạy query khi groupId tồn tại
+    enabled: !!groupId,
   });
 
   const { data: joinStatusData } = useQuery({
@@ -30,9 +31,11 @@ const GroupDetailPage: React.FC = () => {
     enabled: !!groupId && !!user,
   });
 
-  const { data: posts = [] } = useQuery({
+  // Tách riêng query cho bài đăng để quản lý cache hiệu quả
+  const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: ['posts', 'group', groupId],
-    queryFn: () => postApi.getPostsByGroup(groupId!),
+    queryFn: () => groupApi.getGroupPosts(groupId!),
+    // Chỉ lấy bài đăng khi đã có groupId và người dùng là thành viên
     enabled: !!groupId && joinStatusData?.status === 'MEMBER',
   });
 
@@ -41,10 +44,11 @@ const GroupDetailPage: React.FC = () => {
   const isMember = joinStatus === 'MEMBER';
 
   // --- MUTATIONS ---
+
   const joinLeaveMutation = useMutation<unknown, Error>({
     mutationFn: () => (isMember ? groupApi.leaveGroup(groupId!) : groupApi.joinGroup(groupId!)),
     onSuccess: () => {
-      // Tải lại tất cả dữ liệu liên quan để UI được cập nhật
+      // Làm mới dữ liệu nhóm và trạng thái thành viên
       queryClient.invalidateQueries({ queryKey: ['group', groupId] });
       queryClient.invalidateQueries({ queryKey: ['groups', 'me'] });
     },
@@ -54,6 +58,7 @@ const GroupDetailPage: React.FC = () => {
     mutationFn: ({ postId, reaction }: { postId: string; reaction: ReactionType }) =>
       postApi.reactToPost(postId, reaction),
     onSuccess: (updatedPost) => {
+      // Cập nhật lạc quan cho bài viết đã được thả cảm xúc
       queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
         oldData?.map(p => p._id === updatedPost._id ? updatedPost : p)
       );
@@ -63,13 +68,15 @@ const GroupDetailPage: React.FC = () => {
   const deletePostMutation = useMutation({
       mutationFn: (postId: string) => postApi.deletePost(postId),
       onSuccess: (_, postId) => {
+          // Cập nhật lạc quan: Xóa bài viết khỏi cache
           queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
-            oldData?.filter(p => p._id !== postId)
+              oldData?.filter(p => p._id !== postId)
           );
       }
   });
 
   // --- HANDLERS ---
+
   const handlePostCreated = (newPost: Post) => {
       queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) => 
         oldData ? [newPost, ...oldData] : [newPost]
@@ -84,8 +91,20 @@ const GroupDetailPage: React.FC = () => {
       deletePostMutation.mutate(postId);
   };
 
-  if (isLoading) return <p className="page-status">Đang tải nhóm...</p>;
-  if (isError || !group) return <p className="page-status">Không tìm thấy nhóm.</p>;
+  // ✅ Bổ sung handler để cập nhật lạc quan cho comment count
+  const handleCommentChange = (postId: string, change: 1 | -1) => {
+    queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
+      oldData?.map(p => 
+        p._id === postId 
+        ? { ...p, commentCount: Math.max(0, p.commentCount + change) } 
+        : p
+      )
+    );
+  };
+
+
+  if (isLoadingGroup) return <p className="page-status">Đang tải nhóm...</p>;
+  if (isError || !group) return <p className="page-status">Không tìm thấy nhóm hoặc đã có lỗi xảy ra.</p>;
 
   return (
     <div className="group-detail-page">
@@ -103,15 +122,18 @@ const GroupDetailPage: React.FC = () => {
             <>
               <CreatePost context="group" contextId={group._id} onPostCreated={handlePostCreated} />
               <div className="post-list">
+                {isLoadingPosts && <p className="page-status">Đang tải bài viết...</p>}
+                {!isLoadingPosts && posts.length === 0 && <p className="page-status">Chưa có bài viết nào trong nhóm.</p>}
                 {posts.map(post => (
                   <PostCard
                     key={post._id}
                     post={post}
                     onReact={handleReact}
                     onPostDeleted={handlePostDeleted}
-                    onCommentAdded={() => queryClient.invalidateQueries({ queryKey: ['posts', 'group', groupId]})}
-                    onCommentDeleted={() => queryClient.invalidateQueries({ queryKey: ['posts', 'group', groupId]})}
-                    onRepost={() => {}}
+                    // ✅ Sử dụng handler mới cho comment
+                    onCommentAdded={() => handleCommentChange(post._id, 1)}
+                    onCommentDeleted={() => handleCommentChange(post._id, -1)}
+                    onRepost={() => { /* Có thể tối ưu tương tự nếu cần */ }}
                   />
                 ))}
               </div>
@@ -119,6 +141,12 @@ const GroupDetailPage: React.FC = () => {
           ) : (
              <div className="non-member-view">
               <h2>Bạn phải là thành viên để xem và đăng bài.</h2>
+              {!isOwner && joinStatus !== 'PENDING' && (
+                  <Button onClick={() => joinLeaveMutation.mutate()} disabled={joinLeaveMutation.isPending}>
+                      Tham gia nhóm
+                  </Button>
+              )}
+               {joinStatus === 'PENDING' && <p>Yêu cầu tham gia của bạn đã được gửi đi.</p>}
             </div>
           )}
         </div>

@@ -1,90 +1,127 @@
+// File: src/pages/GroupManagementPage.scss
+
 .group-management-page {
   max-width: 900px;
-  margin: 2rem auto; // Thêm khoảng cách trên dưới
-  padding: 0 1rem; // Thêm padding hai bên cho màn hình nhỏ
+  margin: 20px auto;
+  padding: 20px;
+  background-color: $background-body; // Nền chính của trang
 
   h1 {
-    font-size: 2rem; // Tăng kích thước
-    font-weight: 700;
-    margin-bottom: 1.5rem; // Đồng bộ margin
-    color: $text-light; // Dùng màu chữ chính
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: $text-light;
   }
-}
 
-.management-tabs {
-  display: flex;
-  border-bottom: 1px solid $border-color; // Dùng biến màu viền chung
-  margin-bottom: 2rem;
+  .management-tabs {
+    display: flex;
+    border-bottom: 1px solid $border-color;
+    margin-bottom: 20px;
 
-  .tab-button {
-    padding: 1rem 1.5rem; // Đồng bộ padding
-    background: none;
-    border: none;
-    color: $text-secondary;
-    font-size: 1rem;
-    font-weight: 600;
-    position: relative;
-    cursor: pointer;
-    transition: color 0.2s ease-in-out; // Thêm hiệu ứng chuyển màu
+    .tab-button {
+      padding: 10px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: $text-secondary;
+      position: relative;
+      bottom: -1px;
+      transition: color 0.2s ease;
 
-    &:hover {
-      color: $text-light; // Đổi màu khi hover
-    }
-
-    &.active {
-      color: $primary-color; // Dùng màu primary chính cho nhất quán
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 3px; // Làm đường gạch chân dày hơn
-        border-radius: 3px 3px 0 0;
-        background-color: $primary-color;
+      &.active {
+        color: $primary-color;
+        border-bottom: 3px solid $primary-color;
       }
     }
   }
-}
 
-.request-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem; // Giảm khoảng cách một chút
-}
-
-.request-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  background-color: $background-component;
-  border-radius: $border-radius-md;
-  border: 1px solid $border-color;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: $surface-color; // Thêm hiệu ứng hover
+  .tab-content {
+    background-color: $background-component;
+    padding: 24px;
+    border-radius: $border-radius-lg;
   }
 
-  .user-info {
+  // --- Cài đặt chung ---
+  h3 { color: $text-light; margin: 20px 0 15px; }
+  hr { border: 1px solid $border-color; margin: 24px 0; }
+  label { font-weight: 600; color: $text-secondary; display: block; margin-bottom: 8px; }
+
+  form {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    img {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      object-fit: cover; // Đảm bảo ảnh không bị méo
-    }
-    strong {
-      font-weight: 600;
-      font-size: 1.1rem;
+    flex-direction: column;
+    gap: 16px;
+
+    input, textarea, select {
+      padding: 12px;
+      border: 1px solid $surface-color;
+      border-radius: $border-radius-md;
+      font-size: 1rem;
+      background-color: $surface-color;
+      color: $text-light;
+      &:focus {
+        border-color: $primary-color;
+        outline: none;
+      }
     }
   }
 
-  .request-actions {
-    display: flex;
-    gap: 0.75rem;
+  // --- Chỉnh sửa ảnh ---
+  .image-editors { display: flex; gap: 30px; flex-wrap: wrap; }
+  .image-editor {
+    .avatar-preview, .cover-preview {
+      position: relative; cursor: pointer; border-radius: $border-radius-md; overflow: hidden;
+      border: 2px dashed $surface-color;
+      transition: border-color 0.2s;
+      &:hover { border-color: $primary-color; }
+    }
+    .avatar-preview {
+      width: 150px; height: 150px;
+      img { width: 100%; height: 100%; object-fit: cover; }
+    }
+    .cover-preview {
+      width: 100%; max-width: 500px; height: 185px;
+      img { width: 100%; height: 100%; object-fit: cover; }
+    }
+  }
+
+  // --- Danh sách thành viên & yêu cầu ---
+  .list-container {
+    .item-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; border-radius: $border-radius-md;
+      &:hover { background-color: $surface-color; }
+    }
+    .item-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+    .item-details { display: flex; align-items: center; gap: 16px; }
+    .item-text-info {
+      strong { color: $text-light; }
+      .role-badge {
+        background-color: $surface-color;
+        color: $text-secondary;
+        // ... các style khác giữ nguyên
+      }
+    }
+  }
+
+  // --- Vùng nguy hiểm ---
+  .danger-zone {
+    border: 2px solid $error-color;
+    border-radius: $border-radius-md;
+    padding: 20px;
+    background-color: rgba($error-color, 0.1);
+    p { color: $text-secondary; }
+  }
+
+  // --- Sở thích ---
+  .interest-tag {
+    background-color: $surface-color;
+    border-color: $surface-color;
+    color: $text-secondary;
+    &:has(input:checked) {
+      background-color: $primary-color;
+      color: $text-light;
+      border-color: $primary-color;
+    }
   }
 }
