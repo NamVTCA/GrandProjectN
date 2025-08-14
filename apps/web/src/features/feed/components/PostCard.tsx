@@ -14,15 +14,15 @@ import {
   FaSadTear,
   FaAngry,
   FaFlag,
+  FaEdit,
 } from "react-icons/fa";
 import api from "../../../services/api";
 import { useAuth } from "../../auth/AuthContext";
-import type { Post, Comment, ReactionType, PostVisibility } from "../types/Post";
-import { ReactionTypes } from "../types/Post";
+import type { Post, Comment, ReactionType } from "../types/Post";
+import { ReactionTypes, PostVisibility } from "../types/Post";
 import UserAvatar from "../../../components/common/UserAvatar";
 import "./PostCard.scss";
 
-// --- Component Comment ---
 const CommentSection: React.FC<{
   postId: string;
   onCommentAdded: () => void;
@@ -33,15 +33,16 @@ const CommentSection: React.FC<{
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
+  const fetchComments = async () => {
+    try {
+      const response = await api.get(`/posts/${postId}/comments`);
+      setComments(response.data);
+    } catch (error) {
+      console.error("Lỗi khi tải bình luận:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const response = await api.get(`/posts/${postId}/comments`);
-        setComments(response.data);
-      } catch (error) {
-        console.error("Lỗi khi tải bình luận:", error);
-      }
-    };
     fetchComments();
   }, [postId]);
 
@@ -50,10 +51,10 @@ const CommentSection: React.FC<{
     if (!newComment.trim()) return;
     setIsLoading(true);
     try {
-      const response = await api.post(`/posts/${postId}/comments`, {
+      await api.post(`/posts/${postId}/comments`, {
         content: newComment,
       });
-      setComments((prev) => [...prev, response.data]);
+      await fetchComments();
       setNewComment("");
       onCommentAdded();
     } catch (error) {
@@ -67,7 +68,7 @@ const CommentSection: React.FC<{
     if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) return;
     try {
       await api.delete(`/posts/comments/${commentId}`);
-      setComments((prev) => prev.filter((c) => c._id !== commentId));
+      await fetchComments();
       onCommentDeleted();
     } catch (error) {
       console.error("Lỗi khi xóa bình luận:", error);
@@ -91,7 +92,6 @@ const CommentSection: React.FC<{
       <div className="comment-list">
         {comments.map((comment) => (
           <div key={comment._id} className="comment">
-            {/* avatar bình luận */}
             <UserAvatar
               size={32}
               src={
@@ -124,7 +124,6 @@ const CommentSection: React.FC<{
   );
 };
 
-// --- Reaction Icons Map ---
 const reactionDetails: {
   [key in ReactionType]: { icon: JSX.Element; text: string; color: string };
 } = {
@@ -136,7 +135,6 @@ const reactionDetails: {
   ANGRY: { icon: <FaAngry />, text: "Phẫn nộ", color: "#e0245e" },
 };
 
-// --- ReportModal ---
 const ReportModal: React.FC<{
   onClose: () => void;
   onSubmit: (reason: string) => void;
@@ -170,7 +168,42 @@ const ReportModal: React.FC<{
   );
 };
 
-// --- Main PostCard Component ---
+const EditModal: React.FC<{
+  post: Post;
+  onClose: () => void;
+  onSubmit: (content: string, visibility: PostVisibility) => void;
+}> = ({ post, onClose, onSubmit }) => {
+  const [content, setContent] = useState(post.content || "");
+  const [visibility, setVisibility] = useState<PostVisibility>(post.visibility);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h3>Chỉnh sửa bài viết</h3>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Nhập nội dung mới..."
+        />
+        {!post.group && (
+          <select
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as PostVisibility)}
+          >
+            <option value={PostVisibility.PUBLIC}>Công khai</option>
+            <option value={PostVisibility.FRIENDS_ONLY}>Chỉ bạn bè</option>
+            <option value={PostVisibility.PRIVATE}>Chỉ mình tôi</option>
+          </select>
+        )}
+        <div className="modal-actions">
+          <button onClick={onClose}>Hủy</button>
+          <button onClick={() => onSubmit(content, visibility)}>Lưu</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface PostCardProps {
   post: Post;
   onReact: (postId: string, reaction: ReactionType) => void;
@@ -178,6 +211,7 @@ interface PostCardProps {
   onPostDeleted: (postId: string) => void;
   onCommentAdded: (postId: string) => void;
   onCommentDeleted: (postId: string) => void;
+  onPostUpdated: (updatedPost: Post) => void;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -187,22 +221,22 @@ const PostCard: React.FC<PostCardProps> = ({
   onPostDeleted,
   onCommentAdded,
   onCommentDeleted,
+  onPostUpdated,
 }) => {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isRepostModalOpen, setRepostModalOpen] = useState(false);
   const [repostContent, setRepostContent] = useState("");
-  const [visibility, setVisibility] = useState<PostVisibility>("FRIENDS_ONLY");
+  const [visibility, setVisibility] = useState<PostVisibility>(PostVisibility.FRIENDS_ONLY);
   const [showReactions, setShowReactions] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isReportModalOpen, setReportModalOpen] = useState(false);
-
-  useEffect(() => {
-    setLocalCommentCount(post.commentCount);
-  }, [post.commentCount]);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
   const isAuthor = user?._id === post.author?._id;
+  const isAdmin = user?.globalRole === 'ADMIN';
   const currentUserReaction = user
     ? post.reactions.find((r) => r.user === user._id)
     : null;
@@ -217,15 +251,92 @@ const PostCard: React.FC<PostCardProps> = ({
     setRepostContent("");
   };
 
-  const confirmDelete = () => {
-    onPostDeleted(post._id);
-    setDeleteModalOpen(false);
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/posts/${post._id}`);
+      onPostDeleted(post._id);
+      setDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  };
+
+  const handleCommentAddedWrapper = async () => {
+    try {
+      const response = await api.get(`/posts/${post._id}`);
+      setLocalCommentCount(response.data.commentCount);
+      onCommentAdded(post._id);
+    } catch (error) {
+      console.error("Error updating comment count:", error);
+    }
+  };
+
+  const handleCommentDeletedWrapper = async () => {
+    try {
+      const response = await api.get(`/posts/${post._id}`);
+      setLocalCommentCount(response.data.commentCount);
+      onCommentDeleted(post._id);
+    } catch (error) {
+      console.error("Error updating comment count:", error);
+    }
+  };
+
+  const handleUpdatePost = async (content: string, visibility: PostVisibility) => {
+    try {
+      const response = await api.patch(`/posts/${post._id}`, {
+        content,
+        visibility: post.group ? undefined : visibility,
+      });
+      onPostUpdated(response.data);
+      setEditModalOpen(false);
+    } catch (error) {
+      console.error("Lỗi khi cập nhật bài viết:", error);
+    }
   };
 
   const renderVisibilityIcon = (v: PostVisibility) => {
-    if (v === "PRIVATE") return <span title="Chỉ mình tôi">🔒</span>;
-    if (v === "FRIENDS_ONLY") return <span title="Chỉ bạn bè">👥</span>;
-    return <span title="Công khai">🌍</span>;
+    if (v === PostVisibility.PRIVATE) return "🔒";
+    if (v === PostVisibility.FRIENDS_ONLY) return "👥";
+    return "🌍";
+  };
+
+  const renderOptionsMenu = () => {
+    return (
+      <div className="options-menu">
+        {isAuthor && (
+          <>
+            <button onClick={() => {
+              setEditModalOpen(true);
+              setShowOptionsMenu(false);
+            }}>
+              <FaEdit /> Chỉnh sửa
+            </button>
+            <button onClick={() => {
+              setDeleteModalOpen(true);
+              setShowOptionsMenu(false);
+            }}>
+              <FaTrash /> Xóa
+            </button>
+          </>
+        )}
+        {(isAdmin && !isAuthor) && (
+          <button onClick={() => {
+            setDeleteModalOpen(true);
+            setShowOptionsMenu(false);
+          }}>
+            <FaTrash /> Xóa (Admin)
+          </button>
+        )}
+        {!isAuthor && (
+          <button onClick={() => {
+            setReportModalOpen(true);
+            setShowOptionsMenu(false);
+          }}>
+            <FaFlag /> Báo cáo
+          </button>
+        )}
+      </div>
+    );
   };
 
   const renderPostContent = (p: Post, isOriginalPost: boolean) => {
@@ -237,7 +348,6 @@ const PostCard: React.FC<PostCardProps> = ({
       <>
         <div className="post-header">
           <Link to={`/profile/${p.author.username}`} className="author-info">
-            {/* avatar tác giả */}
             <UserAvatar
               size={48}
               src={
@@ -247,27 +357,21 @@ const PostCard: React.FC<PostCardProps> = ({
               }
             />
             <div>
-              <strong>{p.author.username}</strong>
+              <strong>
+                {p.author.username} {renderVisibilityIcon(p.visibility)}
+              </strong>
               <span className="timestamp">
                 {new Date(p.createdAt).toLocaleString()}
               </span>
             </div>
           </Link>
 
-          {/* Menu Xóa hoặc Báo cáo */}
           <div className="post-options">
-            <FaEllipsisH />
-            <div className="options-menu">
-              {isAuthor && isOriginalPost && (
-                <button onClick={() => setDeleteModalOpen(true)}>
-                  <FaTrash /> Xóa
-                </button>
-              )}
-            </div>
+            <FaEllipsisH onClick={() => setShowOptionsMenu(!showOptionsMenu)} />
+            {showOptionsMenu && renderOptionsMenu()}
           </div>
         </div>
 
-        <div className="post-visibility">{renderVisibilityIcon(p.visibility)}</div>
         {p.content && <p className="post-content">{p.content}</p>}
         {p.mediaUrls && p.mediaUrls.length > 0 && (
           <div className="post-media">
@@ -344,9 +448,20 @@ const PostCard: React.FC<PostCardProps> = ({
             onClick={() => setShowReactions((prev) => !prev)}
           >
             {currentUserReaction ? (
-              <span style={{ color: reactionDetails[currentUserReaction.type].color }}>
-                {reactionDetails[currentUserReaction.type].icon}{" "}
-                {reactionDetails[currentUserReaction.type].text}
+              <span
+                style={{
+                  color:
+                    reactionDetails[
+                      currentUserReaction.type as keyof typeof reactionDetails
+                    ].color,
+                }}
+              >
+                {reactionDetails[
+                  currentUserReaction.type as keyof typeof reactionDetails
+                ].icon}{" "}
+                {reactionDetails[
+                  currentUserReaction.type as keyof typeof reactionDetails
+                ].text}
               </span>
             ) : (
               <span>
@@ -360,17 +475,18 @@ const PostCard: React.FC<PostCardProps> = ({
           <FaRegCommentAlt /> Bình luận
         </button>
 
-        <button
-          className="action-button"
-          onClick={() => setReportModalOpen(true)}
-        >
-          <FaFlag /> Báo cáo
-        </button>
+        {!isAuthor && (
+          <button
+            className="action-button"
+            onClick={() => setReportModalOpen(true)}
+          >
+            <FaFlag /> Báo cáo
+          </button>
+        )}
 
         <button
           className="action-button"
           onClick={() => setRepostModalOpen(true)}
-          disabled={!!post.repostOf}
         >
           <FaShare /> Chia sẻ
         </button>
@@ -379,18 +495,11 @@ const PostCard: React.FC<PostCardProps> = ({
       {showComments && (
         <CommentSection
           postId={post._id}
-          onCommentAdded={() => {
-            onCommentAdded(post._id);
-            setLocalCommentCount((prev) => prev + 1);
-          }}
-          onCommentDeleted={() => {
-            onCommentDeleted(post._id);
-            setLocalCommentCount((prev) => Math.max(0, prev - 1));
-          }}
+          onCommentAdded={handleCommentAddedWrapper}
+          onCommentDeleted={handleCommentDeletedWrapper}
         />
       )}
 
-      {/* Modal chia sẻ */}
       {isRepostModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -404,9 +513,9 @@ const PostCard: React.FC<PostCardProps> = ({
               value={visibility}
               onChange={(e) => setVisibility(e.target.value as PostVisibility)}
             >
-              <option value="PUBLIC">Công khai</option>
-              <option value="FRIENDS_ONLY">Chỉ bạn bè</option>
-              <option value="PRIVATE">Chỉ mình tôi</option>
+              <option value={PostVisibility.PUBLIC}>Công khai</option>
+              <option value={PostVisibility.FRIENDS_ONLY}>Chỉ bạn bè</option>
+              <option value={PostVisibility.PRIVATE}>Chỉ mình tôi</option>
             </select>
             <div className="modal-actions">
               <button onClick={() => setRepostModalOpen(false)}>Hủy</button>
@@ -416,7 +525,6 @@ const PostCard: React.FC<PostCardProps> = ({
         </div>
       )}
 
-      {/* Modal báo cáo */}
       {isReportModalOpen && (
         <ReportModal
           onClose={() => setReportModalOpen(false)}
@@ -428,7 +536,6 @@ const PostCard: React.FC<PostCardProps> = ({
         />
       )}
 
-      {/* Modal xác nhận xóa */}
       {isDeleteModalOpen && (
         <div className="modal-overlay" onClick={() => setDeleteModalOpen(false)}>
           <div className="modal-content confirm-delete-modal" onClick={(e) => e.stopPropagation()}>
@@ -440,6 +547,14 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {isEditModalOpen && (
+        <EditModal
+          post={post}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleUpdatePost}
+        />
       )}
     </div>
   );

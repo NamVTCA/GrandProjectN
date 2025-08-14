@@ -16,7 +16,8 @@ export enum NotificationType {
   WARN = 'WARN',
   GROUP_REQUEST_ACCEPTED = 'GROUP_REQUEST_ACCEPTED', // ✅ THÊM DÒNG NÀY
   GROUP_REQUEST_REJECTED = 'GROUP_REQUEST_REJECTED', // ✅ THÊM DÒNG NÀY
-  GROUP_INVITE = 'GROUP_INVITE', 
+  GROUP_INVITE = 'GROUP_INVITE',
+  POST_DELETED_BY_ADMIN = 'POST_DELETED_BY_ADMIN',
 }
 
 @Schema({ timestamps: true })
@@ -44,5 +45,3 @@ export class Notification {
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
-
-

@@ -1,13 +1,12 @@
 @use '../../../styles/index' as *;
 @use "sass:color";
-// // Nếu cần dùng @import (cũ)
-// @import '../../../styles/_variables.scss';
 
 .post-card {
   background-color: $background-component;
   border-radius: $border-radius-lg;
   padding: 20px;
   margin-bottom: 20px;
+  position: relative;
 
   .post-header {
     display: flex;
@@ -28,7 +27,13 @@
       }
 
       div {
-        strong { font-weight: 600; }
+        strong { 
+          font-weight: 600;
+          span {
+            margin-left: 5px;
+            font-size: 14px;
+          }
+        }
         .timestamp {
           font-size: 12px;
           color: $text-secondary;
@@ -42,16 +47,23 @@
 
       svg {
         cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        &:hover {
+          background-color: $surface-color;
+        }
       }
 
       .options-menu {
         position: absolute;
-        top: 24px;
+        top: 40px;
         right: 0;
         background: $surface-color;
         border-radius: $border-radius-md;
-        padding: 5px 10px;
+        padding: 10px;
         z-index: 10;
+        min-width: 150px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 
         button {
           background: none;
@@ -59,12 +71,20 @@
           color: $text-light;
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 5px 0;
+          gap: 8px;
+          padding: 8px 12px;
           cursor: pointer;
+          width: 100%;
+          text-align: left;
+          border-radius: $border-radius-md;
 
           &:hover {
-            color: $primary-color;
+background-color: color.adjust($surface-color, $lightness: 5%);
+          }
+
+          svg {
+            padding: 0;
+            margin-right: 5px;
           }
         }
       }
@@ -72,39 +92,37 @@
   }
 
   .reaction-container {
-  position: relative;
+    position: relative;
 
-  .reaction-popup {
-    display: none;
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    background: #fff;
-    padding: 4px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    white-space: nowrap;
+    .reaction-popup {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: #fff;
+      padding: 4px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      white-space: nowrap;
 
-    .reaction-icon {
-      background: none;
-      border: none;
-      font-size: 18px;
-      margin: 4px;
-      cursor: pointer;
+      .reaction-icon {
+        background: none;
+        border: none;
+        font-size: 18px;
+        margin: 4px;
+        cursor: pointer;
 
-      &:hover {
-       transform: #{'scale(1.2)'};
-
+        &:hover {
+         transform: #{'scale(1.2)'};
+        }
       }
     }
-  }
 
-  &:hover .reaction-popup {
-    display: flex;
+    &:hover .reaction-popup {
+      display: flex;
+    }
   }
-}
-
 
   .post-content {
     line-height: 1.6;
@@ -118,10 +136,11 @@
     gap: 10px;
     margin-bottom: 15px;
 
-    img {
+    img, video {
       width: 100%;
       border-radius: $border-radius-md;
       object-fit: cover;
+      max-height: 500px;
     }
   }
 
@@ -276,6 +295,7 @@
         display: flex;
         gap: 10px;
         margin-bottom: 10px;
+        position: relative;
 
         .comment-author-avatar {
           width: 32px;
@@ -288,6 +308,7 @@
           background: $surface-color;
           border-radius: $border-radius-md;
           padding: 8px 10px;
+          flex: 1;
 
           strong {
             display: block;
@@ -299,6 +320,19 @@
             margin: 0;
             font-size: 14px;
             color: $text-light;
+          }
+        }
+
+        .comment-delete-button {
+          background: none;
+          border: none;
+          color: $text-secondary;
+          cursor: pointer;
+          padding: 5px;
+          align-self: flex-start;
+
+          &:hover {
+            color: #e0245e;
           }
         }
       }
@@ -322,7 +356,7 @@
       border-radius: $border-radius-lg;
       padding: 20px;
       width: 90%;
-      max-width: 400px;
+      max-width: 500px;
 
       h3 {
         margin-bottom: 12px;
@@ -337,6 +371,17 @@
         border: none;
         resize: vertical;
         min-height: 80px;
+        margin-bottom: 10px;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px;
+        border-radius: $border-radius-md;
+        background: $surface-color;
+        color: $text-light;
+        border: none;
+        margin-bottom: 10px;
       }
 
       .modal-actions {
@@ -364,19 +409,22 @@
       }
     }
   }
-  button.report-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #e0245e;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
 
-  &:hover {
-    color: color.adjust(#e0245e, $lightness: 10%);
+  .confirm-delete-modal {
+    max-width: 400px;
+
+    p {
+      margin-bottom: 15px;
+    }
+
+    .btn-cancel {
+      background: $surface-color;
+      color: $text-light;
+    }
+
+    .btn-confirm-delete {
+      background: #e0245e;
+      color: white;
+    }
   }
-}
-
 }
