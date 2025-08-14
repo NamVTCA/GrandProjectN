@@ -1,7 +1,12 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { PostVisibility } from '../schemas/post.schema';
 
 export class UpdatePostDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  content: string;
+  content?: string;
+
+  @IsOptional()
+  @IsEnum(PostVisibility)
+  visibility?: PostVisibility;
 }

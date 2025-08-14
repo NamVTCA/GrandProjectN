@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+// notifications.controller.ts
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  UseGuards,
+  Delete,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -26,9 +34,25 @@ export class NotificationsController {
       user._id.toString(),
     );
   }
+
   @Get('/all')
-  @UseGuards(JwtAuthGuard)
   async getMyNotifications(@GetUser() user: UserDocument) {
     return this.notificationsService.getAllNotification(user._id.toString());
+  }
+
+  @Delete(':id')
+  async deleteNotification(
+    @Param('id') notificationId: string,
+    @GetUser() user: UserDocument,
+  ) {
+    return this.notificationsService.deleteNotification(
+      notificationId,
+      user._id.toString(),
+    );
+  }
+
+  @Delete('/clear')
+  async clearAllNotifications(@GetUser() user: UserDocument) {
+    return this.notificationsService.clearAllNotifications(user._id.toString());
   }
 }

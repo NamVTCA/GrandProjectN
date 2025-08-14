@@ -139,13 +139,16 @@ export class PostsService {
           {
             author: { $in: relevantUserIds },
             moderationStatus: ModerationStatus.APPROVED,
-            visibility: {
-              $in: [PostVisibility.FRIENDS_ONLY, PostVisibility.PRIVATE],
-            },
+            visibility: PostVisibility.FRIENDS_ONLY,
+          },
+          {
+            author: currentUser._id,
+            moderationStatus: ModerationStatus.APPROVED,
+            visibility: PostVisibility.PRIVATE,
           },
         ],
       })
-      .sort({ createdAt: -1 }) // Thêm sắp xếp theo thời gian mới nhất
+      .sort({ createdAt: -1 })
       .populate([
         { path: 'author', select: 'username avatar' },
         {
@@ -177,7 +180,6 @@ export class PostsService {
     postId: string,
     user: UserDocument,
   ): Promise<{ message: string }> {
-    // B1: Tìm bài viết và "làm đầy" thông tin quan trọng (tác giả và nhóm)
     const post = await this.postModel
       .findById(postId)
       .populate('author')
@@ -187,28 +189,26 @@ export class PostsService {
       throw new NotFoundException('Không tìm thấy bài đăng.');
     }
 
-    // B2: Xây dựng các quy tắc về quyền hạn
     const isAuthor = post.author._id.toString() === user._id.toString();
-    const isGlobalAdmin = user.globalRole === 'ADMIN'; // Giả sử bạn có globalRole
+    const isAdmin = user.globalRole === 'ADMIN';
 
-    let isGroupOwner = false;
-    if (post.group) {
-      // Nếu là bài viết trong nhóm, kiểm tra xem người xóa có phải chủ nhóm không
-      // Ghi chú: 'group' đã được populate, nên chúng ta có thể truy cập 'owner'
-      const group = post.group as GroupDocument;
-      isGroupOwner = group.owner.toString() === user._id.toString();
-    }
-
-    // B3: Kiểm tra quyền hạn cuối cùng
-    // Cho phép xóa nếu người dùng là: Tác giả, HOẶC Chủ nhóm, HOẶC Admin toàn cục
-    if (!isAuthor && !isGroupOwner && !isGlobalAdmin) {
+    if (!isAuthor && !isAdmin) {
       throw new UnauthorizedException('Bạn không có quyền xóa bài đăng này.');
     }
 
-    // B4: Xóa bài viết và các dữ liệu liên quan
+    // If admin is deleting someone else's post, send notification
+    if (isAdmin && !isAuthor) {
+      await this.notificationsService.createNotification(
+        post.author as UserDocument,
+        user,
+        NotificationType.POST_DELETED_BY_ADMIN,
+        '/',
+        'Bài viết của bạn đã bị xóa bởi quản trị viên',
+      );
+    }
+
     await this.postModel.findByIdAndDelete(postId);
     await this.commentModel.deleteMany({ post: postId });
-    // (Tùy chọn) Thêm logic xóa notifications liên quan đến bài viết này
 
     return { message: 'Xóa bài đăng thành công.' };
   }
@@ -317,14 +317,18 @@ export class PostsService {
       throw new NotFoundException('Không tìm thấy bài đăng gốc.');
     }
 
-    // Không cho repost một bài đã là repost
     if (originalPost.repostOf) {
       throw new BadRequestException(
         'Không thể chia sẻ lại một bài đã được chia sẻ.',
       );
     }
 
-    // Kiểm tra nếu originalPost là FRIENDS_ONLY thì user phải là bạn
+    // Check if original post is private
+    if (originalPost.visibility === PostVisibility.PRIVATE) {
+      throw new BadRequestException('Không thể chia sẻ bài viết riêng tư.');
+    }
+
+    // Check if original post is friends only and user is not friend
     if (originalPost.visibility === PostVisibility.FRIENDS_ONLY) {
       const isFriend = user.friends.some(
         (friendId) => friendId.toString() === originalPost.author.toString(),
@@ -343,16 +347,14 @@ export class PostsService {
       repostOf: originalPostId,
       mediaUrls: [],
       moderationStatus: ModerationStatus.APPROVED,
-      visibility: PostVisibility.FRIENDS_ONLY, // hoặc repostDto.visibility nếu cho người dùng chọn
+      visibility: repostDto.visibility || PostVisibility.FRIENDS_ONLY,
     });
 
     const savedRepost = await newRepost.save();
 
-    // Tăng số lượng repost cho bài gốc
     originalPost.repostCount = (originalPost.repostCount || 0) + 1;
     await originalPost.save();
 
-    // Populate kết quả trả về
     await savedRepost.populate([
       { path: 'author', select: 'username avatar' },
       {
@@ -394,20 +396,27 @@ export class PostsService {
       );
     }
 
-    post.content = updatePostDto.content;
+    if (updatePostDto.content !== undefined) {
+      post.content = updatePostDto.content;
+    }
+
+    // Chỉ cập nhật visibility nếu không phải bài viết trong nhóm
+    if (updatePostDto.visibility !== undefined && !(post as any).group) {
+      post.visibility = updatePostDto.visibility;
+    }
+
     const updatedPost = await post.save();
 
-    // FIX: Populate trực tiếp đối tượng vừa lưu
     await updatedPost.populate([
       { path: 'author', select: 'username avatar' },
       {
         path: 'repostOf',
         populate: { path: 'author', select: 'username avatar' },
       },
+      { path: 'group', select: 'name' }, // Thêm populate cho group nếu cần
     ]);
     return updatedPost;
   }
-
   async updateComment(
     commentId: string,
     user: UserDocument,
