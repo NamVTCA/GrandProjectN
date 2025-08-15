@@ -33,7 +33,29 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('ChatGateway');
 
-  // THÊM LẠI HÀM NÀY ĐỂ SỬA LỖI
+  // lấy token từ nhiều vị trí (auth.token, query.token, header Authorization)
+  private extractToken(client: Socket): string | null { 
+    const authToken = (client.handshake as any)?.auth?.token as string | undefined; 
+    const queryToken = (client.handshake as any)?.query?.token as string | undefined; 
+    const headerAuth = client.handshake.headers?.authorization as string | undefined; 
+    if (authToken) return authToken; 
+    if (queryToken) return queryToken; 
+    if (headerAuth) { 
+      return headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : headerAuth; 
+    }
+    return null; 
+  } 
+
+  //đảm bảo đã xác thực, set client.data.user nếu chưa có
+  private async ensureUser(client: Socket) { 
+    if ((client.data as any)?.user) return (client.data as any).user; 
+    const token = this.extractToken(client); 
+    if (!token) throw new Error('No token'); 
+    const user = await this.chatService.getUserFromSocket(token); 
+    (client.data as any).user = user; 
+    return user; 
+  } 
+
   afterInit(server: Server) {
     this.logger.log('ChatGateway Initialized!');
   }
@@ -41,12 +63,29 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   async handleConnection(client: Socket) {
     this.logger.log(`Client connected to Chat: ${client.id}`);
     try {
-      const token = client.handshake.headers.authorization?.split(' ')[1];
+      // ƯU TIÊN: token từ FE qua auth
+      const authToken = (client.handshake as any).auth?.token as string | undefined;
+      // FALLBACK: token qua query
+      const queryToken = (client.handshake.query?.token as string) || undefined;
+      // FALLBACK: token từ header Authorization (phù hợp Node client)
+      const headerAuth = client.handshake.headers.authorization as string | undefined;
+
+      let token = authToken || queryToken;
+      if (!token && headerAuth) {
+        token = headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : headerAuth;
+      }
       if (!token) throw new Error('No token');
+
+      // (DEV ONLY) debug đường token, tránh bật ở PROD
+      this.logger.debug?.(
+        `[ChatGateway] handshake tokens -> auth:${!!authToken} query:${!!queryToken} header:${!!headerAuth}`
+      );
+
       const user = await this.chatService.getUserFromSocket(token);
       client.data.user = user;
     } catch (e) {
       this.logger.error('Chat Auth error', e);
+      client.emit('error', { message: 'Unauthorized' }); 
       client.disconnect();
     }
   }
@@ -55,37 +94,101 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.logger.log(`Client disconnected from Chat: ${client.id}`);
   }
 
+  @SubscribeMessage('joinRoom')
+  async handleJoinRoom(client: Socket, payload: { chatroomId: string }) {
+    try { 
+      const user = await this.ensureUser(client); 
+      const chatroomId = payload?.chatroomId; 
+      if (!chatroomId) { 
+        client.emit('error', { message: 'chatroomId is required' }); 
+        return; 
+      }
+      const ok = await this.chatService.isMemberOfRoom(user._id, chatroomId);
+      if (!ok) {
+        client.emit('error', { message: 'Not allowed' }); // boolean, không return trực tiếp
+        return;
+      }
+      await client.join(chatroomId);
+      client.emit('joinedRoom', { chatroomId });
+    } catch (e: any) { 
+      this.logger.error('joinRoom error', e); 
+      client.emit('error', { message: e?.message || 'Join room failed' });
+    } // NEW
+  }
+
+  @SubscribeMessage('leaveRoom')
+  async handleLeaveRoom(client: Socket, payload: { chatroomId: string }) {
+    try { 
+      const chatroomId = payload?.chatroomId; 
+      if (!chatroomId) { 
+        client.emit('error', { message: 'chatroomId is required' }); 
+        return; 
+      }
+      await client.leave(chatroomId);
+    } catch (e: any) { 
+      this.logger.error('leaveRoom error', e); 
+      client.emit('error', { message: e?.message || 'Leave room failed' }); 
+    } 
+  }
+
   @SubscribeMessage('sendMessage')
   async handleMessage(client: Socket, payload: { chatroomId: string; content: string }): Promise<void> {
-    const user = client.data.user;
-    const message = await this.chatService.createMessage(user, payload.chatroomId, payload.content);
+    try { 
+      const user = await this.ensureUser(client); 
+      const chatroomId = payload?.chatroomId; 
+      const content = payload?.content ?? ''; 
 
-    const chatroom = await this.chatService.findRoomById(payload.chatroomId);
-    if (!chatroom) return;
-
-    for (const member of chatroom.members) {
-      const memberId = member.user.toString();
-      if (await this.presenceService.isUserOnline(memberId)) {
-        const memberSocketId = this.presenceService.getSocketId(memberId);
-        if (memberSocketId) {
-          this.server.to(memberSocketId).emit('newMessage', message);
-        }
+      if (!chatroomId) { 
+        client.emit('error', { message: 'chatroomId is required' }); 
+        return;
       }
-    }
+      if (!content.trim()) { 
+        client.emit('error', { message: 'Content is empty' });
+        return; 
+      }
 
-    const isWithChatbot = chatroom.members.some(member => member.user.toString() === this.chatbotUserId);
-    if (isWithChatbot) {
-        const botResponseContent = await this.chatbotService.getResponse(payload.content);
-        const botMessage = await this.chatService.createBotMessage(this.chatbotUserId, payload.chatroomId, botResponseContent);
-        // Gửi tin nhắn của bot đến phòng chat, nhưng không cần lặp lại vì client đã ở trong phòng
-        this.server.to(client.id).emit('newMessage', botMessage);
-    }
+      const allowed = await this.chatService.isMemberOfRoom(user._id, chatroomId);
+      if (!allowed) {
+        client.emit('error', { message: 'Not allowed' });
+        return;
+      }
+
+      const message = await this.chatService.createMessage(user, chatroomId, content);
+
+      // Phát tin tới tất cả socket đã join phòng
+      this.server.to(chatroomId).emit('newMessage', message);
+
+      const chatroom = await this.chatService.findRoomById(chatroomId);
+      if (!chatroom) return;
+
+      // (Giữ logic chatbot nếu phòng có bot)
+      const isWithChatbot = chatroom.members.some(member => member.user.toString() === this.chatbotUserId);
+      if (isWithChatbot) {
+        const botResponseContent = await this.chatbotService.getResponse(content);
+        const botMessage = await this.chatService.createBotMessage(this.chatbotUserId, chatroomId, botResponseContent);
+        this.server.to(chatroomId).emit('newMessage', botMessage);
+      }
+    } catch (e: any) { 
+      // Trường hợp bị chặn sẽ ném ForbiddenException từ service → message ở đây
+      this.logger.error('sendMessage error', e); 
+      client.emit('error', { message: e?.response?.message || e?.message || 'Send message failed' }); // NEW
+    } 
   }
 
   @SubscribeMessage('mark_room_as_read')
   async handleMarkAsRead(client: Socket, payload: { chatroomId: string }) {
-    const user = client.data.user;
-    await this.chatService.markRoomAsRead(user._id, payload.chatroomId);
-    client.emit('room_marked_as_read', { chatroomId: payload.chatroomId });
+    try { 
+      const user = await this.ensureUser(client); 
+      const chatroomId = payload?.chatroomId; 
+      if (!chatroomId) { 
+        client.emit('error', { message: 'chatroomId is required' });
+        return; 
+      }
+      await this.chatService.markRoomAsRead(user._id, chatroomId);
+      client.emit('room_marked_as_read', { chatroomId });
+    } catch (e: any) { 
+      this.logger.error('mark_room_as_read error', e); 
+      client.emit('error', { message: e?.message || 'Mark read failed' }); 
+    } 
   }
 }

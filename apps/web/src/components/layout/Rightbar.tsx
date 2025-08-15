@@ -13,7 +13,8 @@ interface Friend {
 
 const AVATAR_FALLBACK = '/images/avatar-placeholder.png';
 const pickUser = (it: any) => it?.friend || it?.user || it;
-const pickAvatar = (u: any) => u?.avatar || u?.avatarUrl || u?.profile?.avatarUrl || '';
+const pickAvatar = (u: any) =>
+  u?.avatar || u?.avatarUrl || u?.profile?.avatarUrl || '';
 
 const Rightbar: React.FC = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -22,14 +23,15 @@ const Rightbar: React.FC = () => {
     const fetchFriends = async () => {
       try {
         const res = await api.get('/users/get/friends');
-        // ✏️ changed: chuẩn hoá dữ liệu & avatar sang URL đầy đủ
         const items: Friend[] = (res.data || []).map((it: any) => {
           const u = pickUser(it);
           return {
             _id: u?._id,
             username: u?.username,
             avatar: publicUrl(pickAvatar(u)) || AVATAR_FALLBACK,
-            presenceStatus: (u?.presenceStatus || it?.presenceStatus || 'OFFLINE') as 'ONLINE' | 'OFFLINE',
+            presenceStatus: (u?.presenceStatus ||
+              it?.presenceStatus ||
+              'OFFLINE') as 'ONLINE' | 'OFFLINE',
           };
         });
         setFriends(items);
@@ -39,6 +41,11 @@ const Rightbar: React.FC = () => {
     };
     fetchFriends();
   }, []);
+
+  // >>> CHỈ THÊM: click 1 bạn => phát sự kiện 'open-dm'
+  const openDM = (friendId: string) => {
+    window.dispatchEvent(new CustomEvent('open-dm', { detail: { friendId } }));
+  };
 
   return (
     <aside className="rightbar">
@@ -54,12 +61,19 @@ const Rightbar: React.FC = () => {
         ) : (
           <ul className="friend-list">
             {friends.map((friend) => (
-              <li key={friend._id} className={`friend-item ${friend.presenceStatus.toLowerCase()}`}>
-                {/* ✏️ changed: luôn dùng URL đã chuẩn hoá + fallback onError */}
+              <li
+                key={friend._id}
+                className={`friend-item ${friend.presenceStatus.toLowerCase()}`}
+                title={`Nhắn với ${friend.username}`}
+                onClick={() => openDM(friend._id)} // <<<< THÊM DÒNG NÀY
+                style={{ cursor: 'pointer' }}
+              >
                 <img
                   src={friend.avatar || AVATAR_FALLBACK}
                   alt={friend.username}
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = AVATAR_FALLBACK; }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = AVATAR_FALLBACK;
+                  }}
                 />
                 <span>{friend.username}</span>
                 <span className="status-indicator" />

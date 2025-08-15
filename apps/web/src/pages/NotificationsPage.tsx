@@ -42,6 +42,10 @@ interface Warning {
     profile?: { avatarUrl?: string };
   };
 }
+
+// FIX: khai báo đúng enum trạng thái để code tự gợi ý & type-safe
+type FriendRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
 interface FriendRequest {
   _id: string;
   sender: {
@@ -53,7 +57,7 @@ interface FriendRequest {
     // ✨ added
     profile?: { avatarUrl?: string };
   };
-  status: string;
+  status: FriendRequestStatus;
   createdAt: string;
 }
 
@@ -120,10 +124,14 @@ export default function Notifications() {
     fetchAll();
   }, []);
 
-  // ✏️ changed (ACCEPT/REJECT thay vì ACCEPTED/REJECTED)
-  const respondToFriendRequest = async (requestId: string, status: 'ACCEPT' | 'REJECT') => {
+  // FIX: giữ UI dùng 'ACCEPT' | 'REJECT' nhưng map sang enum BE yêu cầu
+  const respondToFriendRequest = async (
+    requestId: string,
+    action: 'ACCEPT' | 'REJECT'
+  ) => {
     try {
-      await api.post(`/friends/response/${requestId}`, { status });
+      const map = { ACCEPT: 'ACCEPTED', REJECT: 'REJECTED' } as const; // FIX
+      await api.post(`/friends/response/${requestId}`, { status: map[action] }); // FIX
       setFriendRequests((prev) => prev.filter((req) => req._id !== requestId));
     } catch (err) {
       console.error('Lỗi khi xử lý lời mời:', err);
@@ -222,8 +230,8 @@ export default function Notifications() {
                 <small>{moment(req.createdAt).fromNow()}</small>
               </div>
               <div className="action-buttons">
-                <button onClick={() => respondToFriendRequest(req._id, 'ACCEPT')} className="accept-btn">Chấp nhận</button> {/* ✏️ changed */}
-                <button onClick={() => respondToFriendRequest(req._id, 'REJECT')} className="reject-btn">Từ chối</button> {/* ✏️ changed */}
+                <button onClick={() => respondToFriendRequest(req._id, 'ACCEPT')} className="accept-btn">Chấp nhận</button>
+                <button onClick={() => respondToFriendRequest(req._id, 'REJECT')} className="reject-btn">Từ chối</button>
               </div>
             </li>
           ))}

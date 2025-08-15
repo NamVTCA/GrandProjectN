@@ -25,3 +25,7 @@ export class Message {
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
+
+//indexes giúp paginate theo phòng mượt, và tìm theo readBy
+MessageSchema.index({ chatroom: 1, createdAt: 1 });   
+MessageSchema.index({ readBy: 1 });                   
