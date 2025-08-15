@@ -90,30 +90,43 @@ export class NotificationsService {
     return notifications;
   }
 
-    // ✅ THÊM HÀM NÀY VÀO
+  // ✅ THÊM HÀM NÀY VÀO
   // Hàm này sẽ tự động chạy mỗi khi có sự kiện 'notification.create' được phát ra
   // Hàm này sẽ tự động chạy mỗi khi có sự kiện 'notification.create'
   @OnEvent('notification.create')
-  async handleNotificationCreateEvent(payload: { 
-    recipientId: string, 
-    actor: UserDocument, 
-    type: NotificationType,
-    link?: string 
+  async handleNotificationCreateEvent(payload: {
+    recipientId: string;
+    actor: UserDocument;
+    type: NotificationType;
+    link?: string;
   }) {
     // 3. ✅ DÙNG ID ĐỂ TÌM KIẾM USER ĐẦY ĐỦ
     const recipient = await this.userModel.findById(payload.recipientId);
     if (!recipient) {
-      console.error(`Không tìm thấy người dùng nhận thông báo với ID: ${payload.recipientId}`);
+      console.error(
+        `Không tìm thấy người dùng nhận thông báo với ID: ${payload.recipientId}`,
+      );
       return; // Dừng lại nếu không tìm thấy người nhận
     }
 
     // 4. ✅ TẠO THÔNG BÁO VỚI DỮ LIỆU ĐÃ ĐƯỢC CHUẨN HÓA
     // Logic tạo và gửi real-time đã nằm trong hàm này nên không cần lặp lại
     await this.createNotification(
-        recipient, 
-        payload.actor, 
-        payload.type,
-        payload.link || null 
+      recipient,
+      payload.actor,
+      payload.type,
+      payload.link || null,
     );
+  }
+  // notifications.service.ts
+  async deleteNotification(notificationId: string, userId: string) {
+    return this.notificationModel.findOneAndDelete({
+      _id: notificationId,
+      recipient: userId,
+    });
+  }
+
+  async clearAllNotifications(userId: string) {
+    return this.notificationModel.deleteMany({ recipient: userId });
   }
 }

@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import api from '../../../services/api';
 import { useAuth } from '../../auth/AuthContext';
-import type { Post, PostVisibility } from '../types/Post';
+import type { Post } from '../types/Post';
+import { PostVisibility } from '../types/Post';
 import UserAvatar from '../../../components/common/UserAvatar';
 import './CreatePost.scss';
 
-// Cập nhật interface để onPostCreated có thể nhận bài viết mới
 interface CreatePostProps {
   onPostCreated: (newPost: Post) => void;
   context?: 'profile' | 'group';
@@ -23,9 +23,8 @@ const CreatePost: React.FC<CreatePostProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Thêm state mới để quản lý chế độ hiển thị
-  const [visibility, setVisibility] = useState<PostVisibility>('PUBLIC');
+
+  const [visibility, setVisibility] = useState<PostVisibility>(PostVisibility.PUBLIC);
 
   const CLOUDINARY_CLOUD_NAME = "das4ycyz9";
   const CLOUDINARY_UPLOAD_PRESET = "SocialMedia";
@@ -41,68 +40,58 @@ const CreatePost: React.FC<CreatePostProps> = ({
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    try {
-      const response = await fetch(CLOUDINARY_URL, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.secure_url) {
-        return data.secure_url;
-      } else {
-        throw new Error('Không thể tải file lên Cloudinary.');
-      }
-    } catch (err) {
-      console.error("Lỗi tải file lên Cloudinary:", err);
-      throw err;
+    const response = await fetch(CLOUDINARY_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    if (data.secure_url) {
+      return data.secure_url;
     }
+    throw new Error('Không thể tải file lên Cloudinary.');
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!content.trim() && mediaFiles.length === 0) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() && mediaFiles.length === 0) return;
 
-  setIsSubmitting(true);
-  setError(null);
-  try {
-    const mediaUrls = mediaFiles.length > 0 
-      ? await Promise.all(mediaFiles.map(file => uploadFile(file)))
-      : [];
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const mediaUrls = mediaFiles.length > 0 
+        ? await Promise.all(mediaFiles.map(file => uploadFile(file)))
+        : [];
 
-    const payload = {
-      content,
-      mediaUrls,
-      groupId: context === 'group' ? contextId : undefined,
-      visibility,
-    };
+      const payload = {
+        content,
+        mediaUrls,
+        groupId: context === 'group' ? contextId : undefined,
+        visibility,
+      };
 
-    const response = await api.post<Post>('/posts', payload);
-    
-    // Kiểm tra dữ liệu trả về
-    if (response.data && response.data._id) {
-      setContent('');
-      setMediaFiles([]);
-      setVisibility('PUBLIC');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      const response = await api.post<Post>('/posts', payload);
+
+      if (response.data && response.data._id) {
+        setContent('');
+        setMediaFiles([]);
+        setVisibility(PostVisibility.PUBLIC);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        onPostCreated(response.data);
+      } else {
+        throw new Error('Dữ liệu bài viết trả về không hợp lệ');
       }
-      
-      onPostCreated(response.data);
-    } else {
-      throw new Error('Dữ liệu bài viết trả về không hợp lệ');
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Đã có lỗi xảy ra.");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (err: any) {
-    console.error("Lỗi khi đăng bài:", err);
-    setError(err.response?.data?.message || err.message || "Đã có lỗi xảy ra.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   return (
     <div className="create-post-card">
       <div className="card-header">
-        {/* Avatar người đăng – không dùng placeholder */}
         <UserAvatar
           size={40}
           src={
@@ -133,16 +122,15 @@ const handleSubmit = async (e: React.FormEvent) => {
             accept="image/*,video/*"
         />
 
-        {/* Chỉ hiển thị dropdown khi không ở trong nhóm */}
         {context !== 'group' && (
           <select 
             className="visibility-select" 
             value={visibility} 
             onChange={(e) => setVisibility(e.target.value as PostVisibility)}
           >
-            <option value="PUBLIC">🌍 Công khai</option>
-            <option value="FRIENDS_ONLY">👥 Bạn bè</option>
-            <option value="PRIVATE">🔒 Riêng tư</option>
+            <option value={PostVisibility.PUBLIC}>🌍 Công khai</option>
+            <option value={PostVisibility.FRIENDS_ONLY}>👥 Bạn bè</option>
+            <option value={PostVisibility.PRIVATE}>🔒 Riêng tư</option>
           </select>
         )}
         

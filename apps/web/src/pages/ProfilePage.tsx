@@ -11,27 +11,21 @@ type LocationState = {
   updatedProfile?: UserProfile;
 };
 
-
 const ProfilePage: React.FC = () => {
-  // 1) param username từ URL
   const { username: paramUsername } = useParams<{ username: string }>();
-  // 2) location.state khi navigate kèm updatedProfile
   const { state } = useLocation() as { state: LocationState };
   const { user: currentUser } = useAuth();
 
-  // 3) stateProfile = state.updatedProfile nếu có
   const stateProfile = state?.updatedProfile;
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(
     stateProfile ?? null
   );
   const [isFollowing, setIsFollowing] = useState(false);
-  const [loading, setLoading] = useState(!stateProfile); // nếu có state thì ko loading
+  const [loading, setLoading] = useState(!stateProfile);
   const [error, setError] = useState<string | null>(null);
 
-  // 4) fetch hoặc dùng stateProfile
   const fetchProfile = useCallback(async () => {
-    // Nếu đã có stateProfile từ navigation, dùng ngay
     if (stateProfile) {
       setIsFollowing(
         !!currentUser && stateProfile.followers.includes(currentUser._id)
@@ -39,7 +33,6 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    // Nếu ko có paramUsername hoặc stateProfile, báo lỗi
     if (!paramUsername) {
       setError('Không xác định username.');
       setLoading(false);
@@ -60,14 +53,12 @@ const ProfilePage: React.FC = () => {
     }
   }, [paramUsername, currentUser, stateProfile]);
 
-  // 5) useEffect chỉ gọi fetch nếu chưa có stateProfile
   useEffect(() => {
     if (!stateProfile) {
       fetchProfile();
     }
   }, [fetchProfile, stateProfile]);
 
-  // 6) Hàm follow/unfollow
   const handleFollowToggle = async () => {
     if (!userProfile || !currentUser) return;
     try {
@@ -95,16 +86,27 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // 7) UI trạng thái
   if (loading) return <div className="page-status">Đang tải hồ sơ...</div>;
   if (error) return <div className="page-status error">{error}</div>;
   if (!userProfile) return null;
 
-  // 8) Render chính
+  // Kiểm tra trạng thái tài khoản (thêm accountStatus vào UserProfile interface nếu chưa có)
+  const isAccountSuspendedOrBanned = 
+    (userProfile as any).accountStatus === 'SUSPENDED' || 
+    (userProfile as any).accountStatus === 'BANNED';
+  const isCurrentUserProfile = currentUser?._id === userProfile._id;
+
+  if (isAccountSuspendedOrBanned && !isCurrentUserProfile) {
+    return (
+      <div className="page-status error">
+        Tài khoản này hiện đang bị {(userProfile as any).accountStatus === 'SUSPENDED' ? 'tạm ngưng' : 'vô hiệu hóa'}
+      </div>
+    );
+  }
+
   return (
     <div className="profile-page">
       <ProfileHeader
-        
         userProfile={userProfile}
         isFollowing={isFollowing}
         onFollowToggle={handleFollowToggle}

@@ -1,5 +1,8 @@
 // File: src/features/feed/types/Post.ts
 
+import type { User } from "../../auth/AuthContext";
+import type { Group } from "../../groups/types/Group";
+
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
 export const ReactionTypes: { [key: string]: ReactionType } = {
@@ -12,7 +15,30 @@ export const ReactionTypes: { [key: string]: ReactionType } = {
 };
 
 // ✅ Thêm type PostVisibility để dùng lại
-export type PostVisibility = 'PUBLIC' | 'FRIENDS_ONLY' | 'PRIVATE';
+export const PostVisibility = {
+  PUBLIC: 'PUBLIC',
+  FRIENDS_ONLY: 'FRIENDS_ONLY',
+  PRIVATE: 'PRIVATE',
+} as const;
+
+export type PostVisibility = typeof PostVisibility[keyof typeof PostVisibility];
+
+
+export interface Post {
+  _id: string;
+  content: string;
+  mediaUrls: string[];
+  visibility: PostVisibility;
+  createdAt: string;
+  updatedAt: string;
+  author: any;
+  reactions: any[];
+  repostOf?: Post;
+  repostCount?: number;
+  commentCount: number;
+  group?: any;
+}
+
 
 export interface Author {
   _id: string;
@@ -32,15 +58,3 @@ export interface Comment {
   createdAt: string;
 }
 
-export interface Post {
-  _id: string;
-  content: string;
-  mediaUrls: string[];
-  author: Author;
-  reactions: Reaction[];
-  commentCount: number;
-  repostCount: number;
-  createdAt: string;
-  visibility: PostVisibility; // ✅ Sử dụng type đã định nghĩa
-  repostOf?: Post;
-}

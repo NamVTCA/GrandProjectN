@@ -1,130 +1,190 @@
-@use '../styles/variables' as *;
-@use 'sass:color';
-
+// NotificationsPage.scss
+@use "sass:color";
 .notifications-page {
-  padding: 20px;
-  max-width: 700px;
+  max-width: 800px;
   margin: 0 auto;
+  padding: 20px;
 
-  h2 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: $text-light;
+  .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: var(--primary-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .clear-all {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      &:hover {
+        color: var(--error-color);
+      }
+    }
+  }
+
+  .section-container {
+    margin-bottom: 30px;
+    background: var(--section-bg);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+
+  .divider {
+    margin: 25px 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
   }
 
   .empty-message {
-    color: $text-secondary;
-    font-size: 16px;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
   }
 
   .notification-list {
     list-style: none;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    margin: 0;
   }
 
   .notification-item {
     display: flex;
-    align-items: center;
-    background-color: $surface-color;
-    padding: 12px 16px;
-    border-radius: $border-radius-md;
-    transition: background-color 0.2s;
+    align-items: flex-start;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    transition: all 0.2s;
+    position: relative;
+    cursor: pointer;
 
-    img {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-right: 12px;
-    }
-
-    .notification-content {
-      flex-grow: 1;
-
-      span {
-        color: $text-light;
-        font-size: 15px;
-        display: block;
-        margin-bottom: 4px;
-      }
-
-      small {
-        font-size: 13px;
-        color: $text-secondary;
-      }
-    }
-
-    .view-link {
-      color: $primary-color;
-      font-size: 14px;
-      text-decoration: underline;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     }
 
     &.unread {
-      border-left: 4px solid $primary-color;
-      background-color: color.adjust($surface-color, $lightness: 5%);
+      background: var(--unread-bg);
+      border-left: 3px solid var(--primary-color);
     }
 
-    &.read {
-      opacity: 0.85;
+    &.warning-item {
+      background: var(--warning-bg);
+      border-left: 3px solid var(--warning-color);
     }
 
-    &:hover {
-      background-color: color.adjust($surface-color, $lightness: 7%);
+    img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 15px;
+      flex-shrink: 0;
     }
 
-    &.friend-request-item {
-      background-color: #f0f8ff;
-      border-left: 4px solid #4da6ff;
+    .notification-content {
+      flex: 1;
+      
+      .notification-text {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+      }
+
+      .notification-time {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        display: block;
+      }
+
+      .notification-reason {
+        margin-top: 5px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        padding: 5px 0;
+      }
+    }
+
+    .notification-actions {
+      display: flex;
+      gap: 5px;
+      margin-left: 10px;
+
+      button {
+        background: none;
+        border: none;
+        padding: 5px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+
+        &:hover {
+          color: var(--error-color);
+        }
+      }
+    }
+
+    .warning-details {
+      margin: 8px 0;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+      font-size: 0.85rem;
+
+      .detail-item {
+        margin-bottom: 5px;
+
+        strong {
+          color: var(--text-primary);
+        }
+      }
+
+      .post-content-preview {
+        padding: 8px;
+        background: white;
+        border-radius: 4px;
+        margin-top: 5px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        border-left: 3px solid var(--border-color);
+      }
     }
   }
 
-  .delete-btn {
-    background: transparent;
-    color: red;
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-    margin-left: 10px;
-  }
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
 
-  .delete-warning-btn {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    background: #ff4d4f;
-    border: none;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
+    button {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
 
-    &:hover {
-      background: #d9363e;
+      &.accept-btn {
+        background: var(--success-color);
+        color: white;
+
+        &:hover {
+          background: color.adjust(#28a745, $lightness: -10%);
+        }
+      }
+
+      &.reject-btn {
+        background: var(--error-color);
+        color: white;
+
+        &:hover {
+          background: color.adjust(#dc3545, $lightness: -10%);
+        }
+      }
     }
   }
-
-  .accept-btn,
-  .reject-btn {
-    margin-left: 8px;
-    padding: 4px 8px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-
-  .accept-btn {
-    background-color: #4CAF50;
-    color: white;
-  }
-
-  .reject-btn {
-    background-color: #f44336;
-    color: white;
-  }
-}
+} 
