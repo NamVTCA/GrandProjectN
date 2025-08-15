@@ -1,6 +1,5 @@
 // @use '../styles/index' as *;
 
-
 .chat-page-layout {
   display: flex;
   height: calc(100vh - 70px); // Chiều cao trừ đi Header
@@ -13,11 +12,26 @@
     border-right: 1px solid $surface-color;
     display: flex;
     flex-direction: column;
-    h2 { padding: 20px; border-bottom: 1px solid $surface-color; font-size: 20px; font-weight: 600; }
+
+    h2 {
+      padding: 20px;
+      border-bottom: 1px solid $surface-color;
+      font-size: 20px;
+      font-weight: 600;
+    }
   }
 
   .room-list {
     overflow-y: auto;
+
+    /* ==== CHANGED: đảm bảo danh sách nằm ngay dưới header, không dồn đáy ==== */
+    flex: 1;                    // CHANGED
+    display: flex;              // CHANGED
+    flex-direction: column;     // CHANGED
+    justify-content: flex-start;// CHANGED
+    align-items: stretch;       // CHANGED
+    /* ======================================================================= */
+
     .room-item {
       display: flex;
       align-items: center;
@@ -26,15 +40,54 @@
       cursor: pointer;
       border-bottom: 1px solid $surface-color;
       transition: background-color 0.2s;
-      
-      .room-avatar { width: 48px; height: 48px; border-radius: 50%; }
-      .room-info {
-        .room-name { font-weight: 600; }
-        .last-message { font-size: 14px; color: $text-secondary; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+
+      .room-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
       }
-      
+
+      .room-info {
+        flex: 1;
+
+        .room-top {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .room-name {
+          font-weight: 600;
+        }
+
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          border-radius: 10px;
+          background: $primary-main;
+          color: $text-light;
+          font-size: 12px;
+          line-height: 1;
+        }
+
+        .last-message {
+          margin-top: 4px;
+          font-size: 14px;
+          color: $text-secondary;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 180px;
+        }
+      }
+
       &:hover { background-color: $surface-color; }
-      &.active { background-color: $primary-main; }
+      &.active { background-color: rgba($primary-main, 0.18); }
     }
   }
 
@@ -42,11 +95,51 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    
+
     .chat-header {
-      padding: 20px;
+      height: 64px;
+      padding: 0 20px;
       border-bottom: 1px solid $surface-color;
-      h3 { font-size: 18px; font-weight: 600; }
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .peer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .peer-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        .peer-meta {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.1;
+
+          .peer-name {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+          }
+
+          .peer-sub {
+            margin-top: 2px;
+            opacity: .7;
+            font-size: 12px;
+          }
+        }
+      }
+
+      .chat-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
     }
 
     .messages-container {
@@ -55,6 +148,8 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
+      // bạn có thể thêm background nếu muốn
+      // background: $background-body;
     }
 
     .message-input-area {
@@ -62,6 +157,7 @@
       border-top: 1px solid $surface-color;
       display: flex;
       gap: 10px;
+
       input {
         flex: 1;
         height: 44px;
@@ -71,9 +167,21 @@
         color: $text-light;
         padding: 0 20px;
         font-size: 15px;
+
         &:focus { outline: none; }
       }
-      button { /* Sử dụng style của Button chung */ }
+
+      button {
+        // Nếu có Button chung thì bỏ trống; nếu không, tạm style cơ bản:
+        padding: 0 18px;
+        border: none;
+        border-radius: 22px;
+        background: $primary-main;
+        color: $text-light;
+        font-weight: 600;
+        cursor: pointer;
+        &:disabled { opacity: .5; cursor: not-allowed; }
+      }
     }
 
     .no-chat-selected {

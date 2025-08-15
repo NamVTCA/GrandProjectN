@@ -46,6 +46,8 @@ interface Warning {
   };
 }
 
+type FriendRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
 interface FriendRequest {
   _id: string;
   sender: {
@@ -55,7 +57,7 @@ interface FriendRequest {
     avatarUrl?: string;
     profile?: { avatarUrl?: string };
   };
-  status: string;
+  status: FriendRequestStatus;
   createdAt: string;
 }
 
@@ -122,9 +124,10 @@ export default function Notifications() {
     fetchAll();
   }, []);
 
-  const respondToFriendRequest = async (requestId: string, status: 'ACCEPT' | 'REJECT') => {
+  const respondToFriendRequest = async (requestId: string, action: 'ACCEPT' | 'REJECT') => {
     try {
-      await api.post(`/friends/response/${requestId}`, { status });
+      const map = { ACCEPT: 'ACCEPTED', REJECT: 'REJECTED' } as const;
+      await api.post(`/friends/response/${requestId}`, { status: map[action] });
       setFriendRequests((prev) => prev.filter((req) => req._id !== requestId));
     } catch (err) {
       console.error('Lỗi khi xử lý lời mời:', err);
@@ -180,7 +183,6 @@ export default function Notifications() {
 
   const renderNotificationMessage = (noti: Notification) => {
     const senderName = noti.sender?.username || 'Người dùng';
-    
     switch (noti.type) {
       case 'NEW_REACTION':
         return `${senderName} đã bày tỏ cảm xúc với bài viết của bạn`;
@@ -211,7 +213,6 @@ export default function Notifications() {
 
   const renderNotificationReason = (noti: Notification) => {
     if (!noti.metadata?.reason && !noti.metadata?.reportReason) return null;
-    
     return (
       <div className="notification-reason">
         {noti.metadata?.reason && <div><strong>Lý do:</strong> {noti.metadata.reason}</div>}
@@ -220,34 +221,32 @@ export default function Notifications() {
     );
   };
 
-  const renderWarningDetails = (noti: Notification) => {
-    return (
-      <div className="warning-details">
-        {noti.metadata?.reportReason && (
-          <div className="detail-item">
-            <strong>Nguyên nhân báo cáo:</strong> {noti.metadata.reportReason}
-          </div>
-        )}
-        {noti.metadata?.postContent && (
-          <div className="detail-item">
-            <strong>Nội dung bài viết:</strong> 
-            <div className="post-content-preview">{noti.metadata.postContent}</div>
-          </div>
-        )}
-        {noti.metadata?.reason && (
-          <div className="detail-item">
-            <strong>Lý do cảnh cáo:</strong> {noti.metadata.reason}
-          </div>
-        )}
-      </div>
-    );
-  };
+  const renderWarningDetails = (noti: Notification) => (
+    <div className="warning-details">
+      {noti.metadata?.reportReason && (
+        <div className="detail-item">
+          <strong>Nguyên nhân báo cáo:</strong> {noti.metadata.reportReason}
+        </div>
+      )}
+      {noti.metadata?.postContent && (
+        <div className="detail-item">
+          <strong>Nội dung bài viết:</strong> 
+          <div className="post-content-preview">{noti.metadata.postContent}</div>
+        </div>
+      )}
+      {noti.metadata?.reason && (
+        <div className="detail-item">
+          <strong>Lý do cảnh cáo:</strong> {noti.metadata.reason}
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) return <div className="notifications-page"><p>Đang tải thông báo...</p></div>;
 
   return (
     <div className="notifications-page">
-      {/* Phần Cảnh Báo */}
+      {/* Cảnh báo */}
       <div className="section-container">
         <h2 className="section-title">
           Cảnh Báo Của Bạn
@@ -296,7 +295,7 @@ export default function Notifications() {
         )}
       </div>
 
-      {/* Phần Lời Mời Kết Bạn */}
+      {/* Lời mời kết bạn */}
       <div className="section-container">
         <h2 className="section-title">
           Lời Mời Kết Bạn
@@ -349,7 +348,7 @@ export default function Notifications() {
         )}
       </div>
 
-      {/* Phần Thông Báo */}
+      {/* Thông báo */}
       <div className="section-container">
         <h2 className="section-title">
           Thông Báo
