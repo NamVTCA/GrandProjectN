@@ -8,7 +8,6 @@ import { publicUrl } from "../../../untils/publicUrl";
 import api from "../../../services/api";
 import AvatarWithFrame from "../../../components/common/AvatarWithFrame";
 
-// --- Modal báo cáo ---
 const ReportModal: React.FC<{
   onClose: () => void;
   onSubmit: (reason: string) => void;
@@ -135,6 +134,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const handleGoToAdminDashboard = () => {
     navigate("/admin/dashboard");
   };
+
+  // Kiểm tra trạng thái tài khoản
+  const isAccountSuspendedOrBanned = 
+    userProfile.accountStatus === 'SUSPENDED' || 
+    userProfile.accountStatus === 'BANNED';
+
+  if (isAccountSuspendedOrBanned && !isMyProfile) {
+    return null; // Đã xử lý hiển thị thông báo ở ProfilePage
+  }
 
   return (
     <header className="profile-header">
