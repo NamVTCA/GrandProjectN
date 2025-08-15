@@ -1,20 +1,20 @@
-// Định nghĩa cấu trúc dữ liệu cho một hồ sơ người dùng đầy đủ
 export interface UserProfile {
   _id: string;
   username: string;
   name?: string;
-  email: string; // Có thể cần cho các chức năng sau
+  email: string;
   avatar?: string;
   coverImage?: string;
   bio?: string;
-  followers: string[]; // Mảng các ID người dùng
-  following: string[]; // Mảng các ID người dùng
+  followers: string[];
+  following: string[];
   createdAt: string;
-  xp:number;
+  xp: number;
   xpToNextLevel: number;
-      globalRole: 'USER' | 'MODERATOR' | 'ADMIN';
+  globalRole: 'USER' | 'MODERATOR' | 'ADMIN';
+  accountStatus?: 'ACTIVE' | 'SUSPENDED' | 'BANNED'; // Thêm trường mới
+  suspensionExpires?: Date; // Thêm trường mới
 
-  // ✅ Thêm trường để lấy khung avatar từ backend
   equippedAvatarFrame?: {
     _id: string;
     name: string;
