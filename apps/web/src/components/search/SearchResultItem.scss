@@ -1,41 +1,60 @@
-@use '../../styles/index' as *;
-
 .search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid #083b38;
+  text-decoration: none;
+  color: #d5e4c3;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(193, 205, 120, 0.1);
+  }
+
+  .user-info {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
-    border-radius: $border-radius-sm;
-    text-decoration: none;
-    transition: background-color 0.2s ease;
-    cursor: pointer;
+    gap: 0.5rem;
 
-    &:hover {
-        background-color: $background-component;
+    span {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #c1cd78;
     }
+  }
 
-    .user-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: $text-light;
-        
-        img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        
-        span {
-            font-weight: 600;
-        }
-    }
+  .action-button {
+    button {
+      border-radius: 4px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
 
-    .action-button {
-        button {
-            padding: 6px 12px;
-            font-size: 0.9rem;
+      &.primary {
+        background: #0077cc;
+        color: #e6f2b0;
+
+        &:hover {
+          background: #005fa3;
         }
+      }
+
+      &.secondary {
+        background: #d5e4c3;
+        color: #0e4420;
+
+        &:hover {
+          background: #c1cd78;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
     }
+  }
 }

@@ -1,13 +1,82 @@
-// @use '../styles/index' as *;
+// Thêm các biến màu sắc nếu chưa có
+$background-page: #57ec84; // Màu nền trang
+$surface-color: #7cd85d;   // Màu nền component
+$text-secondary: #45e8a4; // Màu chữ phụ
+$primary-color: #3a7ca5;  // Màu chính
+$border-radius-md: 8px;   // Border radius
 
 .home-page {
   max-width: 700px;
   margin: 0 auto;
+  padding: 20px;
+  background-color: $background-page;
+  min-height: 100vh;
+}
+
+.feed-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
 }
 
 .page-status {
-    text-align: center;
-    margin-top: 50px;
-    font-size: 16px;
-    color: $text-secondary;
+  text-align: center;
+  margin-top: 50px;
+  font-size: 16px;
+  color: $text-secondary;
+  padding: 20px;
+  background-color: $surface-color;
+  border-radius: $border-radius-md;
+}
+
+// Toast notification overrides
+.Toastify__toast {
+  font-family: inherit;
+  border-radius: $border-radius-md !important;
+  
+  &-container {
+    width: auto !important;
+    max-width: 400px;
+  }
+  
+  &--success {
+    background: $primary-color !important;
+  }
+  
+  &--error {
+    background: #e0245e !important;
+  }
+  
+  &--warning {
+    background: #f7b928 !important;
+    color: #333 !important;
+  }
+  
+  &-body {
+    font-size: 14px;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .home-page {
+    padding: 15px;
+    max-width: 100%;
+  }
+  
+  .feed-container {
+    gap: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-page {
+    padding: 10px;
+  }
+  
+  .page-status {
+    font-size: 14px;
+    margin-top: 30px;
+  }
 }

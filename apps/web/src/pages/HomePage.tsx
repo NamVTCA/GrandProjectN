@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import api from '../services/api';
 import CreatePost from '../features/feed/components/CreatePost';
 import PostCard from '../features/feed/components/PostCard';
@@ -99,6 +101,18 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="home-page">
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <CreatePost onPostCreated={handlePostCreated} />
       <div className="feed-container">
         {posts.length > 0 ? (

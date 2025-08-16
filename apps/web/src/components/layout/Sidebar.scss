@@ -1,113 +1,94 @@
-// Sidebar.scss
-@use '../../styles/index' as *;
-
 .sidebar {
-  width: 260px;
+  background: #0e4420;
+  color: #d5e4c3;
+  width: 240px;
   min-height: 100vh;
-  padding: 24px;
-  background-color: $surface-background;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  border-right: 1px solid $border-color;
+  border-right: 1px solid #083b38;
 
-  .logo {
-    h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: $primary-color;
-      margin-bottom: 30px;
+  .sidebar-top {
+    padding: 1rem;
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #c1cd78;
+      margin-bottom: 1rem;
     }
-  }
 
-  .main-nav {
-    ul {
+    .main-nav ul {
       list-style: none;
       padding: 0;
       margin: 0;
 
-      li {
-        margin-bottom: 12px;
+      .nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        color: #d5e4c3;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.2s;
 
-        .nav-link {
-          display: flex;
-          align-items: center;
-          padding: 10px 14px;
-          border-radius: $border-radius-md;
-          color: $text-secondary;
-          text-decoration: none;
-          transition: background-color 0.2s ease;
+        .icon {
+          margin-right: 0.5rem;
+          font-size: 1.2rem;
+        }
 
-          .icon {
-            margin-right: 12px;
-            font-size: 18px;
-          }
+        &:hover {
+          background: rgba(193, 205, 120, 0.1);
+        }
 
-          .label {
-            font-size: 16px;
-            font-weight: 500;
-          }
-
-          &:hover {
-            background-color: $surface-hover;
-            color: $primary-color;
-          }
-
-          &.active {
-            background-color: $primary-light;
-            color: $primary-color;
-            font-weight: 600;
-          }
+        &.active {
+          background: #0077cc;
+          color: #e6f2b0;
         }
       }
     }
   }
 
   .sidebar-footer {
+    margin-top: auto;
+    padding: 1rem;
+    border-top: 1px solid #083b38;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 16px;
-    border-top: 1px solid $border-color;
 
     .user-profile-link {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 0.5rem;
+      color: #d5e4c3;
       text-decoration: none;
-      flex-grow: 1;
-
-      .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid $primary-light;
-      }
 
       .username {
-        font-weight: 600;
-        font-size: 15px;
-        color: $text-light;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      &:hover {
+        color: #c1cd78;
       }
     }
 
     .logout-button {
-      background: none;
+      background: #dc3545;
       border: none;
-      color: $text-secondary;
-      font-size: 20px;
-      padding: 8px;
-      border-radius: $border-radius-md;
+      border-radius: 6px;
+      padding: 0.5rem;
+      color: #e6f2b0;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background 0.2s;
 
       &:hover {
-        background-color: $surface-hover;
-        color: $error-color;
+        background: #bb2d3b;
+      }
+
+      svg {
+        font-size: 1.1rem;
       }
     }
   }

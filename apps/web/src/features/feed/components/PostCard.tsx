@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   FaRegHeart,
   FaHeart,
   FaRegCommentAlt,
   FaShare,
-  FaEllipsisH,
   FaTrash,
   FaThumbsUp,
   FaLaughSquint,
@@ -39,6 +40,7 @@ const CommentSection: React.FC<{
       setComments(response.data);
     } catch (error) {
       console.error("Lỗi khi tải bình luận:", error);
+      toast.error("Không thể tải bình luận");
     }
   };
 
@@ -57,21 +59,24 @@ const CommentSection: React.FC<{
       await fetchComments();
       setNewComment("");
       onCommentAdded();
+      toast.success("Đã thêm bình luận");
     } catch (error) {
       console.error("Lỗi khi gửi bình luận:", error);
+      toast.error("Không thể thêm bình luận");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) return;
     try {
       await api.delete(`/posts/comments/${commentId}`);
       await fetchComments();
       onCommentDeleted();
+      toast.success("Đã xóa bình luận");
     } catch (error) {
       console.error("Lỗi khi xóa bình luận:", error);
+      toast.error("Không thể xóa bình luận");
     }
   };
 
@@ -154,10 +159,11 @@ const ReportModal: React.FC<{
           <button
             onClick={() => {
               if (!reason.trim()) {
-                alert("Vui lòng nhập lý do báo cáo.");
+                toast.warning("Vui lòng nhập lý do báo cáo");
                 return;
               }
               onSubmit(reason);
+              toast.success("Đã gửi báo cáo thành công");
             }}
           >
             Gửi
@@ -243,12 +249,14 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleReact = (reaction: ReactionType) => {
     onReact(post._id, reaction);
+    toast.success(`Đã bày tỏ cảm xúc ${reactionDetails[reaction].text.toLowerCase()}`);
   };
 
   const handleRepostSubmit = () => {
     onRepost(post._id, repostContent, visibility);
     setRepostModalOpen(false);
     setRepostContent("");
+    toast.success("Đã chia sẻ bài viết");
   };
 
   const confirmDelete = async () => {
@@ -256,8 +264,10 @@ const PostCard: React.FC<PostCardProps> = ({
       await api.delete(`/posts/${post._id}`);
       onPostDeleted(post._id);
       setDeleteModalOpen(false);
+      toast.success("Đã xóa bài viết");
     } catch (error) {
       console.error("Error deleting post:", error);
+      toast.error("Không thể xóa bài viết");
     }
   };
 
@@ -289,8 +299,10 @@ const PostCard: React.FC<PostCardProps> = ({
       });
       onPostUpdated(response.data);
       setEditModalOpen(false);
+      toast.success("Đã cập nhật bài viết");
     } catch (error) {
       console.error("Lỗi khi cập nhật bài viết:", error);
+      toast.error("Không thể cập nhật bài viết");
     }
   };
 
@@ -367,7 +379,14 @@ const PostCard: React.FC<PostCardProps> = ({
           </Link>
 
           <div className="post-options">
-            <FaEllipsisH onClick={() => setShowOptionsMenu(!showOptionsMenu)} />
+            <div 
+              className="options-trigger"
+              onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+            >
+              <div className="dot"></div>
+              <div className="dot"></div>
+              <div className="dot"></div>
+            </div>
             {showOptionsMenu && renderOptionsMenu()}
           </div>
         </div>
@@ -471,18 +490,12 @@ const PostCard: React.FC<PostCardProps> = ({
           </button>
         </div>
 
-        <button className="action-button" onClick={() => setShowComments(!showComments)}>
+        <button 
+          className="action-button" 
+          onClick={() => setShowComments(!showComments)}
+        >
           <FaRegCommentAlt /> Bình luận
         </button>
-
-        {!isAuthor && (
-          <button
-            className="action-button"
-            onClick={() => setReportModalOpen(true)}
-          >
-            <FaFlag /> Báo cáo
-          </button>
-        )}
 
         <button
           className="action-button"
@@ -529,9 +542,12 @@ const PostCard: React.FC<PostCardProps> = ({
         <ReportModal
           onClose={() => setReportModalOpen(false)}
           onSubmit={async (reason) => {
-            await api.post("/reports", { type: "POST", targetId: post._id, reason });
-            alert("✅ Cảm ơn bạn đã báo cáo bài viết này.");
-            setReportModalOpen(false);
+            try {
+              await api.post("/reports", { type: "POST", targetId: post._id, reason });
+              setReportModalOpen(false);
+            } catch (error) {
+              console.error("Error submitting report:", error);
+            }
           }}
         />
       )}

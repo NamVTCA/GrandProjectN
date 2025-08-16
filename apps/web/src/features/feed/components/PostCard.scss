@@ -7,6 +7,7 @@
   padding: 20px;
   margin-bottom: 20px;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 
   .post-header {
     display: flex;
@@ -45,10 +46,21 @@
     .post-options {
       position: relative;
 
-      svg {
+      .options-trigger {
         cursor: pointer;
         padding: 8px;
         border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        
+        .dot {
+          width: 4px;
+          height: 4px;
+          background-color: $text-secondary;
+          border-radius: 50%;
+        }
+
         &:hover {
           background-color: $surface-color;
         }
@@ -64,6 +76,7 @@
         z-index: 10;
         min-width: 150px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        animation: fadeIn 0.2s ease-out;
 
         button {
           background: none;
@@ -77,9 +90,10 @@
           width: 100%;
           text-align: left;
           border-radius: $border-radius-md;
+          transition: all 0.2s;
 
           &:hover {
-background-color: color.adjust($surface-color, $lightness: 5%);
+            background-color: color.adjust($surface-color, $lightness: 5%);
           }
 
           svg {
@@ -107,16 +121,20 @@ background-color: color.adjust($surface-color, $lightness: 5%);
       white-space: nowrap;
 
       .reaction-icon {
-        background: none;
-        border: none;
-        font-size: 18px;
-        margin: 4px;
-        cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 18px;
+  margin: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
 
-        &:hover {
-         transform: #{'scale(1.2)'};
-        }
-      }
+  &:hover {
+    // Cách 1: Dùng unquote
+    transform: unquote('scale(1.2)');
+    
+    // Hoặc cách 2: Dùng interpolation
+  }
+}
     }
 
     &:hover .reaction-popup {
@@ -128,6 +146,7 @@ background-color: color.adjust($surface-color, $lightness: 5%);
     line-height: 1.6;
     margin-bottom: 15px;
     white-space: pre-line;
+    color: $text-light;
   }
 
   .post-media {
@@ -176,7 +195,7 @@ background-color: color.adjust($surface-color, $lightness: 5%);
 
       &:hover {
         background-color: $surface-color;
-        color: $text-light;
+        color: $primary-color;
       }
     }
 
@@ -202,6 +221,10 @@ background-color: color.adjust($surface-color, $lightness: 5%);
           border: none;
           cursor: pointer;
           font-size: 18px;
+          transition: transform 0.2s;
+
+          &:hover {
+transform: unquote('scale(1.2)');          }
         }
       }
 
@@ -273,6 +296,12 @@ background-color: color.adjust($surface-color, $lightness: 5%);
         border: 1px solid $surface-color;
         background: transparent;
         color: $text-light;
+        transition: border-color 0.2s;
+
+        &:focus {
+          border-color: $primary-color;
+          outline: none;
+        }
       }
 
       button {
@@ -282,6 +311,11 @@ background-color: color.adjust($surface-color, $lightness: 5%);
         border: none;
         border-radius: $border-radius-md;
         cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: color.adjust($primary-color, $lightness: -10%);
+        }
 
         &:disabled {
           opacity: 0.6;
@@ -330,6 +364,7 @@ background-color: color.adjust($surface-color, $lightness: 5%);
           cursor: pointer;
           padding: 5px;
           align-self: flex-start;
+          transition: color 0.2s;
 
           &:hover {
             color: #e0245e;
@@ -357,9 +392,11 @@ background-color: color.adjust($surface-color, $lightness: 5%);
       padding: 20px;
       width: 90%;
       max-width: 500px;
+      animation: modalFadeIn 0.3s ease-out;
 
       h3 {
         margin-bottom: 12px;
+        color: $text-light;
       }
 
       textarea {
@@ -372,6 +409,12 @@ background-color: color.adjust($surface-color, $lightness: 5%);
         resize: vertical;
         min-height: 80px;
         margin-bottom: 10px;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border: 1px solid $primary-color;
+        }
       }
 
       select {
@@ -382,6 +425,12 @@ background-color: color.adjust($surface-color, $lightness: 5%);
         color: $text-light;
         border: none;
         margin-bottom: 10px;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border: 1px solid $primary-color;
+        }
       }
 
       .modal-actions {
@@ -395,15 +444,24 @@ background-color: color.adjust($surface-color, $lightness: 5%);
           border: none;
           border-radius: $border-radius-md;
           cursor: pointer;
+          transition: background-color 0.2s;
 
           &:first-child {
-            background: transparent;
-            color: $text-secondary;
+            background: $surface-color;
+            color: $text-light;
+            
+            &:hover {
+              background-color: color.adjust($surface-color, $lightness: -5%);
+            }
           }
 
           &:last-child {
             background: $primary-color;
             color: white;
+            
+            &:hover {
+              background-color: color.adjust($primary-color, $lightness: -10%);
+            }
           }
         }
       }
@@ -415,16 +473,49 @@ background-color: color.adjust($surface-color, $lightness: 5%);
 
     p {
       margin-bottom: 15px;
+      color: $text-light;
     }
 
     .btn-cancel {
       background: $surface-color;
       color: $text-light;
+      transition: background-color 0.2s;
+      
+      &:hover {
+        background-color: color.adjust($surface-color, $lightness: -5%);
+      }
     }
 
     .btn-confirm-delete {
       background: #e0245e;
       color: white;
+      transition: background-color 0.2s;
+      
+      &:hover {
+        background-color: color.adjust(#e0245e, $lightness: -10%);
+      }
     }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

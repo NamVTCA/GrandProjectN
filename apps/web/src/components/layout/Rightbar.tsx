@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GameActivity from '../../features/game-activity/components/GameActivity';
 import './Rightbar.scss';
 import api from '../../services/api';
@@ -18,6 +19,7 @@ const pickAvatar = (u: any) =>
 
 const Rightbar: React.FC = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -42,9 +44,9 @@ const Rightbar: React.FC = () => {
     fetchFriends();
   }, []);
 
-  // >>> CHỈ THÊM: click 1 bạn => phát sự kiện 'open-dm'
-  const openDM = (friendId: string) => {
-    window.dispatchEvent(new CustomEvent('open-dm', { detail: { friendId } }));
+  const handleFriendClick = (friendId: string, friendUsername: string) => {
+    // Điều hướng đến trang profile của bạn
+    navigate(`/profile/${friendUsername}`);
   };
 
   return (
@@ -64,9 +66,7 @@ const Rightbar: React.FC = () => {
               <li
                 key={friend._id}
                 className={`friend-item ${friend.presenceStatus.toLowerCase()}`}
-                title={`Nhắn với ${friend.username}`}
-                onClick={() => openDM(friend._id)} // <<<< THÊM DÒNG NÀY
-                style={{ cursor: 'pointer' }}
+                onClick={() => handleFriendClick(friend._id, friend.username)}
               >
                 <img
                   src={friend.avatar || AVATAR_FALLBACK}
