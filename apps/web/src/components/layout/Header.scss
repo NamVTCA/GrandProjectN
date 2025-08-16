@@ -1,150 +1,117 @@
-@use '../../styles/index' as *;
-// ✅ BỔ SUNG: Hiệu ứng animation cho dropdown
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .header {
-  height: 60px;
-  padding: 0 30px;
-  background-color: $background-component;
-  border-bottom: 1px solid $surface-color;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #0e4420;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #083b38;
 
-  // ✅ BỔ SUNG: Container để định vị dropdown
   .search-bar-container {
     position: relative;
-    width: 320px; // Tăng chiều rộng một chút
-  }
+    flex: 1;
+    max-width: 500px;
 
-  .search-bar {
-    display: flex;
-    align-items: center;
-    background-color: $surface-color;
-    padding: 8px 12px;
-    border-radius: $border-radius-md;
-    width: 100%; // Chiếm toàn bộ chiều rộng của container
-    transition: all 0.3s;
-
-    &:focus-within {
-      box-shadow: 0 0 0 2px rgba($primary-color, 0.3);
-    }
-
-    .search-icon {
-      color: $text-secondary;
-      margin-right: 10px;
-      font-size: 16px;
-    }
-
-    input {
-      flex: 1;
-      border: none;
-      outline: none;
-      background: transparent;
-      font-size: 15px;
-      color: $text-light;
-
-      &::placeholder {
-        color: $text-secondary;
-      }
-    }
-  }
-
-  // ✅ BỔ SUNG: Style cho dropdown kết quả tìm kiếm
-  .search-results {
-    position: absolute;
-    top: calc(100% + 8px); // Nằm dưới thanh tìm kiếm, có khoảng cách 8px
-    left: 0;
-    width: 100%;
-    background-color: $surface-color;
-    border-radius: $border-radius-md;
-    border: 1px solid $border-color;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    max-height: 400px;
-    overflow-y: auto;
-    z-index: 100;
-    padding: 0.5rem;
-
-    .result-item {
+    .search-bar {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: $border-radius-sm;
-      color: $text-light;
-      text-decoration: none;
-      transition: background-color 0.2s ease;
+      background: #083b38;
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
 
-      &:hover {
-        background-color: $background-component;
+      .search-icon {
+        color: #c1cd78;
+        margin-right: 0.5rem;
       }
 
-      img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-      }
-      
-      .result-info {
-          display: flex;
-          flex-direction: column;
+      input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #d5e4c3;
+        font-size: 0.95rem;
 
-          .name {
-              font-weight: 600;
-          }
-          .type {
-              font-size: 0.8rem;
-              color: $text-secondary;
-              text-transform: capitalize;
-          }
-      }
+        &::placeholder {
+          color: #9db38c;
+        }
 
-      &.status {
-        color: $text-secondary;
-        justify-content: center;
-        padding: 1rem;
+        &:focus {
+          outline: none;
+        }
+      }
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #0e4420;
+      border: 1px solid #083b38;
+      border-radius: 8px;
+      margin-top: 0.25rem;
+      max-height: 300px;
+      overflow-y: auto;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      z-index: 20;
+
+      .result-item {
+        padding: 0.75rem;
+        cursor: pointer;
+        color: #d5e4c3;
+
+        &:hover {
+          background: rgba(193, 205, 120, 0.15);
+        }
+
+        &.status {
+          color: #9db38c;
+          font-style: italic;
+        }
+
+        &.simple {
+          font-weight: 500;
+        }
       }
     }
   }
 
-  // --- User Actions ---
   .user-actions {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 1rem;
 
-    .notification-link {
-      color: $text-secondary;
+    .warning-link {
+      color: #dc3545;
+      font-weight: bold;
       text-decoration: none;
-      position: relative;
-      font-size: 20px;
-      transition: color 0.2s ease;
+
+      .warning-icon {
+        font-size: 1.2rem;
+      }
 
       &:hover {
-        color: $text-light;
+        color: #bb2d3b;
       }
     }
 
-    .user-profile-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      color: $text-light;
-      text-decoration: none;
+    .notification-link {
+      color: #c1cd78;
+      font-size: 1.2rem;
 
       &:hover {
-        color: $primary-color;
+        color: #e6f2b0;
+      }
+    }
+
+    .current-user {
+      display: flex;
+      align-items: center;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #c1cd78;
+
+      &:hover {
+        border-color: #0077cc;
       }
     }
   }
