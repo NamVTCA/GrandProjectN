@@ -1,10 +1,11 @@
-// NotificationsPage.tsx
 import { useEffect, useState } from 'react';
 import './NotificationsPage.scss';
 import api from '../services/api';
 import { TrashIcon, CheckIcon } from 'lucide-react';
 import moment from 'moment';
 import { publicUrl } from '../untils/publicUrl';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface Notification {
   _id: string;
@@ -77,7 +78,7 @@ export default function Notifications() {
       const res = await api.get('/friends/requests');
       setFriendRequests(res.data);
     } catch (err) {
-      console.error('Lỗi khi lấy lời mời kết bạn:', err);
+      toast.error('Lỗi khi lấy lời mời kết bạn');
     }
   };
 
@@ -87,7 +88,7 @@ export default function Notifications() {
         const res = await api.get('/notifications/all');
         setNotifications(res.data);
       } catch (err) {
-        console.error('Lỗi khi lấy notifications:', err);
+        toast.error('Lỗi khi lấy thông báo');
       }
     };
 
@@ -112,7 +113,7 @@ export default function Notifications() {
         }));
         setWarnings(warningsAsNoti);
       } catch (err) {
-        console.error('Lỗi khi lấy cảnh cáo:', err);
+        toast.error('Lỗi khi lấy cảnh cáo');
       }
     };
     
@@ -129,8 +130,9 @@ export default function Notifications() {
       const map = { ACCEPT: 'ACCEPTED', REJECT: 'REJECTED' } as const;
       await api.post(`/friends/response/${requestId}`, { status: map[action] });
       setFriendRequests((prev) => prev.filter((req) => req._id !== requestId));
+      toast.success(`Đã ${action === 'ACCEPT' ? 'chấp nhận' : 'từ chối'} lời mời kết bạn`);
     } catch (err) {
-      console.error('Lỗi khi xử lý lời mời:', err);
+      toast.error('Lỗi khi xử lý lời mời');
     }
   };
 
@@ -141,7 +143,7 @@ export default function Notifications() {
         prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
       );
     } catch (err) {
-      console.error('Lỗi khi đánh dấu đã đọc:', err);
+      toast.error('Lỗi khi đánh dấu đã đọc');
     }
   };
 
@@ -149,8 +151,9 @@ export default function Notifications() {
     try {
       await api.delete(`/notifications/${id}`);
       setNotifications((prev) => prev.filter((n) => n._id !== id));
+      toast.success('Đã xóa thông báo');
     } catch (err) {
-      console.error('Lỗi khi xóa thông báo:', err);
+      toast.error('Lỗi khi xóa thông báo');
     }
   };
 
@@ -159,8 +162,9 @@ export default function Notifications() {
     try {
       await api.delete(`/users/warnings/delete/${rawId}`);
       setWarnings((prev) => prev.filter((n) => n._id !== id));
+      toast.success('Đã xóa cảnh báo');
     } catch (err) {
-      console.error('Lỗi khi xoá cảnh cáo:', err);
+      toast.error('Lỗi khi xoá cảnh cáo');
     }
   };
 
@@ -176,8 +180,9 @@ export default function Notifications() {
         await api.delete('/friends/requests/clear');
         setFriendRequests([]);
       }
+      toast.success(`Đã xóa tất cả ${type === 'notifications' ? 'thông báo' : type === 'warnings' ? 'cảnh báo' : 'lời mời kết bạn'}`);
     } catch (err) {
-      console.error(`Lỗi khi xóa tất cả ${type}:`, err);
+      toast.error(`Lỗi khi xóa tất cả ${type}`);
     }
   };
 

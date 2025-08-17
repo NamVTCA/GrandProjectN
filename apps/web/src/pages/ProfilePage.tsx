@@ -6,6 +6,8 @@ import UserPostList from '../features/profile/components/UserPostList';
 import type { UserProfile } from '../features/profile/types/UserProfile';
 import { useAuth } from '../features/auth/AuthContext';
 import './ProfilePage.scss';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 type LocationState = {
   updatedProfile?: UserProfile;
@@ -72,6 +74,7 @@ const ProfilePage: React.FC = () => {
               }
             : prev
         );
+        toast.success(`Đã bỏ theo dõi ${userProfile.username}`);
       } else {
         await api.post(`/users/${userProfile._id}/follow`);
         setUserProfile(prev =>
@@ -79,10 +82,11 @@ const ProfilePage: React.FC = () => {
             ? { ...prev, followers: [...prev.followers, currentUser._id] }
             : prev
         );
+        toast.success(`Đã theo dõi ${userProfile.username}`);
       }
       setIsFollowing(!isFollowing);
     } catch (err) {
-      console.error('Lỗi khi (un)follow:', err);
+      toast.error('Lỗi khi thực hiện thao tác');
     }
   };
 
@@ -90,7 +94,7 @@ const ProfilePage: React.FC = () => {
   if (error) return <div className="page-status error">{error}</div>;
   if (!userProfile) return null;
 
-  // Kiểm tra trạng thái tài khoản (thêm accountStatus vào UserProfile interface nếu chưa có)
+  // Kiểm tra trạng thái tài khoản
   const isAccountSuspendedOrBanned = 
     (userProfile as any).accountStatus === 'SUSPENDED' || 
     (userProfile as any).accountStatus === 'BANNED';

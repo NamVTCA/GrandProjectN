@@ -1,10 +1,11 @@
-// File: src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 import api from '../services/api';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,9 +18,10 @@ const LoginPage: React.FC = () => {
     try {
       const response = await api.post('/auth/login', { email, password });
       login(response.data.accessToken);
+      toast.success('Đăng nhập thành công');
       navigate('/');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Đăng nhập thất bại');
     }
   };
 
@@ -38,4 +40,4 @@ const LoginPage: React.FC = () => {
     </>
   );
 };
-export default LoginPage;
+export default LoginPage; 

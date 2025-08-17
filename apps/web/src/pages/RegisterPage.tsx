@@ -1,9 +1,10 @@
-// File: src/pages/RegisterPage.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -15,9 +16,10 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     try {
       await api.post('/auth/register', { username, email, password });
-      navigate('/login', { state: { successMessage: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực.' } });
-    } catch (err) {
-     alert(err);
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực.');
+      navigate('/login');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Đăng ký thất bại');
     }
   };
 
