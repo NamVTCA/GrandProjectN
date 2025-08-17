@@ -133,8 +133,9 @@ const GroupDetailPage: React.FC = () => {
                     // ✅ Sử dụng handler mới cho comment
                     onCommentAdded={() => handleCommentChange(post._id, 1)}
                     onCommentDeleted={() => handleCommentChange(post._id, -1)}
-                    onRepost={() => { /* Có thể tối ưu tương tự nếu cần */ }}
-                  />
+                    onRepost={() => { } } onPostUpdated={function (updatedPost: Post): void {
+                      throw new Error('Function not implemented.');
+                    } }                  />
                 ))}
               </div>
             </>

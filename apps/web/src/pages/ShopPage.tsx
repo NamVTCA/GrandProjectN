@@ -1,4 +1,3 @@
-// File: src/pages/ShopPage.tsx (Mới)
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import type { ShopItem } from '../features/shop/types/Shop';
@@ -7,12 +6,14 @@ import { useAuth } from '../features/auth/AuthContext';
 import './ShopPage.scss';
 import { useNavigate } from 'react-router-dom';
 import { Coins } from 'lucide-react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ShopPage: React.FC = () => {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, fetchUser } = useAuth(); // Lấy hàm fetchUser để cập nhật số dư
-const navigate = useNavigate();
+  const { user, fetchUser } = useAuth();
+  const navigate = useNavigate();
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -20,7 +21,7 @@ const navigate = useNavigate();
       const response = await api.get('/shop/items');
       setItems(response.data);
     } catch (error) {
-      console.error("Lỗi khi tải vật phẩm cửa hàng:", error);
+      toast.error("Lỗi khi tải vật phẩm cửa hàng");
     } finally {
       setLoading(false);
     }
@@ -33,15 +34,15 @@ const navigate = useNavigate();
   const handlePurchase = async (itemId: string) => {
     try {
       const response = await api.post('/shop/purchase', { itemId });
-      alert(response.data.message);
-      fetchUser(); // Cập nhật lại thông tin user để thấy số coin mới
+      toast.success(response.data.message);
+      fetchUser();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Giao dịch thất bại.');
+      toast.error(error.response?.data?.message || 'Giao dịch thất bại');
     }
   };
 
   return (
-     <div className="shop-page">
+    <div className="shop-page">
       <div className="shop-header">
         <h1>Cửa hàng Vật phẩm</h1>
         <div className="user-coins">
