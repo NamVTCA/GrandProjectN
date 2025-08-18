@@ -15,6 +15,7 @@ import { JoinRequest, JoinRequestSchema } from './schemas/join-request.schema';
 import { GroupOwnerGuard } from './guards/group-owner.guard';
 import { GroupMemberGuard } from './guards/group-member.guard';
 import { GroupInvite, GroupInviteSchema } from './schemas/group-invite.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { GroupInvite, GroupInviteSchema } from './schemas/group-invite.schema';
     AuthModule,
     RewardsModule,
     UsersModule, // <-- Thêm UsersModule để sử dụng UserService
+    NotificationsModule,
   ],
   controllers: [GroupsController],
   providers: [GroupsService, GroupOwnerGuard, GroupMemberGuard],
