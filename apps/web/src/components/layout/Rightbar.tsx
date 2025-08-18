@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import GameActivity from '../../features/game-activity/components/GameActivity';
 import './Rightbar.scss';
 import api from '../../services/api';
@@ -20,6 +20,7 @@ const pickAvatar = (u: any) =>
 const Rightbar: React.FC = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -45,8 +46,13 @@ const Rightbar: React.FC = () => {
   }, []);
 
   const handleFriendClick = (friendId: string, friendUsername: string) => {
-    // Điều hướng đến trang profile của bạn
-    navigate(`/profile/${friendUsername}`);
+    if (pathname.startsWith('/chat')) {
+      // Đang ở trang chat → mở DM ngay (không rời trang)
+      window.dispatchEvent(new CustomEvent('open-dm', { detail: { userId: friendId } }));
+    } else {
+      // Trang khác → đi tới profile như yêu cầu
+      navigate(`/profile/${friendUsername}`);
+    }
   };
 
   return (
@@ -67,6 +73,8 @@ const Rightbar: React.FC = () => {
                 key={friend._id}
                 className={`friend-item ${friend.presenceStatus.toLowerCase()}`}
                 onClick={() => handleFriendClick(friend._id, friend.username)}
+                title={pathname.startsWith('/chat') ? 'Nhắn tin 1–1' : 'Xem hồ sơ'}
+                style={{ cursor: 'pointer' }}
               >
                 <img
                   src={friend.avatar || AVATAR_FALLBACK}

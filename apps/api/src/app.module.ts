@@ -4,6 +4,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ServeStaticModule } from '@nestjs/serve-static';       // 👈 NEW
+import { join } from 'path';                                    // 👈 NEW
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -38,6 +40,12 @@ import { SearchModule } from './search/search.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
+    }),
+
+    // 👇 Serve static cho thư mục uploads (ảnh nhóm, avatar…)
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads', // => http://<API>/uploads/...
     }),
 
     JwtModule.registerAsync({

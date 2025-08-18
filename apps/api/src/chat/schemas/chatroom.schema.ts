@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
 import { User } from '../../auth/schemas/user.schema';
 import { Message } from './message.schema';
 
@@ -7,8 +7,9 @@ export type ChatroomDocument = Chatroom & Document;
 
 @Schema({ _id: false })
 class ChatMemberInfo {
-  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-  user: User;
+  // ⚠️ TypeScript type phải là ObjectId (khi populate sẽ là User, nhưng DB lưu OID)
+  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: User.name })
+  user: Types.ObjectId; // <- CHỈNH Ở ĐÂY
 
   @Prop({ default: 0 })
   unreadCount: number;
@@ -20,9 +21,19 @@ export class Chatroom {
   @Prop({ trim: true })
   name?: string;
 
+  // đường dẫn tương đối tới ảnh nhóm
   @Prop()
-  avatar?: string; // ✅ Thêm avatar nhóm
+  avatar?: string;
 
+  // người tạo nhóm: cũng là ObjectId
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: User.name })
+  createdBy?: Types.ObjectId;
+
+  // admin nhóm: mảng ObjectId
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: User.name }], default: [] })
+  admins: Types.ObjectId[];
+
+  // danh sách thành viên: mảng subdocument
   @Prop({ required: true, type: [ChatMemberInfoSchema] })
   members: ChatMemberInfo[];
 

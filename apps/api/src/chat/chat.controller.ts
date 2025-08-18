@@ -8,21 +8,46 @@ import {
   ValidationPipe,
   UseInterceptors,
   UploadedFile,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import * as fs from 'fs';
+
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
 import { CreateRoomDto } from './dto/create-room.dto';
 
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
 @UseGuards(JwtAuthGuard)
-@Controller('chat') // nếu set globalPrefix('api') thì URL là /api/chat/rooms
+@Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post('rooms')
-  @UseInterceptors(FileInterceptor('avatar')) // <-- tên field phải là 'avatar'
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          const dest = join(process.cwd(), 'uploads', 'groups');
+          ensureDir(dest);
+          cb(null, dest);
+        },
+        filename: (_req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   createRoom(
     @GetUser() user: UserDocument,
     @UploadedFile() avatar: Express.Multer.File | undefined,
@@ -31,9 +56,11 @@ export class ChatController {
   ) {
     return this.chatService.createChatroom(
       user,
-      createRoomDto.memberIds,
+      Array.isArray(createRoomDto.memberIds)
+        ? createRoomDto.memberIds
+        : [createRoomDto.memberIds].filter(Boolean),
       createRoomDto.name,
-      avatar, // truyền file thật xuống service
+      avatar,
     );
   }
 
@@ -45,5 +72,51 @@ export class ChatController {
   @Get('rooms/:id/messages')
   findMessages(@GetUser() user: UserDocument, @Param('id') chatroomId: string) {
     return this.chatService.findMessagesInRoomForUser(user._id, chatroomId);
+  }
+
+  // ---------- NEW: thêm thành viên ----------
+  @Post('rooms/:id/members')
+  async addMembers(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) body: { memberIds: string[] },
+  ) {
+    return this.chatService.addMembersToGroup(user, chatroomId, body.memberIds || []);
+  }
+
+  // ---------- NEW: kick thành viên ----------
+  @Delete('rooms/:id/members/:userId')
+  async removeMember(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    return this.chatService.removeMemberFromGroup(user, chatroomId, targetUserId);
+  }
+
+  // ---------- NEW: đổi avatar nhóm ----------
+  @Patch('rooms/:id/avatar')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          const dest = join(process.cwd(), 'uploads', 'groups');
+          ensureDir(dest);
+          cb(null, dest);
+        },
+        filename: (_req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  async updateAvatar(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+    @UploadedFile() avatar: Express.Multer.File | undefined,
+  ) {
+    return this.chatService.updateGroupAvatar(user, chatroomId, avatar);
   }
 }

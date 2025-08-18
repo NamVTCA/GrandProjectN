@@ -2,7 +2,7 @@
 
 .chat-page-layout {
   display: flex;
-  height: calc(100vh - 70px); // Chiều cao trừ đi Header
+  height: calc(100vh - 70px);
   background-color: $background-component;
   border-radius: $border-radius-lg;
   overflow: hidden;
@@ -23,14 +23,11 @@
 
   .room-list {
     overflow-y: auto;
-
-    /* ==== CHANGED: đảm bảo danh sách nằm ngay dưới header, không dồn đáy ==== */
-    flex: 1;                    // CHANGED
-    display: flex;              // CHANGED
-    flex-direction: column;     // CHANGED
-    justify-content: flex-start;// CHANGED
-    align-items: stretch;       // CHANGED
-    /* ======================================================================= */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
 
     .room-item {
       display: flex;
@@ -57,9 +54,7 @@
           gap: 8px;
         }
 
-        .room-name {
-          font-weight: 600;
-        }
+        .room-name { font-weight: 600; }
 
         .badge {
           display: inline-flex;
@@ -95,6 +90,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative; // để đặt FAB
 
     .chat-header {
       height: 64px;
@@ -103,43 +99,53 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
 
       .peer {
         display: flex;
         align-items: center;
         gap: 12px;
+        min-width: 0;
 
         .peer-avatar {
           width: 36px;
           height: 36px;
           border-radius: 50%;
           object-fit: cover;
+          flex: 0 0 auto;
         }
 
         .peer-meta {
           display: flex;
           flex-direction: column;
           line-height: 1.1;
+          min-width: 0;
 
           .peer-name {
             margin: 0;
             font-size: 18px;
             font-weight: 700;
+            max-width: 40vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
 
-          .peer-sub {
-            margin-top: 2px;
-            opacity: .7;
-            font-size: 12px;
-          }
+          .peer-sub { margin-top: 2px; opacity: .7; font-size: 12px; }
         }
       }
 
-      .chat-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+      .chat-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    }
+
+    .block-banner{
+      margin: 8px 20px 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 180, 0, 0.15);
+      border: 1px solid rgba(255, 180, 0, 0.35);
+      color: #ffdd99;
+      font-size: 13px;
     }
 
     .messages-container {
@@ -148,8 +154,6 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      // bạn có thể thêm background nếu muốn
-      // background: $background-body;
     }
 
     .message-input-area {
@@ -169,10 +173,10 @@
         font-size: 15px;
 
         &:focus { outline: none; }
+        &:disabled { opacity: .6; cursor: not-allowed; }
       }
 
       button {
-        // Nếu có Button chung thì bỏ trống; nếu không, tạm style cơ bản:
         padding: 0 18px;
         border: none;
         border-radius: 22px;
@@ -194,3 +198,109 @@
     }
   }
 }
+
+/* FAB ⋮ góc phải trên */
+.chat-fab {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+}
+.fab-btn {
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: $text-light;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  cursor: pointer;
+  &:hover { background: rgba(255,255,255,0.1); }
+}
+
+/* ===== Kebab menu popup ===== */
+.kebab-menu__popup {
+  z-index: 5; // cao hơn FAB
+  background: $background-component;
+  border: 1px solid $surface-color;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  padding: 6px;
+}
+
+.kebab-menu__item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: $text-light;
+  font-size: 14px;
+  cursor: pointer;
+
+  &:hover { background: rgba(255,255,255,0.06); }
+
+  &.is-danger {
+    color: #ff8b8b;
+    &:hover { background: rgba(255, 80, 80, 0.12); }
+  }
+  &.is-disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    &:hover { background: transparent; }
+  }
+}
+/* đảm bảo nổi trên header/overlay khác */
+.chat-fab { z-index: 50; }
+
+.kebab-menu__popup {
+  z-index: 1000; /* tăng cao để không bị che -> không nháy */
+  background: $background-component;
+  border: 1px solid $surface-color;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  padding: 6px;
+}
+
+.kebab-menu__item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: $text-light;
+  font-size: 14px;
+  cursor: pointer;
+
+  &:hover { background: rgba(255,255,255,0.06); }
+  &.is-danger { color: #ff8b8b; }
+  &.is-disabled { opacity: .5; cursor: not-allowed; &:hover { background: transparent; } }
+}
+
+/* để chắc chắn không bị layer nào che */
+.chat-fab { z-index: 50; }
+.kebab-menu__popup { z-index: 10000; } /* tăng nếu header bạn quá cao */
+/* bỏ FAB nổi vì đã đưa ⋮ vào header; vẫn tái-use .fab-btn */
+.chat-fab { display: none; } // hoặc xóa block cũ
+
+.chat-header .chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-kebab {
+  /* reuse .fab-btn look */
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+.kebab-menu__popup { z-index: 10000; } /* nếu header site có z-index cao */

@@ -1,26 +1,42 @@
+// Một người tham gia chat
 export interface ChatParticipant {
   _id: string;
   username: string;
-  avatar?: string;
+  avatar?: string | null;
+
+  // 👇 thêm cho an toàn, vì backend có thể trả các key này
+  profile?: {
+    avatarUrl?: string | null;
+  } | null;
+
+  imageUrl?: string | null;
+  photo?: string | null;
+  picture?: string | null;
 }
 
-// Define the structure for a single chat message
+// Tin nhắn trong phòng chat
 export interface ChatMessage {
   _id: string;
   sender: ChatParticipant;
-  chatroom: string; // ID of the chatroom
+  chatroom: string; // ID của chatroom
   content: string;
   createdAt: string;
 }
 
-// Define the structure for a single chat room in the list
+// Một phòng chat trong danh sách
 export interface ChatRoom {
   _id: string;
-  name?: string; // For group chats
+  name?: string; // tên nhóm
   isGroupChat: boolean;
+
   members: {
     user: ChatParticipant;
     unreadCount?: number;
   }[];
-  lastMessage?: ChatMessage; // The last message sent in the room
+
+  lastMessage?: ChatMessage;
+
+  // 👇 thêm field cho group avatar
+  avatarUrl?: string | null;
+  avatar?: string | null;
 }
