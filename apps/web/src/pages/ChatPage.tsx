@@ -17,7 +17,22 @@ declare global {
   interface WindowEventMap { 'open-dm': CustomEvent<{ userId: string }>; }
 }
 
-// ---- helpers
+/* ================== Helpers ================== */
+/** Chuẩn hoá room & avatar -> URL đầy đủ để mọi client đều thấy */
+function normalizeRoom(room: any): ChatRoom {
+  const avatarRaw = room?.avatarUrl || room?.avatar || '';
+  return {
+    ...room,
+    avatarUrl: avatarRaw ? publicUrl(avatarRaw) : undefined,
+    members: (room.members || []).map((m: any) => {
+      const u = m.user || m;
+      const uAvatarRaw =
+        u?.profile?.avatarUrl || u?.avatarUrl || u?.avatar || u?.imageUrl || u?.photo || u?.picture || '';
+      return { ...m, user: { ...u, avatarUrl: uAvatarRaw ? publicUrl(uAvatarRaw) : undefined } };
+    }),
+  } as ChatRoom;
+}
+
 function mergeRoom(prev?: ChatRoom | null, incoming?: Partial<ChatRoom>): ChatRoom | null {
   if (!incoming && !prev) return null;
   if (!incoming) return prev ?? null;
@@ -39,6 +54,7 @@ function upsertRooms(prev: ChatRoom[], incoming: ChatRoom): ChatRoom[] {
   const copy = [...prev]; copy[idx] = merged; return copy;
 }
 
+/* ================== Component ================== */
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const chatSocket = useSocket();
@@ -58,6 +74,9 @@ const ChatPage: React.FC = () => {
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const currentRoomIdRef = useRef<string | null>(null);
+
+  // ===== Chống nháy / spam click nút "+ Tạo nhóm"
+  const createBtnLockRef = useRef(false);
 
   // ====== Kebab menu (⋮) trong header
   const [menuOpen, setMenuOpen] = useState(false);
@@ -114,7 +133,7 @@ const ChatPage: React.FC = () => {
     try {
       setLoadingRooms(true);
       const res = await api.get('/chat/rooms');
-      setRooms(res.data);
+      setRooms((res.data || []).map(normalizeRoom)); // ✅ chuẩn hoá avatar
     } catch (e) {
       console.error('Load rooms failed', e);
     } finally {
@@ -195,7 +214,8 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     if (!chatSocket) return;
 
-    const onRoomCreated = (room: ChatRoom) => setRooms(prev => upsertRooms(prev, room));
+    // ✅ mọi room qua socket đều normalize để avatar hiện cho tất cả
+    const onRoomCreated = (room: ChatRoom) => setRooms(prev => upsertRooms(prev, normalizeRoom(room)));
 
     const handleNewMessage = (message: ChatMessage) => {
       setRooms((prev) => {
@@ -218,14 +238,14 @@ const ChatPage: React.FC = () => {
     };
 
     const onMembersAdded = (payload: any) => {
-      const room: ChatRoom = payload?.room ?? payload;
+      const room: ChatRoom = normalizeRoom(payload?.room ?? payload);
       if (!room?._id) return;
       setRooms(prev => upsertRooms(prev, room));
       setSelectedRoom(prevSel => (prevSel && prevSel._id === room._id ? mergeRoom(prevSel, room) : prevSel));
     };
 
     const onMemberRemoved = (payload: any) => {
-      const room: ChatRoom = payload?.room ?? payload;
+      const room: ChatRoom = normalizeRoom(payload?.room ?? payload);
       if (room?._id) {
         setRooms(prev => upsertRooms(prev, room));
         setSelectedRoom(prevSel => {
@@ -238,8 +258,9 @@ const ChatPage: React.FC = () => {
     };
 
     const onRoomUpdated = (room: ChatRoom) => {
-      setRooms(prev => upsertRooms(prev, room));
-      setSelectedRoom(prevSel => (prevSel && prevSel._id === room._id ? mergeRoom(prevSel, room) : prevSel));
+      const r = normalizeRoom(room);
+      setRooms(prev => upsertRooms(prev, r));
+      setSelectedRoom(prevSel => (prevSel && prevSel._id === r._id ? mergeRoom(prevSel, r) : prevSel));
     };
 
     const handleConnect = () => {
@@ -306,7 +327,7 @@ const ChatPage: React.FC = () => {
     async (friendId: string) => {
       try {
         const res = await api.post('/chat/rooms', { memberIds: [friendId] });
-        const room: ChatRoom = res.data?.room ?? res.data;
+        const room: ChatRoom = normalizeRoom(res.data?.room ?? res.data);
         setRooms((prev) => (prev.some((r) => r._id === room._id) ? prev : [room, ...prev]));
         await handleSelectRoom(room);
       } catch (e) {
@@ -340,11 +361,17 @@ const ChatPage: React.FC = () => {
     setNewMessage('');
   };
 
-  // ===== Tạo nhóm
+  /* ===== Tạo nhóm ===== */
   const openCreateModal = async () => {
+    // dùng lock để tránh nháy và spam, không cần disabled -> giữ nguyên màu & con trỏ
+    if (createBtnLockRef.current) return;
+    createBtnLockRef.current = true;
+
     setMenuOpen(false);
     setOpenCreate(true);
     if (!friends.length) await fetchFriends();
+
+    setTimeout(() => { createBtnLockRef.current = false; }, 300);
   };
 
   const createGroup = async ({
@@ -367,19 +394,14 @@ const ChatPage: React.FC = () => {
         res = await api.post('/chat/rooms', { name: name || undefined, memberIds: ids });
       }
 
-      const roomFromRes: ChatRoom = res.data?.room ?? res.data;
+      const roomFromRes: ChatRoom = normalizeRoom(res.data?.room ?? res.data);
       if (roomFromRes?._id) {
         setRooms((prev) => (prev.some((r) => r._id === roomFromRes._id) ? prev : [roomFromRes, ...prev]));
         await handleSelectRoom(roomFromRes);
       }
 
-      const list = (await api.get('/chat/rooms')).data as ChatRoom[];
-      setRooms(list);
-      const createdId = roomFromRes?._id;
-      if (createdId) {
-        const found = list.find((r) => r._id === createdId);
-        if (found) await handleSelectRoom(found);
-      }
+      // đồng bộ thêm từ server (đã normalize trong fetchRooms)
+      await fetchRooms();
     } catch (e) {
       console.error('Create group error', e);
       await fetchRooms();
@@ -440,7 +462,8 @@ const ChatPage: React.FC = () => {
       <div className="sidebar">
         <h2>Tin nhắn</h2>
         <div style={{ padding: 12 }}>
-          <button className="btn btn-primary w-100" onClick={openCreateModal} disabled={loadingRooms}>
+          {/* Giữ nguyên class/màu sắc; không disabled để tránh con trỏ "cấm" khi hover */}
+          <button className="btn btn-primary w-100" onClick={openCreateModal}>
             + Tạo nhóm
           </button>
         </div>
@@ -491,7 +514,7 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* ĐƯA ⋮ VÀO NGAY TRONG HEADER */}
+              {/* ⋮ trong header */}
               <div className="chat-actions">
                 <button
                   ref={menuBtnRef}
@@ -587,8 +610,9 @@ const ChatPage: React.FC = () => {
           friends={friends}
           onClose={() => setOpenSettings(false)}
           onUpdated={(room) => {
-            setRooms(prev => upsertRooms(prev, room));
-            setSelectedRoom(prevSel => (prevSel && prevSel._id === room._id ? mergeRoom(prevSel, room) : prevSel));
+            const r = normalizeRoom(room);
+            setRooms(prev => upsertRooms(prev, r));
+            setSelectedRoom(prevSel => (prevSel && prevSel._id === r._id ? mergeRoom(prevSel, r) : prevSel));
           }}
         />
       )}
