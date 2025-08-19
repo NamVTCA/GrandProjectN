@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../features/auth/AuthContext';
 import { globalStyles, COLORS } from '../styles/theme';
 
-const API_URL_INTERESTS = 'http://192.168.1.28:8888/api/interests';
-const API_URL_UPDATE = 'http://192.168.1.28:8888/api/users/me/interests';
+const API_URL_INTERESTS = 'http://192.168.20.107:8888/api/interests';
+const API_URL_UPDATE = 'http://192.168.20.107:8888/api/users/me/interests';
 
 const SelectInterestsPage = ({ navigation }) => {
   const [interests, setInterests] = useState([]);
@@ -82,22 +83,37 @@ const SelectInterestsPage = ({ navigation }) => {
   };
 
   return (
-    <View style={globalStyles.container}>
-      <Text style={globalStyles.title}>Chọn sở thích của bạn</Text>
-      <FlatList
-        data={interests}
-        renderItem={renderInterestItem}
-        keyExtractor={(item) => item._id}
-        numColumns={2}
-      />
-      <TouchableOpacity style={globalStyles.button} onPress={handleSave}>
-        <Text style={globalStyles.buttonText}>Lưu</Text>
-      </TouchableOpacity>
-    </View>
+    <LinearGradient
+      colors={[COLORS.background, '#0e0b1d']}
+      style={styles.gradientContainer}
+    >
+      <View style={globalStyles.container}>
+        <Text style={globalStyles.title}>Chọn sở thích của bạn</Text>
+        <View style={styles.interestListContainer}>
+          <FlatList
+            data={interests}
+            renderItem={renderInterestItem}
+            keyExtractor={(item) => item._id}
+            numColumns={2}
+          />
+        </View>
+        <TouchableOpacity style={globalStyles.button} onPress={handleSave}>
+          <Text style={globalStyles.buttonText}>Lưu</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
+  gradientContainer: {
+    flex: 1,
+  },
+  interestListContainer: {
+    flex: 1,
+    width: '100%',
+    marginVertical: 20,
+  },
   interestItem: {
     flex: 1,
     margin: 8,
@@ -106,7 +122,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#1f2937',
+    backgroundColor: COLORS.card,
   },
   selectedInterest: {
     backgroundColor: COLORS.primary,
