@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const API_URL = 'http://192.168.1.28:8888/api/auth';
+  const API_URL = 'http://192.168.20.107:8888/api/auth';
 
   useEffect(() => {
     const loadState = async () => {

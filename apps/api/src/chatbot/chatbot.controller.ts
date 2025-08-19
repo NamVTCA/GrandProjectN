@@ -9,7 +9,7 @@ export class ChatbotController {
 
   @Post()
   async chatWithBot(@Body('message') message: string) {
-    const reply = await this.chatbotService.AddRegister(message);
+    const reply = await this.chatbotService.getResponse(message);
     return { reply }; // 👈 Quan trọng để frontend nhận được { reply: '...' }
   }
 }

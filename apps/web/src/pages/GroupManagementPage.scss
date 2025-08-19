@@ -183,11 +183,10 @@
     margin-right: 8px;
     margin-bottom: 8px;
     display: inline-block;
-    
+  }
     &:has(input:checked) {
       background: #c1cd78;
       color: #0e4420;
       border-color: #c1cd78;
     }
   }
-}
