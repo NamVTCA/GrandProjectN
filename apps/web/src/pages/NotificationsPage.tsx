@@ -3,7 +3,6 @@ import './NotificationsPage.scss';
 import api from '../services/api';
 import { TrashIcon, CheckIcon, X } from 'lucide-react';
 import moment from 'moment';
-import 'moment/locale/vi';
 import { publicUrl } from '../untils/publicUrl';
 import { acceptGroupInvite, declineGroupInvite } from '../services/group.api';
 import { toast } from 'react-toastify';
