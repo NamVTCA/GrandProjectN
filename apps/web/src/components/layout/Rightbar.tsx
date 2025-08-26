@@ -29,8 +29,8 @@ const Rightbar: React.FC = () => {
         const items: Friend[] = (res.data || []).map((it: any) => {
           const u = pickUser(it);
           return {
-            _id: u?._id,
-            username: u?.username,
+            _id: String(u?._id),
+            username: String(u?.username || ''),
             avatar: publicUrl(pickAvatar(u)) || AVATAR_FALLBACK,
             presenceStatus: (u?.presenceStatus ||
               it?.presenceStatus ||
@@ -45,13 +45,17 @@ const Rightbar: React.FC = () => {
     fetchFriends();
   }, []);
 
-  const handleFriendClick = (friendId: string, friendUsername: string) => {
+  const handleFriendClick = (friend: Friend) => {
     if (pathname.startsWith('/chat')) {
-      // Đang ở trang chat → mở DM ngay (không rời trang)
-      window.dispatchEvent(new CustomEvent('open-dm', { detail: { userId: friendId } }));
+      // Đang ở trang chat → emit event để ChatPage mở DM
+      window.dispatchEvent(
+        new CustomEvent('open-dm', {
+          detail: { userId: friend._id, username: friend.username, avatar: friend.avatar },
+        }),
+      );
     } else {
-      // Trang khác → đi tới profile như yêu cầu
-      navigate(`/profile/${friendUsername}`);
+      // Trang khác → đi tới profile
+      navigate(`/profile/${friend.username}`);
     }
   };
 
@@ -72,7 +76,7 @@ const Rightbar: React.FC = () => {
               <li
                 key={friend._id}
                 className={`friend-item ${friend.presenceStatus.toLowerCase()}`}
-                onClick={() => handleFriendClick(friend._id, friend.username)}
+                onClick={() => handleFriendClick(friend)}
                 title={pathname.startsWith('/chat') ? 'Nhắn tin 1–1' : 'Xem hồ sơ'}
                 style={{ cursor: 'pointer' }}
               >

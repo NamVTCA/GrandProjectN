@@ -261,7 +261,7 @@ export class ChatService {
       return { ok: true, deleted: true };
     }
 
-    // Nếu là DM và còn <2 người → xoá phòng (tuỳ rule)
+    // Nếu là DM và còn <2 người → xoá phòng
     if (!room.isGroupChat && room.members.length < 2) {
       await room.deleteOne();
       this.chatGateway.server?.emit('room_member_removed', { room: { _id: chatroomId, members: [] } });
@@ -279,7 +279,7 @@ export class ChatService {
         const nextMember = room.members[0]?.user;
         if (nextMember) room.createdBy = nextMember as any;
       }
-      // bảo đảm owner nằm trong danh sách admins (nếu bạn đang dùng admins)
+      // bảo đảm owner nằm trong danh sách admins
       if (room.createdBy && !(room.admins || []).some(a => a.toString() === room.createdBy!.toString())) {
         room.admins = [...(room.admins || []), room.createdBy as any];
       }
@@ -305,6 +305,37 @@ export class ChatService {
     this.chatGateway.server?.emit('room_updated', populated);
 
     return { ok: true, room: populated };
+  }
+
+  // ---------- XÓA NHÓM (chỉ creator) ----------
+  async deleteRoomAsOwner(acting: UserDocument, chatroomId: string) {
+    const room = await this.chatroomModel.findById(chatroomId);
+    if (!room) throw new NotFoundException('Room not found');
+    if (!room.isGroupChat) throw new BadRequestException('Not a group chat');
+
+    const isCreator = room.createdBy && room.createdBy.toString() === acting._id.toString();
+    if (!isCreator) throw new ForbiddenException('Only creator can delete this group');
+
+    const memberIds = room.members.map(m => String(m.user));
+
+    // Xoá toàn bộ tin nhắn của phòng (tuỳ nghiệp vụ)
+    await this.messageModel.deleteMany({ chatroom: room._id });
+
+    // Thông báo tới thành viên trong room trước khi xoá
+    this.chatGateway.server?.to(String(room._id)).emit('room_deleted', {
+      chatroomId: String(room._id),
+      memberIds,
+    });
+
+    await room.deleteOne();
+
+    // Phát rộng (để list ngoài room cũng cập nhật)
+    this.chatGateway.server?.emit('room_deleted', {
+      chatroomId: String(chatroomId),
+      memberIds,
+    });
+
+    return { ok: true, deleted: true, chatroomId: String(chatroomId) };
   }
 
   // ------- message / mark read / list rooms -------

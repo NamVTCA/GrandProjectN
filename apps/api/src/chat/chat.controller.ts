@@ -137,4 +137,22 @@ export class ChatController {
   ) {
     return this.chatService.updateGroupAvatar(user, chatroomId, avatar);
   }
+
+  // ---------- XÓA NHÓM (chỉ chủ nhóm) ----------
+  @Delete('rooms/:id')
+  async deleteRoom(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+  ) {
+    return this.chatService.deleteRoomAsOwner(user, chatroomId);
+  }
+
+  // Fallback (POST) cho FE cũ
+  @Post('rooms/:id/delete')
+  async deleteRoomCompat(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+  ) {
+    return this.chatService.deleteRoomAsOwner(user, chatroomId);
+  }
 }
