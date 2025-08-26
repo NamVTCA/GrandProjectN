@@ -49,7 +49,6 @@ const ProfilePage: React.FC = () => {
   );
 
   const fetchProfile = useCallback(async () => {
-    // Nếu có profile từ state (vừa chỉnh sửa xong quay lại)
     if (stateProfile) {
       setUserProfile(stateProfile);
       setIsFollowing(computeIsFollowing(stateProfile));
@@ -64,26 +63,29 @@ const ProfilePage: React.FC = () => {
     }
 
     try {
+      let data: UserProfile;
+
       // Ưu tiên lấy theo username
-      const { data } = await api.get<UserProfile>(`/users/${encodeURIComponent(paramUsername)}`);
-      setUserProfile(data);
-      setIsFollowing(computeIsFollowing(data));
-    } catch (errFirst) {
-      // Fallback: nếu param là ObjectId thì thử by-id
       try {
+        const res = await api.get<UserProfile>(`/users/${encodeURIComponent(paramUsername)}`);
+        data = res.data;
+      } catch (errFirst) {
+        // Fallback: nếu param là ObjectId thì thử by-id
         if (/^[a-f\d]{24}$/i.test(String(paramUsername))) {
-          const { data } = await api.get<UserProfile>(`/users/by-id/${paramUsername}`);
-          setUserProfile(data);
-          setIsFollowing(computeIsFollowing(data));
+          const res = await api.get<UserProfile>(`/users/by-id/${paramUsername}`);
+          data = res.data;
         } else {
           throw errFirst;
         }
-      } catch (err) {
-        console.error(err);
-        setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
-      } finally {
-        setLoading(false);
       }
+
+      setUserProfile(data);
+      setIsFollowing(computeIsFollowing(data));
+    } catch (err) {
+      console.error(err);
+      setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
+    } finally {
+      setLoading(false);
     }
   }, [paramUsername, stateProfile, computeIsFollowing]);
 
