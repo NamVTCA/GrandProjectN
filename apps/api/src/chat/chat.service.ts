@@ -68,9 +68,9 @@ export class ChatService {
   ): Promise<boolean> {
     const A = this.toObjectId(userAId);
     const B = this.toObjectId(userBId);
-    const [a, b] = await Promise.all([ 
-      this.userModel.findById(A).select('_id blockedUsers').lean(), 
-      this.userModel.findById(B).select('_id blockedUsers').lean() 
+    const [a, b] = await Promise.all([
+      this.userModel.findById(A).select('_id blockedUsers').lean(),
+      this.userModel.findById(B).select('_id blockedUsers').lean()
     ]);
     if (!a || !b) return false;
     const aBlockedB = Array.isArray((a as any).blockedUsers) && (a as any).blockedUsers.some((id: any) => id.toString() === B.toString());
@@ -119,8 +119,8 @@ export class ChatService {
       avatar: isGroup ? avatarPath : undefined,
       members,
       isGroupChat: isGroup,
-      createdBy: isGroup ? creator._id : undefined, // NEW
-      admins: isGroup ? [creator._id] : [],         // NEW (tùy chọn)
+      createdBy: isGroup ? creator._id : undefined,
+      admins: isGroup ? [creator._id] : [],
     });
 
     const populated = await this.chatroomModel
@@ -156,7 +156,7 @@ export class ChatService {
       .lean();
 
     this.chatGateway.server?.to(String(room._id)).emit('room_updated', populated);
-    this.chatGateway.broadcastRoomCreated?.(populated); // để sidebar người khác cũng có
+    this.chatGateway.broadcastRoomCreated?.(populated);
     return populated;
   }
 
@@ -194,7 +194,6 @@ export class ChatService {
       .populate('lastMessage')
       .lean();
 
-    // phát sự kiện để các client cập nhật
     this.chatGateway.server?.to(String(room._id)).emit('room_members_added', {
       chatroomId: room._id,
       memberIds: toAdd,
@@ -211,7 +210,7 @@ export class ChatService {
     if (!room.isGroupChat) throw new BadRequestException('Not a group chat');
 
     const isCreator = room.createdBy && room.createdBy.toString() === acting._id.toString();
-    if (!isCreator) throw new ForbiddenException('Only creator can remove members'); // theo yêu cầu
+    if (!isCreator) throw new ForbiddenException('Only creator can remove members');
 
     if (targetUserId === acting._id.toString()) {
       throw new BadRequestException('Creator cannot kick themselves');
@@ -225,7 +224,6 @@ export class ChatService {
     if (room.members.length === before) {
       throw new NotFoundException('User is not a member of this room');
     }
-    // nếu có admins, loại khỏi admins luôn
     room.admins = (room.admins || []).filter(a => a.toString() !== targetUserId);
     await room.save();
 
@@ -244,19 +242,112 @@ export class ChatService {
     return populated;
   }
 
-  // ------- (các hàm message/mark read/list rooms giữ nguyên) -------
+  // ----------------- RỜI NHÓM (member tự rời) -----------------
+  async leaveRoom(acting: UserDocument | string, chatroomId: string) {
+    const uid = typeof acting === 'string' ? this.toObjectId(acting) : this.toObjectId(acting._id);
+    const room = await this.chatroomModel.findById(chatroomId);
+    if (!room) throw new NotFoundException('Room not found');
 
+    const idx = room.members.findIndex(m => m.user.toString() === uid.toString());
+    if (idx === -1) throw new ForbiddenException('You are not a member of this room');
+
+    // Bỏ mình khỏi members
+    room.members.splice(idx, 1);
+
+    // Nếu phòng trống → xoá
+    if (room.members.length === 0) {
+      await room.deleteOne();
+      this.chatGateway.server?.emit('room_member_removed', { room: { _id: chatroomId, members: [] } });
+      return { ok: true, deleted: true };
+    }
+
+    // Nếu là DM và còn <2 người → xoá phòng
+    if (!room.isGroupChat && room.members.length < 2) {
+      await room.deleteOne();
+      this.chatGateway.server?.emit('room_member_removed', { room: { _id: chatroomId, members: [] } });
+      return { ok: true, deleted: true };
+    }
+
+    // Nếu là owner → chuyển owner
+    const wasOwner = room.createdBy && room.createdBy.toString() === uid.toString();
+    if (wasOwner) {
+      // ưu tiên admin còn lại
+      const nextAdmin = (room.admins || []).find(a => a.toString() !== uid.toString());
+      if (nextAdmin) {
+        room.createdBy = nextAdmin as any;
+      } else {
+        const nextMember = room.members[0]?.user;
+        if (nextMember) room.createdBy = nextMember as any;
+      }
+      // bảo đảm owner nằm trong danh sách admins
+      if (room.createdBy && !(room.admins || []).some(a => a.toString() === room.createdBy!.toString())) {
+        room.admins = [...(room.admins || []), room.createdBy as any];
+      }
+    }
+
+    // loại mình khỏi admins (nếu có)
+    room.admins = (room.admins || []).filter(a => a.toString() !== uid.toString());
+    await room.save();
+
+    const populated = await this.chatroomModel
+      .findById(room._id)
+      .populate('members.user', 'username avatar')
+      .populate('lastMessage')
+      .lean();
+
+    // Thông báo tới clients
+    this.chatGateway.server?.to(String(room._id)).emit('room_member_removed', {
+      chatroomId: room._id,
+      userId: uid.toString(),
+      room: populated,
+    });
+    this.chatGateway.broadcastRoomCreated?.(populated);
+    this.chatGateway.server?.emit('room_updated', populated);
+
+    return { ok: true, room: populated };
+  }
+
+  // ---------- XÓA NHÓM (chỉ creator) ----------
+  async deleteRoomAsOwner(acting: UserDocument, chatroomId: string) {
+    const room = await this.chatroomModel.findById(chatroomId);
+    if (!room) throw new NotFoundException('Room not found');
+    if (!room.isGroupChat) throw new BadRequestException('Not a group chat');
+
+    const isCreator = room.createdBy && room.createdBy.toString() === acting._id.toString();
+    if (!isCreator) throw new ForbiddenException('Only creator can delete this group');
+
+    const memberIds = room.members.map(m => String(m.user));
+
+    // Xoá toàn bộ tin nhắn của phòng (tuỳ nghiệp vụ)
+    await this.messageModel.deleteMany({ chatroom: room._id });
+
+    // Thông báo tới thành viên trong room trước khi xoá
+    this.chatGateway.server?.to(String(room._id)).emit('room_deleted', {
+      chatroomId: String(room._id),
+      memberIds,
+    });
+
+    await room.deleteOne();
+
+    // Phát rộng (để list ngoài room cũng cập nhật)
+    this.chatGateway.server?.emit('room_deleted', {
+      chatroomId: String(chatroomId),
+      memberIds,
+    });
+
+    return { ok: true, deleted: true, chatroomId: String(chatroomId) };
+  }
+
+  // ------- message / mark read / list rooms -------
   async createMessage(sender: UserDocument, chatroomId: string, content: string) {
     const rid = this.toObjectId(chatroomId);
     const sid = this.toObjectId(sender._id);
     const text = (content ?? '').trim();
     if (!text) throw new BadRequestException('Message content is empty');
 
-    // Kiểm tra người gửi có phải thành viên trong phòng không
     const isMember = await this.isMemberOfRoom(sid.toString(), rid.toString());
     if (!isMember) throw new UnauthorizedException();
 
-    // Kiểm tra tin nhắn đã được gửi trong vòng 1 phút hay chưa
     const existingMessage = await this.messageModel.findOne({
       sender: sid,
       chatroom: rid,
@@ -268,15 +359,13 @@ export class ChatService {
       throw new BadRequestException('Duplicate message detected. Please wait a moment before sending again.');
     }
 
-    // Tạo tin nhắn mới
     const saved = await new this.messageModel({
       sender: sid,
       chatroom: rid,
       content: text,
-      readBy: [sid], // Người gửi đã đọc tin nhắn
+      readBy: [sid],
     }).save();
 
-    // Cập nhật lastMessage và cộng unreadCount cho thành viên khác
     await this.chatroomModel.updateOne(
       { _id: rid },
       {
@@ -286,13 +375,8 @@ export class ChatService {
       { arrayFilters: [{ 'other.user': { $ne: sid } }] },
     );
 
-    // Populate để lấy dữ liệu người gửi
     const populated = await saved.populate('sender', 'username avatar');
-
-    // Phát sự kiện socket gửi tin nhắn mới
-    console.log('Sending new message to room:', rid); // Debugging log
     this.chatGateway.server?.to(String(rid)).emit('newMessage', populated);
-
     return populated;
   }
 

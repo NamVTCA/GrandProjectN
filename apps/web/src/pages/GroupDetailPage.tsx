@@ -1,3 +1,4 @@
+// File: src/pages/GroupDetailPage.tsx
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,9 +44,15 @@ const GroupDetailPage: React.FC = () => {
   const isMember = joinStatus === 'MEMBER';
 
   // --- MUTATIONS ---
-  const joinLeaveMutation = useMutation({
-    mutationFn: () =>
-      isMember ? groupApi.leaveGroup(groupId!) : groupApi.joinGroup(groupId!),
+  const joinLeaveMutation = useMutation<void, Error, void>({
+    mutationFn: async () => {
+      if (!groupId) throw new Error('Missing groupId');
+      if (isMember) {
+        await groupApi.leaveGroup(groupId);
+      } else {
+        await groupApi.joinGroup(groupId);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group', groupId] });
       queryClient.invalidateQueries({ queryKey: ['groups', 'me'] });
@@ -88,7 +95,6 @@ const GroupDetailPage: React.FC = () => {
     deletePostMutation.mutate(postId);
   };
 
-  // Cập nhật comment count (+1 / -1), nhận vào id hoặc fallback post._id từ closure.
   const handleCommentChange = (postId: string, change: 1 | -1) => {
     queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
       oldData?.map((p) =>
@@ -97,7 +103,6 @@ const GroupDetailPage: React.FC = () => {
     );
   };
 
-  // Cập nhật post sau khi PostCard chỉnh sửa
   const handlePostUpdated = (updated: Post) => {
     queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
       oldData?.map((p) => (p._id === updated._id ? updated : p)),
@@ -141,12 +146,11 @@ const GroupDetailPage: React.FC = () => {
                     post={post}
                     onReact={handleReact}
                     onPostDeleted={handlePostDeleted}
-                    // Chấp nhận cả 2 kiểu chữ ký: (id) => ... hoặc () => ...
                     onCommentAdded={(id?: string) => handleCommentChange(id ?? post._id, 1)}
                     onCommentDeleted={(id?: string) => handleCommentChange(id ?? post._id, -1)}
-                    onRepost={(id: string, content: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
-                      // TODO: nếu có API repost thì gọi ở đây
-                      console.debug('repost', { id, content, visibility });
+                    // ✅ Để TS suy luận visibility = PostVisibility (có FRIENDS_ONLY)
+                    onRepost={(postId, content, visibility) => {
+                      console.debug('repost', { postId, content, visibility });
                     }}
                     onPostUpdated={handlePostUpdated}
                   />
@@ -180,7 +184,6 @@ const GroupDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal mời bạn bè */}
       <InviteFriendsModal
         open={isInviteModalOpen}
         groupId={(group as any)._id}

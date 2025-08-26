@@ -1,4 +1,3 @@
-// File: src/pages/ChatPage.tsx
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../services/api';
@@ -16,6 +15,7 @@ import type { PickableUser } from '../features/chat/components/CreateGroupModal'
 import CreateGroupModal from '../features/chat/components/CreateGroupModal';
 import GroupSettingsModal from '../features/chat/components/GroupSettingsModal';
 import { blockUser, unblockUser, getBlockStatus } from '../services/user';
+import { leaveRoom, deleteRoomAsOwner } from '../services/chat';
 import UnreadBadge from '../features/chat/components/UnreadBadge';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,7 +28,7 @@ import { usePresence } from '../hooks/usePresence';
 
 declare global {
   interface WindowEventMap {
-    'open-dm': CustomEvent<{ userId: string }>;
+    'open-dm': CustomEvent<{ userId: string; username?: string; avatar?: string }>;
     'chat-unread-total': CustomEvent<{ total: number }>;
   }
 }
@@ -65,7 +65,7 @@ const dedupeMessages = (arr: TChatMessage[]) => {
   return Array.from(map.values());
 };
 
-/* ⭐ normalize room */
+/* ⭐ normalize room: giữ createdBy để biết chủ nhóm */
 function normalizeRoom(room: any): TChatRoom {
   const avatarRaw = room?.avatarUrl || room?.avatar || '';
   const normMembers = (room?.members || []).map((m: any) => {
@@ -87,7 +87,18 @@ function normalizeRoom(room: any): TChatRoom {
     return { ...m, user: userObj, unreadCount: m?.unreadCount || 0 };
   });
 
-  return { ...room, avatarUrl: avatarRaw ? publicUrl(avatarRaw) : undefined, members: normMembers } as TChatRoom;
+  const createdBy = room?.createdBy
+    ? (typeof room.createdBy === 'object'
+        ? { _id: String(room.createdBy._id || room.createdBy.id || room.createdBy) }
+        : { _id: String(room.createdBy) })
+    : undefined;
+
+  return {
+    ...room,
+    createdBy,
+    avatarUrl: avatarRaw ? publicUrl(avatarRaw) : undefined,
+    members: normMembers
+  } as TChatRoom;
 }
 
 function mergeRoom(prev?: TChatRoom | null, incoming?: Partial<TChatRoom>): TChatRoom | null {
@@ -222,8 +233,10 @@ const ChatPage: React.FC = () => {
       const res = await api.get('/chat/rooms');
       const normalized = (res.data || []).map(normalizeRoom);
       setRooms(normalized);
+      return normalized as TChatRoom[];
     } catch (e) {
       console.error('Load rooms failed', e);
+      return [];
     } finally {
       setLoadingRooms(false);
     }
@@ -276,9 +289,15 @@ const ChatPage: React.FC = () => {
     }
     const other = getPeer(room);
     const raw =
-      (other as any)?.profile?.avatarUrl || (other as any)?.avatar || (other as any)?.imageUrl ||
-      (other as any)?.photo || (other as any)?.picture || '';
-    return { name: (other as any)?.username || 'Người dùng', avatar: raw ? publicUrl(raw) : '/images/default-user.png' };
+      (other as any)?.avatarUrl ||
+      (other as any)?.profile?.avatarUrl ||
+      (other as any)?.avatar ||
+      (other as any)?.imageUrl ||
+      (other as any)?.photo ||
+      (other as any)?.picture ||
+      '';
+    const name = (other as any)?.fullName || (other as any)?.username || 'Người dùng';
+    return { name, avatar: raw ? publicUrl(raw) : '/images/default-user.png' };
   };
 
   /* ===== Unread cập nhật khi có message đến ===== */
@@ -318,10 +337,7 @@ const ChatPage: React.FC = () => {
     setRooms((prev) =>
       prev.map((r) =>
         String(r._id) === String(chatroomId)
-          ? {
-              ...r,
-              members: r.members.map((m) => (isMe(getId((m as any).user)) ? { ...m, unreadCount: 0 } : m)),
-            }
+          ? { ...r, members: r.members.map((m) => (isMe(getId((m as any).user)) ? { ...m, unreadCount: 0 } : m)) }
           : r
       )
     );
@@ -355,6 +371,20 @@ const ChatPage: React.FC = () => {
     const r = normalizeRoom(room);
     setRooms((prev) => upsertRooms(prev, r));
     setSelectedRoom((prevSel) => (prevSel && String(prevSel._id) === String(r._id) ? mergeRoom(prevSel, r) : prevSel));
+  }, []);
+
+  const onRoomDeleted = useCallback((payload: any) => {
+    const delId = String(payload?.chatroomId || '');
+    if (!delId) return;
+
+    setRooms(prev => prev.filter(r => String(r._id) !== delId));
+    setClientUnread(prev => {
+      const copy = { ...prev }; delete copy[delId]; return copy;
+    });
+    setSelectedRoom(prev => {
+      if (prev && String(prev._id) === delId) return null;
+      return prev;
+    });
   }, []);
 
   /** NEW: handler ổn định, luôn dedupe trước khi append */
@@ -393,6 +423,7 @@ const ChatPage: React.FC = () => {
     chatSocket.off('room_members_added');
     chatSocket.off('room_member_removed');
     chatSocket.off('room_updated');
+    chatSocket.off('room_deleted');
 
     chatSocket.on('connect', handleConnect);
     chatSocket.on('newMessage', onNewMessage);
@@ -401,6 +432,7 @@ const ChatPage: React.FC = () => {
     chatSocket.on('room_members_added', onMembersAdded);
     chatSocket.on('room_member_removed', onMemberRemoved);
     chatSocket.on('room_updated', onRoomUpdated);
+    chatSocket.on('room_deleted', onRoomDeleted);
 
     listenersBoundRef.current = true;
 
@@ -413,12 +445,14 @@ const ChatPage: React.FC = () => {
       chatSocket.off('room_members_added', onMembersAdded);
       chatSocket.off('room_member_removed', onMemberRemoved);
       chatSocket.off('room_updated', onRoomUpdated);
+      chatSocket.off('room_deleted', onRoomDeleted);
     };
-  }, [chatSocket, onNewMessage, handleRoomMarkedAsRead, onRoomCreated, onMembersAdded, onMemberRemoved, onRoomUpdated]);
+  }, [chatSocket, onNewMessage, handleRoomMarkedAsRead, onRoomCreated, onMembersAdded, onMemberRemoved, onRoomUpdated, onRoomDeleted]);
 
   /* ===== Tổng unread ===== */
   useEffect(() => {
-    if (!myId) return;
+    const myIdStr = String(myId || '');
+    if (!myIdStr) return;
     const total = rooms.reduce((sum, r) => {
       const mine = r.members.find((m) => isMe(getId((m as any).user)));
       const count = mine ? ((mine as any)?.unreadCount || 0) : (clientUnread[String(r._id)] || 0);
@@ -516,33 +550,54 @@ const ChatPage: React.FC = () => {
   };
 
   /* ===== Create group / DM ===== */
-  const openCreateModal = async () => {
-    if (createBtnLockRef.current) return;
-    createBtnLockRef.current = true;
-    setMenuOpen(false);
-    setOpenCreate(true);
-    if (!friends.length) await fetchFriends();
-    setTimeout(() => { createBtnLockRef.current = false; }, 300);
-  };
+  const showTempDM = useCallback((peerId: string, username?: string, avatar?: string) => {
+    if (!myId) return;
+    const temp: TChatRoom = {
+      _id: `temp-dm-${peerId}` as any,
+      isGroupChat: false,
+      members: [
+        { user: { _id: String(myId) } } as any,
+        { user: { _id: String(peerId), username, avatar: avatar || undefined, avatarUrl: avatar || undefined } } as any,
+      ],
+      lastMessage: undefined,
+    } as any;
+    setSelectedRoom(temp);
+    setRooms(prev => upsertRooms(prev, temp));
+    setMessages([]);
+  }, [myId]);
 
   const openOrCreateDM = useCallback(
-    async (friendId: string) => {
+    async (friendId: string, fallback?: { username?: string; avatar?: string }) => {
       try {
+        if (fallback?.username || fallback?.avatar) {
+          showTempDM(friendId, fallback.username, fallback.avatar);
+        }
         const res = await api.post('/chat/rooms', { memberIds: [friendId] });
-        const room: TChatRoom = normalizeRoom(res.data?.room ?? res.data);
+        let room: TChatRoom = normalizeRoom(res.data?.room ?? res.data);
+
+        const hasPeerInfo =
+          Array.isArray(room.members) &&
+          room.members.some((m: any) => !!((m?.user?.username) || (m?.user?.avatar) || (m?.user?.avatarUrl)));
+
+        if (!hasPeerInfo) {
+          const all = await fetchRooms();
+          const found = all.find((r) => String((r as any)._id) === String((room as any)._id));
+          if (found) room = found as any;
+        }
+
         setRooms((prev) => (prev.some((r) => String(r._id) === String(room._id)) ? prev : [room, ...prev]));
         await handleSelectRoom(room);
       } catch (e) {
         console.error('openOrCreateDM error', e);
       }
     },
-    [handleSelectRoom]
+    [handleSelectRoom, fetchRooms, showTempDM]
   );
 
   useEffect(() => {
     const handler = (e: WindowEventMap['open-dm']) => {
-      const id = e?.detail?.userId;
-      if (id) openOrCreateDM(id);
+      const { userId, username, avatar } = e?.detail || {};
+      if (userId) openOrCreateDM(userId, { username, avatar });
     };
     window.addEventListener('open-dm', handler);
     return () => window.removeEventListener('open-dm', handler);
@@ -582,6 +637,10 @@ const ChatPage: React.FC = () => {
 
   const headerInfo = selectedRoom ? getRoomDetails(selectedRoom) : null;
   const isGroup = selectedRoom ? (selectedRoom.isGroupChat ?? ((selectedRoom.members?.length || 0) > 2)) : false;
+  const isOwner =
+    isGroup &&
+    !!(selectedRoom as any)?.createdBy &&
+    String(((selectedRoom as any).createdBy as any)._id ?? (selectedRoom as any).createdBy) === String(myId);
 
   const sendingDisabled =
     !newMessage.trim() ||
@@ -589,11 +648,12 @@ const ChatPage: React.FC = () => {
     (!isGroup && !!blockStatus && (blockStatus.blockedByMe || blockStatus.blockedMe));
 
   // ======= Presence helpers + dot CSS =======
+  const { presence: pr } = { presence };
   const isOnline = useCallback((uid?: any) => {
     if (!uid) return false;
-    const s = presence[String(uid)];
+    const s = pr[String(uid)];
     return !!s?.online;
-  }, [presence]);
+  }, [pr]);
 
   const fmtLastSeen = (ts?: number) => {
     if (!ts) return 'Ngoại tuyến';
@@ -634,17 +694,48 @@ const ChatPage: React.FC = () => {
   const menuItems = (() => {
     if (!selectedRoom) return [] as { key: string; label: string; danger?: boolean; disabled?: boolean; onClick: () => void | Promise<void> }[];
     if (isGroup) {
+      if (isOwner) {
+        return [
+          { key: 'settings', label: 'Cài đặt nhóm', onClick: async () => { setOpenCreate(false); await fetchFriends(); setOpenSettings(true); } },
+          { key: 'add-members', label: 'Thêm thành viên', onClick: async () => { setOpenCreate(false); await fetchFriends(); setOpenSettings(true); } },
+          {
+            key: 'delete',
+            label: 'Xóa nhóm',
+            danger: true,
+            onClick: async () => {
+              if (!selectedRoom) return;
+              const ok = window.confirm('Xóa nhóm này? Tất cả tin nhắn của nhóm sẽ bị xóa.');
+              if (!ok) return;
+              try {
+                await deleteRoomAsOwner(String(selectedRoom._id));
+                setSelectedRoom(null);
+                await fetchRooms();
+              } catch (e) {
+                console.error('Delete group failed', e);
+                alert('Xóa nhóm thất bại. Vui lòng thử lại.');
+              }
+            },
+          },
+        ];
+      }
+      // Không phải chủ nhóm -> chỉ rời nhóm
       return [
         { key: 'settings', label: 'Cài đặt nhóm', onClick: async () => { setOpenCreate(false); await fetchFriends(); setOpenSettings(true); } },
         { key: 'add-members', label: 'Thêm thành viên', onClick: async () => { setOpenCreate(false); await fetchFriends(); setOpenSettings(true); } },
         {
           key: 'leave', label: 'Rời nhóm', danger: true,
           onClick: async () => {
+            if (!selectedRoom) return;
+            const ok = window.confirm('Bạn có chắc muốn rời nhóm này?');
+            if (!ok) return;
             try {
-              await api.delete(`/chat/rooms/${selectedRoom._id}/members/me`);
+              await leaveRoom(String(selectedRoom._id), String(myId || ''));
               setSelectedRoom(null);
               await fetchRooms();
-            } catch (e) { console.error('Leave group failed', e); }
+            } catch (e) {
+              console.error('Leave group failed', e);
+              alert('Rời nhóm thất bại. Vui lòng thử lại.');
+            }
           },
         },
       ];
@@ -680,7 +771,7 @@ const ChatPage: React.FC = () => {
           <UnreadBadge count={totalUnread} size="md" />
         </h2>
         <div style={{ padding: 12 }}>
-          <button className="btn btn-primary w-100" onClick={openCreateModal}>
+          <button className="btn btn-primary w-100" onClick={() => { setOpenCreate(true); if (!friends.length) fetchFriends(); }}>
             + Tạo nhóm
           </button>
         </div>
@@ -692,7 +783,6 @@ const ChatPage: React.FC = () => {
             const unread = mine ? ((mine as any)?.unreadCount || 0) : (clientUnread[String(room._id)] || 0);
             const active = selectedRoom?._id && String(selectedRoom._id) === String(room._id);
 
-            // Group: online if any member (not me) online
             const groupOnline = room.isGroupChat
               ? room.members.some((m) => {
                   const uid =
@@ -701,7 +791,6 @@ const ChatPage: React.FC = () => {
                 })
               : false;
 
-            // DM: online if peer online
             const peer = !room.isGroupChat
               ? room.members.find((m) => !isMe(getId((m as any).user)))?.user
               : null;
@@ -739,7 +828,6 @@ const ChatPage: React.FC = () => {
         {selectedRoom ? (
           <>
             <header className="chat-header">
-              {/* Avatar + presence */}
               <div
                 className="peer"
                 onClick={() => { if (!isGroup) navigateToPeerProfile(); }}
@@ -799,7 +887,7 @@ const ChatPage: React.FC = () => {
                 <button
                   ref={menuBtnRef}
                   className="fab-btn header-kebab"
-                  title={isGroup ? 'Tùy chọn nhóm' : (blockStatus?.blockedByMe ? 'Bỏ chặn' : 'Tùy chọn')}
+                  title={isGroup ? (isOwner ? 'Xóa/Rời nhóm' : 'Rời nhóm') : (blockStatus?.blockedByMe ? 'Bỏ chặn' : 'Tùy chọn')}
                   onClick={() => {
                     if (!menuOpen) positionMenu();
                     setMenuOpen(v => !v);
@@ -874,7 +962,6 @@ const ChatPage: React.FC = () => {
               })}
             </div>
 
-            {/* ✅ Hiển thị người đang nhập */}
             <TypingIndicator typers={typers} />
 
             <form className="message-input-area" onSubmit={handleSendMessage}>

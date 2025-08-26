@@ -43,7 +43,6 @@ export async function createGroup(name: string | undefined, memberIds: string[],
   const ids = uniqStr(memberIds);
   if (ids.length === 1 && !avatarFile) return createDM(ids[0]);
 
-  // with avatar
   if (avatarFile) {
     const form = new FormData();
     if (name) form.append('name', name);
@@ -54,7 +53,6 @@ export async function createGroup(name: string | undefined, memberIds: string[],
     throw new Error('createGroup(with avatar): no compatible endpoint');
   }
 
-  // without avatar
   try { return pickRoom(unwrap(await api.post('/chat/rooms', { name, memberIds: ids }))); } catch {}
   try { return pickRoom(unwrap(await api.post('/rooms', { name, memberIds: ids }))); } catch {}
   throw new Error('createGroup: no compatible endpoint');
@@ -107,4 +105,12 @@ export async function leaveRoom(roomId: string, meId?: string) {
     try { return unwrap(await api.delete(`/rooms/${roomId}/members/${meId}`)); } catch {}
   }
   throw new Error('leaveRoom: no compatible endpoint');
+}
+
+// ---- Delete room (owner only) ----
+export async function deleteRoomAsOwner(roomId: string) {
+  try { return unwrap(await api.delete(`/chat/rooms/${roomId}`)); } catch {}
+  try { return unwrap(await api.post(`/chat/rooms/${roomId}/delete`, {})); } catch (e) {
+    rethrow('Xóa nhóm thất bại')(e);
+  }
 }
