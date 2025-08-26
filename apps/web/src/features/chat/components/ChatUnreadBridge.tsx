@@ -4,8 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { useSocket } from "../../../hooks/useSocket";
 import api from "../../../services/api";
 
-
-/** ===== Helpers ngắn gọn ===== */
+/* ========== Helpers ========== */
 const getId = (x: any): string | null => {
   if (!x) return null;
   if (typeof x === "string" || typeof x === "number") return String(x);
@@ -15,8 +14,6 @@ const getId = (x: any): string | null => {
   }
   return null;
 };
-const getChatroomId = (msg: any): string | null =>
-  getId(msg?.chatroom ?? msg?.room ?? msg?.chatRoom ?? msg?.conversation);
 
 type Member = { user: any; unreadCount?: number };
 type Room = { _id: string; members: Member[]; isGroupChat?: boolean };
@@ -30,9 +27,18 @@ const normalizeRoom = (room: any): Room => {
   return { _id: String(room?._id ?? room?.id), members, isGroupChat: !!room?.isGroupChat };
 };
 
-export default function ChatUnreadBridge() {
+const debounce = <F extends (...args: any[]) => void>(fn: F, ms = 150) => {
+  let t: any;
+  return (...args: Parameters<F>) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+};
+
+/* ========== Component ========== */
+const ChatUnreadBridge: React.FC = () => {
   const { user } = useAuth();
-  const socket = useSocket(); // phải là provider toàn cục (mount ở App/MainLayout)
+  const socket = useSocket(); // mount duy nhất ở App/MainLayout
   const listenersBoundRef = useRef(false);
 
   const myId = useMemo(() => {
@@ -41,10 +47,9 @@ export default function ChatUnreadBridge() {
   }, [user]);
 
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [clientUnread, setClientUnread] = useState<Record<string, number>>({});
   const joinedRoomsRef = useRef<Set<string>>(new Set());
 
-  /** Tải danh sách phòng của tôi */
+  /* ---- Fetch rooms ---- */
   const fetchRooms = useCallback(async () => {
     try {
       const res = await api.get("/chat/rooms");
@@ -54,13 +59,14 @@ export default function ChatUnreadBridge() {
       return normalized;
     } catch (e) {
       console.error("ChatUnreadBridge: load rooms fail", e);
-      return [];
+      return [] as Room[];
     }
   }, []);
 
+  // initial load
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
-  /** ===== Join tất cả phòng để nhận newMessage khi ở trang bất kỳ ===== */
+  /* ---- Join all rooms (for global newMessage) ---- */
   const joinAllRooms = useCallback((list: Room[]) => {
     if (!socket) return;
     const joined = joinedRoomsRef.current;
@@ -73,7 +79,10 @@ export default function ChatUnreadBridge() {
     }
   }, [socket]);
 
-  /** Khi socket connect/reconnect → join lại toàn bộ phòng */
+  // when rooms list changes, join newly seen rooms
+  useEffect(() => { if (rooms.length) joinAllRooms(rooms); }, [rooms, joinAllRooms]);
+
+  // reconnect handling: join again
   useEffect(() => {
     if (!socket) return;
     const onConnect = async () => {
@@ -86,82 +95,64 @@ export default function ChatUnreadBridge() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, joinAllRooms, fetchRooms, rooms.length]);
 
-  /** Khi danh sách phòng thay đổi (được fetch mới) → join phòng mới */
-  useEffect(() => { if (rooms.length) joinAllRooms(rooms); }, [rooms, joinAllRooms]);
-
-  /** ===== Tính tổng và bắn event cho Sidebar ===== */
-  const isMe = useCallback((uid?: any) => !!uid && !!myId && String(uid) === String(myId), [myId]);
-
-  const broadcastTotal = useCallback((roomsNow: Room[], clientUnreadNow: Record<string, number>) => {
+  /* ---- Broadcast total unread (from server numbers) ---- */
+  const broadcastTotal = useCallback((roomsNow: Room[]) => {
     if (!myId) return;
     const total = roomsNow.reduce((sum, r) => {
-      const mine = r.members.find((m) => isMe(getId((m as any).user)));
-      const cnt = mine ? (mine.unreadCount || 0) : (clientUnreadNow[r._id] || 0);
-      return sum + cnt;
+      const mine = r.members.find(
+        (m) => String(getId((m as any).user)) === String(myId)
+      );
+      return sum + (mine?.unreadCount || 0);
     }, 0);
     window.dispatchEvent(new CustomEvent("chat-unread-total", { detail: { total } }));
-  }, [myId, isMe]);
+  }, [myId]);
 
-  useEffect(() => { broadcastTotal(rooms, clientUnread); }, [rooms, clientUnread, broadcastTotal]);
+  useEffect(() => { broadcastTotal(rooms); }, [rooms, broadcastTotal]);
 
-  /** ===== Handlers realtime ===== */
-  const onNewMessage = useCallback((message: any) => {
-    const roomId = getChatroomId(message);
-    if (!roomId) return;
-
-    // Tăng số chưa đọc của tôi cho phòng đó (reset sẽ do ChatPage -> mark_room_as_read)
-    setRooms((prev) =>
-      prev.map((r) => {
-        if (String(r._id) !== String(roomId)) return r;
-        return {
-          ...r,
-          members: r.members.map((m) => {
-            const uid = getId((m as any).user);
-            if (!isMe(uid)) return m;
-            return { ...m, unreadCount: (m.unreadCount || 0) + 1 };
-          }),
-        };
-      })
-    );
-
-    // Fallback nếu backend không có "me" trong members
-    setClientUnread((p) => ({ ...p, [roomId]: (p[roomId] ?? 0) + 1 }));
-  }, [isMe]);
-
-  const onRoomMarkedAsRead = useCallback(({ chatroomId }: { chatroomId: string }) => {
-    setRooms((prev) =>
-      prev.map((r) =>
-        String(r._id) === String(chatroomId)
-          ? { ...r, members: r.members.map((m) => (isMe(getId((m as any).user)) ? { ...m, unreadCount: 0 } : m)) }
-          : r
-      )
-    );
-    setClientUnread((p) => ({ ...p, [chatroomId]: 0 }));
-  }, [isMe]);
-
+  /* ---- Light refresh (fetch + join) ---- */
   const refreshRoomsLight = useCallback(async () => {
     const list = await fetchRooms();
     joinAllRooms(list);
   }, [fetchRooms, joinAllRooms]);
 
-  /** Bind sự kiện socket đúng 1 lần (toàn cục) */
+  const scheduleRefresh = useMemo(
+    () => debounce(() => { refreshRoomsLight(); }, 150),
+    [refreshRoomsLight]
+  );
+
+  /* ---- Socket bindings (single) ---- */
+  const onNewMessage = useCallback((message: any) => {
+    // Ignore if it's my own message
+    const senderId = getId(message?.sender);
+    if (senderId && myId && String(senderId) === String(myId)) return;
+    // Do not +1 locally -> just refresh (debounced) so we always match backend unread
+    scheduleRefresh();
+  }, [myId, scheduleRefresh]);
+
+  const onRoomMarkedAsRead = useCallback(() => {
+    // Someone (maybe me) marked room read -> refresh to get accurate totals
+    scheduleRefresh();
+  }, [scheduleRefresh]);
+
   useEffect(() => {
     if (!socket || listenersBoundRef.current) return;
 
-    // clear trước (hot-reload)
+    // Clear previous (hot-reload / strict)
     socket.off("newMessage");
     socket.off("room_marked_as_read");
     socket.off("room_created");
     socket.off("room_updated");
     socket.off("room_members_added");
     socket.off("room_member_removed");
+    socket.off("room_deleted");
 
     socket.on("newMessage", onNewMessage);
     socket.on("room_marked_as_read", onRoomMarkedAsRead);
-    socket.on("room_created", refreshRoomsLight);
-    socket.on("room_updated", refreshRoomsLight);
-    socket.on("room_members_added", refreshRoomsLight);
-    socket.on("room_member_removed", refreshRoomsLight);
+    socket.on("room_created", scheduleRefresh);
+    socket.on("room_updated", scheduleRefresh);
+    socket.on("room_members_added", scheduleRefresh);
+    socket.on("room_member_removed", scheduleRefresh);
+    socket.on("room_deleted", scheduleRefresh);
 
     listenersBoundRef.current = true;
 
@@ -169,12 +160,15 @@ export default function ChatUnreadBridge() {
       listenersBoundRef.current = false;
       socket.off("newMessage", onNewMessage);
       socket.off("room_marked_as_read", onRoomMarkedAsRead);
-      socket.off("room_created", refreshRoomsLight);
-      socket.off("room_updated", refreshRoomsLight);
-      socket.off("room_members_added", refreshRoomsLight);
-      socket.off("room_member_removed", refreshRoomsLight);
+      socket.off("room_created", scheduleRefresh);
+      socket.off("room_updated", scheduleRefresh);
+      socket.off("room_members_added", scheduleRefresh);
+      socket.off("room_member_removed", scheduleRefresh);
+      socket.off("room_deleted", scheduleRefresh);
     };
-  }, [socket, onNewMessage, onRoomMarkedAsRead, refreshRoomsLight]);
+  }, [socket, onNewMessage, onRoomMarkedAsRead, scheduleRefresh]);
 
-  return null; // component nền, không render gì
-}
+  return null; // bridge nền, không render UI
+};
+
+export default ChatUnreadBridge;
