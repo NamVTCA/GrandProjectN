@@ -4,7 +4,7 @@ import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 import { globalStyles, COLORS } from '../styles/theme';
 
-const API_URL = 'http://192.168.20.107:8888/api/auth/reset-password';
+const API_URL = 'http://192.168.20.34:8888/api/auth/reset-password';
 
 const ResetPasswordPage = ({ navigation }) => {
   const [token, setToken] = useState('');

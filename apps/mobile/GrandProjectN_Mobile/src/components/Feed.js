@@ -15,7 +15,7 @@ const Feed = forwardRef(({ onPostCreated }, ref) => {
     if (!token) return;
     setIsRefreshing(true);
     try {
-      const response = await axios.get(`http://192.168.20.107:8888/api/posts/feed`, {
+      const response = await axios.get(`http://192.168.20.34:8888/api/posts/feed`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPosts(response.data);

@@ -38,7 +38,7 @@ const PostCard = ({ post }) => {
   const handleToggleReaction = async (type) => {
     try {
       const response = await axios.post(
-        `http://192.168.20.107:8888/api/posts/${currentPost._id}/react`,
+        `http://192.168.20.34:8888/api/posts/${currentPost._id}/react`,
         { type },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -62,7 +62,7 @@ const PostCard = ({ post }) => {
   const handleRepost = async () => {
     try {
       await axios.post(
-        `http://192.168.20.107:8888/api/posts/${currentPost._id}/repost`,
+        `http://192.168.20.34:8888/api/posts/${currentPost._id}/repost`,
         { visibility: 'PUBLIC' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -74,7 +74,7 @@ const PostCard = ({ post }) => {
   };
   
   const getAvatarUrl = (path) => {
-    return path ? `http://192.168.20.107:8888/${path}` : 'https://via.placeholder.com/150';
+    return path ? `http://192.168.20.34:8888/${path}` : 'https://via.placeholder.com/150';
   };
 
   return (
@@ -96,7 +96,7 @@ const PostCard = ({ post }) => {
       </View>
       <Text style={styles.content}>{displayPost.content}</Text>
       {displayPost.mediaUrls && displayPost.mediaUrls.length > 0 && (
-        <Image source={{ uri: `http://192.168.20.107:8888/${displayPost.mediaUrls[0]}` }} style={styles.postImage} />
+        <Image source={{ uri: `http://192.168.20.34:8888/${displayPost.mediaUrls[0]}` }} style={styles.postImage} />
       )}
       
       {currentPost.reactions.length > 0 && (

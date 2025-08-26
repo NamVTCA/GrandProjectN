@@ -5,8 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../features/auth/AuthContext';
 import { globalStyles, COLORS } from '../styles/theme';
 
-const API_URL_INTERESTS = 'http://192.168.20.107:8888/api/interests';
-const API_URL_UPDATE = 'http://192.168.20.107:8888/api/users/me/interests';
+const API_URL_INTERESTS = 'http://192.168.20.34:8888/api/interests';
+const API_URL_UPDATE = 'http://192.168.20.34:8888/api/users/me/interests';
 
 const SelectInterestsPage = ({ navigation }) => {
   const [interests, setInterests] = useState([]);
