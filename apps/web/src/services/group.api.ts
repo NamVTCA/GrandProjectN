@@ -1,4 +1,4 @@
-import api from './api'; // Import instance axios đã được cấu hình sẵn của bạn
+import api from './api'; // axios instance
 import type {
   Group,
   GroupDetail,
@@ -6,10 +6,31 @@ import type {
   JoinRequest,
 } from '../features/groups/types/Group';
 import type { CreateGroupDto, UpdateGroupDto } from '../features/groups/types/GroupDto';
-import type { Post } from '../features/feed/types/Post'; // Import kiểu dữ liệu Post
+import type { Post } from '../features/feed/types/Post';
 
-// === QUERIES (LẤY DỮ LIỆU) ===
+/** ====== TYPES (Invites) ====== */
+export type InviteCandidate = {
+  id: string;
+  username?: string;
+  fullName?: string;
+  avatar?: string;
+};
 
+export type InviteBatchResult = {
+  created: number;
+  skipped: number;
+  details: { inviteeId: string; status: 'CREATED'|'SKIPPED'; reason?: string }[];
+};
+
+export type MyInviteItem = {
+  id: string;
+  status: 'PENDING'|'ACCEPTED'|'DECLINED'|'CANCELED';
+  inviter: { id: string; username?: string; fullName?: string; avatar?: string };
+  group: { id: string; name?: string; avatar?: string };
+  createdAt: string;
+};
+
+/** ====== QUERIES ====== */
 export const getMyGroups = (): Promise<Group[]> =>
   api.get('/groups/me').then((res) => res.data);
 
@@ -30,8 +51,14 @@ export const getGroupJoinStatus = (
 ): Promise<{ status: 'MEMBER' | 'PENDING' | 'NONE' }> =>
   api.get(`/groups/${groupId}/join-status`).then((res) => res.data);
 
-// === MUTATIONS (THAY ĐỔI DỮ LIỆU) ===
+/** ✅ Invite candidates (friends not in group & not already invited PENDING) */
+export const getInviteCandidates = (
+  groupId: string,
+  search?: string,
+): Promise<InviteCandidate[]> =>
+  api.get(`/groups/${groupId}/invites/candidates`, { params: { search } }).then((r) => r.data);
 
+/** ====== MUTATIONS ====== */
 export const createGroup = (groupData: CreateGroupDto): Promise<Group> =>
   api.post('/groups', groupData).then((res) => res.data);
 
@@ -47,7 +74,6 @@ export const updateGroup = ({
 }): Promise<Group> =>
   api.patch(`/groups/${groupId}`, groupData).then((res) => res.data);
 
-// ✅ BỔ SUNG: HÀM UPLOAD ẢNH
 export const uploadGroupImage = async ({
   groupId,
   imageType,
@@ -59,12 +85,7 @@ export const uploadGroupImage = async ({
 }): Promise<Group> => {
   const formData = new FormData();
   formData.append('file', file);
-
-  const { data } = await api.patch(`/groups/${groupId}/${imageType}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const { data } = await api.patch(`/groups/${groupId}/${imageType}`, formData);
   return data;
 };
 
@@ -77,14 +98,25 @@ export const joinGroup = (groupId: string): Promise<{ message: string }> =>
 export const leaveGroup = (groupId: string): Promise<GroupDetail> =>
   api.post(`/groups/${groupId}/leave`).then((res) => res.data);
 
+/** (Legacy) invite single user */
 export const inviteToGroup = ({
   groupId,
   inviteeId,
 }: {
   groupId: string;
   inviteeId: string;
-}): Promise<any> =>
+}) =>
   api.post(`/groups/${groupId}/invite`, { inviteeId }).then((res) => res.data);
+
+/** ✅ batch invites */
+export const sendGroupInvites = ({
+  groupId,
+  inviteeIds,
+}: {
+  groupId: string;
+  inviteeIds: string[];
+}): Promise<InviteBatchResult> =>
+  api.post(`/groups/${groupId}/invites`, { inviteeIds }).then((r) => r.data);
 
 export const kickMember = ({
   groupId,
@@ -93,22 +125,29 @@ export const kickMember = ({
   groupId: string;
   memberUserId: string;
 }): Promise<{ message: string }> =>
-  api
-    .delete(`/groups/${groupId}/members/${memberUserId}`)
-    .then((res) => res.data);
+  api.delete(`/groups/${groupId}/members/${memberUserId}`).then((res) => res.data);
 
 export const approveJoinRequest = (
   groupId: string,
   requestId: string,
 ): Promise<{ message: string }> =>
-  api
-    .post(`/groups/${groupId}/requests/${requestId}/approve`)
-    .then((res) => res.data);
+  api.post(`/groups/${groupId}/requests/${requestId}/approve`).then((res) => res.data);
 
 export const rejectJoinRequest = (
   groupId: string,
   requestId: string,
 ): Promise<{ message: string }> =>
-  api
-    .post(`/groups/${groupId}/requests/${requestId}/reject`)
-    .then((res) => res.data);
+  api.post(`/groups/${groupId}/requests/${requestId}/reject`).then((res) => res.data);
+
+/** ====== INVITES (Me) ====== */
+export const getMyGroupInvites = (
+  status: 'PENDING'|'ACCEPTED'|'DECLINED'|'CANCELED' = 'PENDING',
+): Promise<MyInviteItem[]> =>
+  api.get('/group-invites/me', { params: { status } }).then((r) => r.data);
+
+export const acceptGroupInvite = (inviteId: string): Promise<{ message: string }> =>
+  api.post(`/group-invites/${inviteId}/accept`).then((r) => r.data);
+
+export const declineGroupInvite = (inviteId: string): Promise<{ message: string }> =>
+  api.post(`/group-invites/${inviteId}/decline`).then((r) => r.data);
+

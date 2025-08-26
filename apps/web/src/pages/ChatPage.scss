@@ -90,7 +90,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    position: relative; // để đặt FAB
+    position: relative;
 
     .chat-header {
       height: 64px;
@@ -199,13 +199,7 @@
   }
 }
 
-/* FAB ⋮ góc phải trên */
-.chat-fab {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 3;
-}
+/* ===== FAB / nút ba chấm ===== */
 .fab-btn {
   background: rgba(0,0,0,0.35);
   backdrop-filter: blur(4px);
@@ -221,86 +215,88 @@
   &:hover { background: rgba(255,255,255,0.1); }
 }
 
+/* Nút ba chấm trên header – to & dễ bấm hơn */
+.fab-btn.header-kebab {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
 /* ===== Kebab menu popup ===== */
 .kebab-menu__popup {
-  z-index: 5; // cao hơn FAB
+  z-index: 10000;
   background: $background-component;
   border: 1px solid $surface-color;
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
   padding: 6px;
+  min-width: 220px;
 }
 
-.kebab-menu__item {
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: $text-light;
-  font-size: 14px;
-  cursor: pointer;
-
-  &:hover { background: rgba(255,255,255,0.06); }
-
-  &.is-danger {
-    color: #ff8b8b;
-    &:hover { background: rgba(255, 80, 80, 0.12); }
-  }
-  &.is-disabled {
-    opacity: .5;
-    cursor: not-allowed;
-    &:hover { background: transparent; }
-  }
-}
-/* đảm bảo nổi trên header/overlay khác */
-.chat-fab { z-index: 50; }
-
-.kebab-menu__popup {
-  z-index: 1000; /* tăng cao để không bị che -> không nháy */
-  background: $background-component;
-  border: 1px solid $surface-color;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  padding: 6px;
-}
-
-.kebab-menu__item {
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: $text-light;
-  font-size: 14px;
-  cursor: pointer;
-
-  &:hover { background: rgba(255,255,255,0.06); }
-  &.is-danger { color: #ff8b8b; }
-  &.is-disabled { opacity: .5; cursor: not-allowed; &:hover { background: transparent; } }
-}
-
-/* để chắc chắn không bị layer nào che */
-.chat-fab { z-index: 50; }
-.kebab-menu__popup { z-index: 10000; } /* tăng nếu header bạn quá cao */
-/* bỏ FAB nổi vì đã đưa ⋮ vào header; vẫn tái-use .fab-btn */
-.chat-fab { display: none; } // hoặc xóa block cũ
-
-.chat-header .chat-actions {
-  display: flex;
+/* Item dùng chung cho <button> và <a> */
+.kebab-menu__item,
+.kebab-menu__item:link,
+.kebab-menu__item:visited {
+  display: flex;                 /* full bề ngang & canh giữa */
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;              /* vùng chạm ≥ 40px */
+  padding: 10px 14px;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  border-radius: 10px;
+  color: $text-light;
+  font-size: 14px;
+  line-height: 1.2;
+  text-decoration: none;         /* cho <a> */
+  cursor: pointer;
 }
 
-.header-kebab {
-  /* reuse .fab-btn look */
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+.kebab-menu__item:hover { background: rgba(255,255,255,0.08); }
+
+.kebab-menu__item.is-danger { color: #ff8b8b; }
+.kebab-menu__item.is-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
-.kebab-menu__popup { z-index: 10000; } /* nếu header site có z-index cao */
+/* ===== Pill “Tin mới” trong header ===== */
+.chat-header-flash {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffcc00;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 12px;
+  margin-left: 8px;
+  animation: flash .55s ease-in-out 0s 4 alternate;
+}
+
+@keyframes flash {
+  from { opacity: .45; transform: translateY(0); }
+  to   { opacity: 1;   transform: translateY(-1px); }
+}
+
+/* ===== Unread Badge ===== */
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e53935;
+  color: $text-light;
+  border-radius: 999px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+.unread-badge--sm { min-width: 20px; height: 20px; padding: 0 6px; font-size: 12px; }
+.unread-badge--md { min-width: 24px; height: 24px; padding: 0 8px; font-size: 13px; }
+.unread-badge-dot { width: 9px; height: 9px; border-radius: 50%; background: #e53935; }
+.badge-space { margin-left: 8px; }

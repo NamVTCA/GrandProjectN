@@ -68,21 +68,16 @@ export class ChatService {
   ): Promise<boolean> {
     const A = this.toObjectId(userAId);
     const B = this.toObjectId(userBId);
-    const [a, b] = await Promise.all([
-      this.userModel.findById(A).select('_id blockedUsers').lean(),
-      this.userModel.findById(B).select('_id blockedUsers').lean(),
+    const [a, b] = await Promise.all([ 
+      this.userModel.findById(A).select('_id blockedUsers').lean(), 
+      this.userModel.findById(B).select('_id blockedUsers').lean() 
     ]);
     if (!a || !b) return false;
-    const aBlockedB =
-      Array.isArray((a as any).blockedUsers) &&
-      (a as any).blockedUsers.some((id: any) => id.toString() === B.toString());
-    const bBlockedA =
-      Array.isArray((b as any).blockedUsers) &&
-      (b as any).blockedUsers.some((id: any) => id.toString() === A.toString());
+    const aBlockedB = Array.isArray((a as any).blockedUsers) && (a as any).blockedUsers.some((id: any) => id.toString() === B.toString());
+    const bBlockedA = Array.isArray((b as any).blockedUsers) && (b as any).blockedUsers.some((id: any) => id.toString() === A.toString());
     return aBlockedB || bBlockedA;
   }
 
-  // ----------------- TẠO PHÒNG (có lưu createdBy) -----------------
   async createChatroom(
     creator: UserDocument,
     memberIds: string[],
@@ -250,23 +245,60 @@ export class ChatService {
   }
 
   // ------- (các hàm message/mark read/list rooms giữ nguyên) -------
-  async createMessage(/* ... giữ nguyên như bạn đang có ... */ sender: UserDocument, chatroomId: string, content: string) {
-    // ... (nguyên bản từ code bạn gửi)
-    // sau khi lưu message:
-    // this.chatGateway.server.to(chatroomId).emit('newMessage', savedMessage);
-    // return savedMessage.populate('sender', 'username avatar');
-    // (Bạn đã có sẵn — mình không lặp lại để gọn)
-    return (await new this.messageModel({
-      sender: sender._id,
-      chatroom: chatroomId,
-      content: content.trim(),
-      readBy: [sender._id],
-    }).save()).populate('sender', 'username avatar');
+
+  async createMessage(sender: UserDocument, chatroomId: string, content: string) {
+    const rid = this.toObjectId(chatroomId);
+    const sid = this.toObjectId(sender._id);
+    const text = (content ?? '').trim();
+    if (!text) throw new BadRequestException('Message content is empty');
+
+    // Kiểm tra người gửi có phải thành viên trong phòng không
+    const isMember = await this.isMemberOfRoom(sid.toString(), rid.toString());
+    if (!isMember) throw new UnauthorizedException();
+
+    // Kiểm tra tin nhắn đã được gửi trong vòng 1 phút hay chưa
+    const existingMessage = await this.messageModel.findOne({
+      sender: sid,
+      chatroom: rid,
+      content: text,
+      createdAt: { $gt: new Date(Date.now() - 60000) },
+    });
+
+    if (existingMessage) {
+      throw new BadRequestException('Duplicate message detected. Please wait a moment before sending again.');
+    }
+
+    // Tạo tin nhắn mới
+    const saved = await new this.messageModel({
+      sender: sid,
+      chatroom: rid,
+      content: text,
+      readBy: [sid], // Người gửi đã đọc tin nhắn
+    }).save();
+
+    // Cập nhật lastMessage và cộng unreadCount cho thành viên khác
+    await this.chatroomModel.updateOne(
+      { _id: rid },
+      {
+        $set: { lastMessage: saved._id, updatedAt: new Date() },
+        $inc: { 'members.$[other].unreadCount': 1 },
+      },
+      { arrayFilters: [{ 'other.user': { $ne: sid } }] },
+    );
+
+    // Populate để lấy dữ liệu người gửi
+    const populated = await saved.populate('sender', 'username avatar');
+
+    // Phát sự kiện socket gửi tin nhắn mới
+    console.log('Sending new message to room:', rid); // Debugging log
+    this.chatGateway.server?.to(String(rid)).emit('newMessage', populated);
+
+    return populated;
   }
 
   async markRoomAsRead(userId: string | Types.ObjectId, chatroomId: string) {
-    const uid = this.toObjectId(userId as any);
-    const rid = this.toObjectId(chatroomId as any);
+    const uid = this.toObjectId(userId);
+    const rid = this.toObjectId(chatroomId);
     await this.chatroomModel.updateOne(
       { _id: rid, 'members.user': uid },
       { $set: { 'members.$.unreadCount': 0 } },

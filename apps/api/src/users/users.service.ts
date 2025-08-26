@@ -22,21 +22,51 @@ export class UsersService {
     private notificationsService: NotificationsService,
   ) {}
 
-  // Route công khai: xem profile theo username
-  async findByUsername(username: string): Promise<UserDocument> {
+  // ===== PUBLIC: theo _id (cho FE fallback) =====
+  async findPublicById(id: string | Types.ObjectId): Promise<UserDocument> {
+    const idStr = String(id);
+    if (!Types.ObjectId.isValid(idStr)) {
+      throw new NotFoundException(`Không tìm thấy người dùng với id=${idStr}`);
+    }
+
     const user = await this.userModel
-      .findOne({ username })
+      .findById(idStr)
       .select('-password -email')
-      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' }) // <-- hiển thị khung khi xem profile
+      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
       .exec();
 
     if (!user) {
-      throw new NotFoundException(`Không tìm thấy người dùng ${username}`);
+      throw new NotFoundException(`Không tìm thấy người dùng với id=${idStr}`);
     }
     return user;
   }
 
-  // Cập nhật profile cơ bản (name, bio…)
+  // ===== PUBLIC: nhận cả username hoặc ObjectId =====
+  async findByUsernameOrId(param: string): Promise<UserDocument> {
+    const isId = Types.ObjectId.isValid(param);
+    const query = isId ? this.userModel.findById(param) : this.userModel.findOne({ username: param });
+
+    const user = await query
+      .select('-password -email')
+      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException(
+        isId
+          ? `Không tìm thấy người dùng với id=${param}`
+          : `Không tìm thấy người dùng ${param}`,
+      );
+    }
+    return user;
+  }
+
+  // (Giữ lại bản cũ để ai gọi trực tiếp theo username vẫn dùng được nội bộ)
+  async findByUsername(username: string): Promise<UserDocument> {
+    return this.findByUsernameOrId(username);
+  }
+
+  // ===== MUTATIONS & OTHERS =====
   async updateProfile(
     userId: string | Types.ObjectId,
     updateUserDto: UpdateUserDto,
@@ -52,7 +82,6 @@ export class UsersService {
     return updated;
   }
 
-  // Cập nhật avatar: nhận avatarPath (string) rồi lưu vào document
   async updateAvatar(
     userId: string | Types.ObjectId,
     avatarPath: string,
@@ -70,7 +99,6 @@ export class UsersService {
     return updated;
   }
 
-  // Cập nhật coverImage: nhận coverPath (string) rồi lưu vào document
   async updateCover(
     userId: string | Types.ObjectId,
     coverPath: string,
@@ -88,7 +116,6 @@ export class UsersService {
     return updated;
   }
 
-  // Theo dõi user khác
   async followUser(
     currentUserId: string | Types.ObjectId,
     userIdToFollow: string,
@@ -124,7 +151,6 @@ export class UsersService {
     return { message: 'Theo dõi thành công.' };
   }
 
-  // Bỏ theo dõi
   async unfollowUser(
     currentUserId: string | Types.ObjectId,
     userIdToUnfollow: string,
@@ -138,7 +164,6 @@ export class UsersService {
     return { message: 'Bỏ theo dõi thành công.' };
   }
 
-  // Cập nhật sở thích user
   async updateUserInterests(
     userId: string,
     interestIds: string[],
@@ -158,7 +183,6 @@ export class UsersService {
     return updated;
   }
 
-  // Xử lý XP khi follow
   async receiveXP(
     xp: number,
     kind: string,
@@ -190,7 +214,6 @@ export class UsersService {
     await user.save();
   }
 
-  // Xử lý milestone XP
   async handleUserFollowed(followedUserId: string): Promise<void> {
     const user = await this.userModel.findById(followedUserId);
     if (!user) {
@@ -229,12 +252,10 @@ export class UsersService {
     await user.save();
   }
 
-  // Lấy thông tin dental
   async GetUserDental(id: string) {
     return this.userModel.findById(id).exec();
   }
 
-  // Lấy bạn bè
   async getAllFriend(id: string) {
     const user = await this.userModel.findById(id).populate('friends').exec();
     if (!user) {
@@ -263,12 +284,10 @@ export class UsersService {
     return user.warnings;
   }
 
-  // Update the deleteWarning method in users.service.ts
   async deleteWarning(userId: string, warningId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Người dùng không tồn tại.');
 
-    // Find the warning using the _id field
     const warningIndex = user.warnings.findIndex(
       (w: any) => w._id?.toString() === warningId,
     );
@@ -282,15 +301,13 @@ export class UsersService {
     return { message: 'Xoá cảnh cáo thành công.' };
   }
 
-  // Lấy thông tin chính mình + populate khung đang trang bị
   async getMe(userId: string | Types.ObjectId) {
     const me = await this.userModel
       .findById(userId)
       .select(
-        // các field FE đang dùng để tránh redirect và hiển thị đầy đủ
         'username email avatar coins hasSelectedInterests globalRole friends currentGame coverImage equippedAvatarFrame'
       )
-      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' }) // <-- quan trọng
+      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
       .lean()
       .exec();
 

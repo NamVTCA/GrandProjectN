@@ -1,0 +1,11 @@
+/* Tái sử dụng style .cgx-* của CreateGroupModal để thống nhất UI */
+.cgx-modal { width: 560px; }
+/* Danh sách ứng viên */
+.cgx-list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow: auto; }
+.cgx-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #2a2a35; border-radius: 10px; background: #171821; }
+.cgx-user { display: flex; align-items: center; gap: 10px; }
+.cgx-user img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #2a2a35; }
+.cgx-user-name .line1 { font-weight: 600; }
+.cgx-user-name .muted { color: #9aa0a6; font-size: 12px; }
+.cgx-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2a35; background: #14151d; color: #e9ecef; }
+.cgx-empty { color: #9aa0a6; padding: 16px; text-align: center; }

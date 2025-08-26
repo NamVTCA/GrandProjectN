@@ -1,4 +1,4 @@
-// File: src/pages/GroupManagementPage.scss
+@use "sass:color";
 
 .group-management-page {
   max-width: 900px;
@@ -74,6 +74,11 @@
       border: 2px dashed $surface-color;
       transition: border-color 0.2s;
       &:hover { border-color: $primary-color; }
+      .overlay{
+        position: absolute; inset: 0; display: grid; place-items: center;
+        background: rgba(0,0,0,.18); color: #fff; opacity: 0; transition: .2s;
+      }
+      &:hover .overlay{ opacity: 1; }
     }
     .avatar-preview {
       width: 150px; height: 150px;
@@ -97,9 +102,39 @@
     .item-text-info {
       strong { color: $text-light; }
       .role-badge {
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: .75rem;
+        border-radius: $border-radius-sm;
         background-color: $surface-color;
         color: $text-secondary;
-        // ... các style khác giữ nguyên
+      }
+    }
+
+    /* 🔴 Nút Kick đỏ */
+    .item-actions {
+      display: flex; gap: 8px; align-items: center;
+
+      .kick-btn, .btn-danger, button[variant="danger"] {
+        padding: 8px 14px;
+        border-radius: $border-radius-md;
+        background: rgba($error-color, 0.12);
+        border: 1px solid rgba($error-color, 0.45);
+        color: color.adjust($error-color, $lightness: 18%); // <— thay lighten()
+        font-weight: 700;
+        cursor: pointer;
+        transition: background .15s ease, border-color .15s ease, color .15s ease, transform .02s ease;
+      }
+      .kick-btn:hover, .btn-danger:hover, button[variant="danger"]:hover {
+        background: rgba($error-color, 0.22);
+        border-color: rgba($error-color, 0.65);
+        color: #fff;
+      }
+      .kick-btn:active, .btn-danger:active, button[variant="danger"]:active {
+        transform: translateY(1px);
+      }
+      .kick-btn:disabled, .btn-danger:disabled, button[variant="danger"]:disabled {
+        opacity: .6; cursor: not-allowed;
       }
     }
   }
@@ -114,10 +149,17 @@
   }
 
   // --- Sở thích ---
+  .interest-selection-container{
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
   .interest-tag {
+    display: inline-flex; align-items: center; gap: 8px;
     background-color: $surface-color;
-    border-color: $surface-color;
+    border: 1px solid $surface-color;
+    border-radius: $border-radius-md;
     color: $text-secondary;
+    padding: 8px 10px;
+    input{ accent-color: $primary-color; }
     &:has(input:checked) {
       background-color: $primary-color;
       color: $text-light;

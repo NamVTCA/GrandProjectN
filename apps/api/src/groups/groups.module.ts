@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GroupsService } from './groups.service';
-import { GroupsController } from './groups.controller';
+import { GroupsController, MyGroupInvitesController } from './groups.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Group, GroupSchema } from './schemas/group.schema';
 import { GroupMember, GroupMemberSchema } from './schemas/group-member.schema';
@@ -27,12 +27,13 @@ import { GroupInvite, GroupInviteSchema } from './schemas/group-invite.schema';
       { name: Comment.name, schema: CommentSchema },
       { name: JoinRequest.name, schema: JoinRequestSchema },
        { name: GroupInvite.name, schema: GroupInviteSchema },
+       { name: GroupInvite.name, schema: GroupInviteSchema },
     ]),
     AuthModule,
     RewardsModule,
     UsersModule, // <-- Thêm UsersModule để sử dụng UserService
   ],
-  controllers: [GroupsController],
+  controllers: [GroupsController, MyGroupInvitesController,],
   providers: [GroupsService, GroupOwnerGuard, GroupMemberGuard],
   exports: [GroupsService], // Export để PostsModule có thể dùng
 })

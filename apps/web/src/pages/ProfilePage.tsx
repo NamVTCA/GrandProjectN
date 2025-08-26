@@ -1,3 +1,4 @@
+// File: src/pages/ProfilePage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import api from '../services/api';
@@ -11,25 +12,46 @@ type LocationState = {
   updatedProfile?: UserProfile;
 };
 
+// Helper chuẩn hoá mảng id (string | ObjectId | {_id})
+const normIds = (arr: any): string[] =>
+  Array.isArray(arr)
+    ? arr
+        .map((x: any) => {
+          if (!x) return '';
+          if (typeof x === 'string' || typeof x === 'number') return String(x);
+          if (typeof x === 'object') return String(x._id ?? x.id ?? '');
+          return '';
+        })
+        .filter(Boolean)
+    : [];
+
 const ProfilePage: React.FC = () => {
   const { username: paramUsername } = useParams<{ username: string }>();
   const { state } = useLocation() as { state: LocationState };
   const { user: currentUser } = useAuth();
 
-  const stateProfile = state?.updatedProfile;
+  const stateProfile = state?.updatedProfile ?? null;
 
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(
-    stateProfile ?? null
-  );
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(stateProfile);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(!stateProfile);
   const [error, setError] = useState<string | null>(null);
 
+  const computeIsFollowing = useCallback(
+    (profile: any) => {
+      const myId = currentUser?._id ? String(currentUser._id) : '';
+      const followers = normIds(profile?.followers);
+      return !!myId && followers.includes(myId);
+    },
+    [currentUser]
+  );
+
   const fetchProfile = useCallback(async () => {
+    // Nếu có profile từ state (vừa chỉnh sửa xong quay lại)
     if (stateProfile) {
-      setIsFollowing(
-        !!currentUser && stateProfile.followers.includes(currentUser._id)
-      );
+      setUserProfile(stateProfile);
+      setIsFollowing(computeIsFollowing(stateProfile));
+      setLoading(false);
       return;
     }
 
@@ -40,18 +62,28 @@ const ProfilePage: React.FC = () => {
     }
 
     try {
-      const { data } = await api.get<UserProfile>(`/users/${paramUsername}`);
+      // Ưu tiên lấy theo username
+      const { data } = await api.get<UserProfile>(`/users/${encodeURIComponent(paramUsername)}`);
       setUserProfile(data);
-      setIsFollowing(
-        !!currentUser && data.followers.includes(currentUser._id)
-      );
-    } catch (err) {
-      console.error(err);
-      setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
+      setIsFollowing(computeIsFollowing(data));
+    } catch (errFirst) {
+      // Fallback: nếu param là ObjectId thì thử by-id
+      try {
+        if (/^[a-f\d]{24}$/i.test(String(paramUsername))) {
+          const { data } = await api.get<UserProfile>(`/users/by-id/${paramUsername}`);
+          setUserProfile(data);
+          setIsFollowing(computeIsFollowing(data));
+        } else {
+          throw errFirst;
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [paramUsername, currentUser, stateProfile]);
+  }, [paramUsername, stateProfile, computeIsFollowing]);
 
   useEffect(() => {
     if (!stateProfile) {
@@ -61,6 +93,7 @@ const ProfilePage: React.FC = () => {
 
   const handleFollowToggle = async () => {
     if (!userProfile || !currentUser) return;
+    const myId = String(currentUser._id);
     try {
       if (isFollowing) {
         await api.delete(`/users/${userProfile._id}/follow`);
@@ -68,7 +101,7 @@ const ProfilePage: React.FC = () => {
           prev
             ? {
                 ...prev,
-                followers: prev.followers.filter(id => id !== currentUser._id),
+                followers: normIds(prev.followers).filter(id => id !== myId) as any,
               }
             : prev
         );
@@ -76,7 +109,7 @@ const ProfilePage: React.FC = () => {
         await api.post(`/users/${userProfile._id}/follow`);
         setUserProfile(prev =>
           prev
-            ? { ...prev, followers: [...prev.followers, currentUser._id] }
+            ? { ...prev, followers: [...normIds(prev.followers), myId] as any }
             : prev
         );
       }
@@ -90,16 +123,15 @@ const ProfilePage: React.FC = () => {
   if (error) return <div className="page-status error">{error}</div>;
   if (!userProfile) return null;
 
-  // Kiểm tra trạng thái tài khoản (thêm accountStatus vào UserProfile interface nếu chưa có)
-  const isAccountSuspendedOrBanned = 
-    (userProfile as any).accountStatus === 'SUSPENDED' || 
-    (userProfile as any).accountStatus === 'BANNED';
-  const isCurrentUserProfile = currentUser?._id === userProfile._id;
+  // Kiểm tra trạng thái tài khoản (nếu có)
+  const status = (userProfile as any).accountStatus;
+  const isAccountSuspendedOrBanned = status === 'SUSPENDED' || status === 'BANNED';
+  const isCurrentUserProfile = String(currentUser?._id ?? '') === String(userProfile._id ?? '');
 
   if (isAccountSuspendedOrBanned && !isCurrentUserProfile) {
     return (
       <div className="page-status error">
-        Tài khoản này hiện đang bị {(userProfile as any).accountStatus === 'SUSPENDED' ? 'tạm ngưng' : 'vô hiệu hóa'}
+        Tài khoản này hiện đang bị {status === 'SUSPENDED' ? 'tạm ngưng' : 'vô hiệu hóa'}
       </div>
     );
   }
@@ -112,7 +144,7 @@ const ProfilePage: React.FC = () => {
         onFollowToggle={handleFollowToggle}
       />
       <div className="profile-content">
-        <UserPostList userId={userProfile._id} />
+        <UserPostList userId={String(userProfile._id)} />
       </div>
     </div>
   );

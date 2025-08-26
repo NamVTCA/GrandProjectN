@@ -63,10 +63,11 @@ const AppRoutes: React.FC = () => {
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/top-up" element={<TopUpPage />} />
+          <Route path="/profile/:username/edit" element={<EditProfileUser />} />
           <Route path="/profile/:username" element={<ProfilePageWithKey />} />
           <Route path="/user-reports/:userId" element={<UserReportsPage />} />
           <Route path="/admin/content-management" element={<ContentManagementPage />} />
-          <Route path="/profile/:username/edit" element={<EditProfileUser />} />
+          
           
           {/* ================================================================== */}
           {/* ✅ SỬA LỖI TẠI ĐÂY: Đảm bảo thứ tự các route như sau */}

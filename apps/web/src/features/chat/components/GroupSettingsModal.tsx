@@ -41,6 +41,7 @@ const sx = {
 };
 
 const GroupSettingsModal: React.FC<Props> = ({ open, meId, room, friends, onClose, onUpdated }) => {
+  // luôn dùng string để tránh lệch kiểu id
   const [picking, setPicking] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -71,16 +72,22 @@ const GroupSettingsModal: React.FC<Props> = ({ open, meId, room, friends, onClos
       ? publicUrl(room.avatarUrl || room.avatar || '')
       : '/images/default-group.png';
 
-  // Danh sách bạn có thể thêm (lọc người đã là member)
+  // set id hiện có -> string
+  const memberIdSet = useMemo(
+    () => new Set(members.map((m) => String(m._id))),
+    [members]
+  );
+
+  // Danh sách bạn có thể thêm (lọc người đã là member) – so sánh theo string để chắc chắn
   const candidates = useMemo(
-    () => friends.filter((f) => !members.some((m) => m._id === f.id)),
-    [friends, members]
+    () => friends.filter((f) => !memberIdSet.has(String(f.id))),
+    [friends, memberIdSet]
   );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return candidates;
-    return candidates.filter((f) => f.username.toLowerCase().includes(q));
+    return candidates.filter((f) => (f.username || '').toLowerCase().includes(q));
   }, [candidates, search]);
 
   if (!open) return null;
@@ -155,26 +162,36 @@ const GroupSettingsModal: React.FC<Props> = ({ open, meId, room, friends, onClos
                 Không còn bạn để thêm.
               </div>
             )}
+
             {filtered.map((f) => {
-              const checked = picking.includes(f.id);
+              const fid = String(f.id);
+              const checked = picking.includes(fid);
+
               return (
-                <label
-                  key={f.id}
+                <div
+                  key={fid}
                   style={{ ...(sx.friend as any), ...(checked ? sx.friendPicked : {}) }}
-                  onClick={() => setPicking((p) => (checked ? p.filter((x) => x !== f.id) : [...p, f.id]))}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPicking((p) => (checked ? p.filter((x) => x !== fid) : [...p, fid]))}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPicking((p) => (checked ? p.filter((x) => x !== fid) : [...p, fid]))}
                 >
-                  <input type="checkbox" checked={checked} readOnly style={sx.checkbox} />
-                  <img
-                    style={sx.avatarSm}
-                    src={f.avatar || '/images/default-user.png'}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/default-user.png'; }}
-                    alt=""
-                  />
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>{f.username}</span>
-                </label>
+                  {/* pointer-events none để click luôn trúng container */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', pointerEvents: 'none' as const }}>
+                    <input type="checkbox" checked={checked} readOnly style={sx.checkbox} />
+                    <img
+                      style={sx.avatarSm}
+                      src={f.avatar || '/images/default-user.png'}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/default-user.png'; }}
+                      alt=""
+                    />
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{f.username}</span>
+                  </div>
+                </div>
               );
             })}
           </div>
+
           <button
             style={{ ...sx.btn, ...sx.btnPrimary, ...(adding || !picking.length ? sx.btnDisabled : {}) }}
             disabled={!picking.length || adding}
@@ -193,7 +210,7 @@ const GroupSettingsModal: React.FC<Props> = ({ open, meId, room, friends, onClos
               }
             }}
           >
-            {adding ? 'Đang thêm...' : 'Thêm'}
+            {adding ? 'Đang thêm...' : `Thêm (${picking.length})`}
           </button>
 
           {/* Danh sách thành viên hiện tại */}

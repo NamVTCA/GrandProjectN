@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react';
 import './NotificationsPage.scss';
 import api from '../services/api';
-import { TrashIcon, CheckIcon } from 'lucide-react';
+import { TrashIcon, CheckIcon, X } from 'lucide-react'; // ⬅️ đổi: thêm X cho nút từ chối
 import moment from 'moment';
 import { publicUrl } from '../untils/publicUrl';
+import { acceptGroupInvite, declineGroupInvite } from '../services/group.api'; // xử lý lời mời nhóm
 
 interface Notification {
   _id: string;
@@ -26,6 +27,8 @@ interface Notification {
     reportReason?: string;
     postContent?: string;
     groupName?: string;
+    inviteId?: string; // dùng cho GROUP_INVITE
+    groupId?: string;
   };
 }
 
@@ -131,6 +134,24 @@ export default function Notifications() {
       setFriendRequests((prev) => prev.filter((req) => req._id !== requestId));
     } catch (err) {
       console.error('Lỗi khi xử lý lời mời:', err);
+    }
+  };
+
+  // xử lý lời mời tham gia nhóm
+  const respondToGroupInvite = async (
+    inviteId: string,
+    action: 'ACCEPT' | 'DECLINE',
+    notiId: string
+  ) => {
+    try {
+      if (action === 'ACCEPT') {
+        await acceptGroupInvite(inviteId);
+      } else {
+        await declineGroupInvite(inviteId);
+      }
+      setNotifications((prev) => prev.filter((n) => n._id !== notiId));
+    } catch (err) {
+      console.error('Lỗi khi xử lý lời mời nhóm:', err);
     }
   };
 
@@ -339,7 +360,7 @@ export default function Notifications() {
                     className="reject-btn"
                     title="Từ chối"
                   >
-                    <TrashIcon size={16} />
+                    <X size={16} /> {/* ⬅️ đổi icon từ chối */}
                   </button>
                 </div>
               </li>
@@ -383,6 +404,41 @@ export default function Notifications() {
                   <span className="notification-time">
                     {moment(noti.createdAt).fromNow()}
                   </span>
+
+                  {/* Nút Tham gia/Từ chối cho lời mời nhóm */}
+                  {noti.type === 'GROUP_INVITE' && noti.metadata?.inviteId && (
+                    <div className="action-buttons">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          respondToGroupInvite(noti.metadata!.inviteId!, 'ACCEPT', noti._id);
+                        }}
+                        className="accept-btn"
+                        title="Tham gia"
+                      >
+                        <CheckIcon size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          respondToGroupInvite(noti.metadata!.inviteId!, 'DECLINE', noti._id);
+                        }}
+                        className="reject-btn"
+                        title="Từ chối"
+                      >
+                        <X size={16} /> {/* ⬅️ đổi icon từ chối */}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Fallback nếu chưa có inviteId */}
+                  {noti.type === 'GROUP_INVITE' && !noti.metadata?.inviteId && (
+                    <div className="action-buttons">
+                      <a className="accept-btn" href={noti.link || '/group-invites'}>
+                        Xem lời mời
+                      </a>
+                    </div>
+                  )}
                 </div>
                 <div className="notification-actions">
                   <button

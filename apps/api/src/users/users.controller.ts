@@ -23,20 +23,53 @@ import { UserDocument } from '../auth/schemas/user.schema';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // (MỚI) Route được bảo vệ: lấy thông tin chính mình (populate equippedAvatarFrame)
+  // ===== AUTH-REQUIRED =====
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@GetUser() user: UserDocument) {
     return this.usersService.getMe(user._id.toString());
   }
 
-  // Route công khai để xem profile theo username
-  @Get(':username')
-  findByUsername(@Param('username') username: string) {
-    return this.usersService.findByUsername(username);
+  // ===== PUBLIC / STATIC PATHS (đặt TRƯỚC đường dẫn động) =====
+  @Get('by-id/:id')
+  findPublicById(@Param('id') id: string) {
+    return this.usersService.findPublicById(id);
   }
 
-  // Route được bảo vệ để user tự cập nhật profile (name, bio…)
+  @UseGuards(JwtAuthGuard)
+  @Get('get/friends')
+  getAllFriend(@GetUser() user: UserDocument) {
+    return this.usersService.getAllFriend(user._id.toString());
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('get/dental/:id')
+  getDental(@Param('id') id: string) {
+    return this.usersService.GetUserDental(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('warnings/get')
+  getWarnings(@GetUser() user: UserDocument) {
+    return this.usersService.getWarnings(user._id.toString());
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('warnings/delete/:warningId')
+  deleteWarning(
+    @GetUser() user: UserDocument,
+    @Param('warningId') warningId: string,
+  ) {
+    return this.usersService.deleteWarning(user._id.toString(), warningId);
+  }
+
+  // ===== PUBLIC / DYNAMIC (nhận cả username hoặc ObjectId) =====
+  @Get(':param')
+  findByUsernameOrId(@Param('param') param: string) {
+    return this.usersService.findByUsernameOrId(param);
+  }
+
+  // ===== PATCH / MUTATIONS =====
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   updateProfile(
@@ -46,7 +79,6 @@ export class UsersController {
     return this.usersService.updateProfile(user._id.toString(), updateUserDto);
   }
 
-  // Route được bảo vệ: upload avatar bằng multipart/form-data
   @UseGuards(JwtAuthGuard)
   @Patch('me/avatar')
   @UseInterceptors(
@@ -68,7 +100,6 @@ export class UsersController {
     return this.usersService.updateAvatar(user._id.toString(), avatarPath);
   }
 
-  // Route được bảo vệ: upload cover image bằng multipart/form-data
   @UseGuards(JwtAuthGuard)
   @Patch('me/cover')
   @UseInterceptors(
@@ -90,7 +121,6 @@ export class UsersController {
     return this.usersService.updateCover(user._id.toString(), coverPath);
   }
 
-  // Route được bảo vệ để user theo dõi user khác
   @UseGuards(JwtAuthGuard)
   @Post(':id/follow')
   followUser(
@@ -103,7 +133,6 @@ export class UsersController {
     );
   }
 
-  // Route được bảo vệ để user bỏ theo dõi
   @UseGuards(JwtAuthGuard)
   @Delete(':id/follow')
   unfollowUser(
@@ -116,7 +145,6 @@ export class UsersController {
     );
   }
 
-  // Route được bảo vệ để cập nhật sở thích của user
   @UseGuards(JwtAuthGuard)
   @Patch('me/interests')
   updateInterests(
@@ -127,35 +155,5 @@ export class UsersController {
       user._id.toString(),
       interestIds,
     );
-  }
-
-  // Route được bảo vệ: lấy danh sách bạn bè
-  @UseGuards(JwtAuthGuard)
-  @Get('get/friends')
-  getAllFriend(@GetUser() user: UserDocument) {
-    return this.usersService.getAllFriend(user._id.toString());
-  }
-
-  // Route được bảo vệ: lấy thông tin dental theo id
-  @UseGuards(JwtAuthGuard)
-  @Get('get/dental/:id')
-  getDental(@Param('id') id: string) {
-    return this.usersService.GetUserDental(id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('warnings/get')
-  getWarnings(@GetUser() user: UserDocument) {
-    return this.usersService.getWarnings(user._id.toString());
-  }
-
-  // Update the deleteWarning route in users.controller.ts
-  @UseGuards(JwtAuthGuard)
-  @Delete('warnings/delete/:warningId')
-  deleteWarning(
-    @GetUser() user: UserDocument,
-    @Param('warningId') warningId: string,
-  ) {
-    return this.usersService.deleteWarning(user._id.toString(), warningId);
   }
 }

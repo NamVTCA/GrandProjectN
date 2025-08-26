@@ -4,19 +4,29 @@ import { User } from '../../auth/schemas/user.schema';
 
 export type NotificationDocument = Notification & Document;
 
-// ✅ ĐÃ HOÀN THIỆN: Enum này giờ đã bao gồm tất cả các loại thông báo
+// ============ Các loại thông báo ============
 export enum NotificationType {
-  NEW_REACTION = 'NEW_REACTION', // Cho một lượt "thích" hoặc bày tỏ cảm xúc
-  NEW_COMMENT = 'NEW_COMMENT', // Cho một bình luận mới
-  NEW_FOLLOWER = 'NEW_FOLLOWER', // Cho một người theo dõi mới
-  FRIEND_REQUEST = 'FRIEND_REQUEST', // Cho một lời mời kết bạn mới
-  FRIEND_REQUEST_ACCEPTED = 'FRIEND_ACCEPTED', // cho một lời đồng ý kết bạn
-  GAME_INVITE = 'GAME_INVITE', // Cho một lời mời chơi game
+  NEW_REACTION = 'NEW_REACTION',
+  NEW_COMMENT = 'NEW_COMMENT',
+  NEW_FOLLOWER = 'NEW_FOLLOWER',
+
+  FRIEND_REQUEST = 'FRIEND_REQUEST',
+  // Một số nơi FE dùng 'FRIEND_ACCEPTED', nên mình giữ giá trị string này:
+  FRIEND_REQUEST_ACCEPTED = 'FRIEND_ACCEPTED',
+  // (tuỳ chọn) thêm alias để đỡ nhầm tên
+  // FRIEND_ACCEPTED = 'FRIEND_ACCEPTED',
+
+  GAME_INVITE = 'GAME_INVITE',
   NEW_NOTIFICATION = 'NEW_NOTIFICATION',
   WARN = 'WARN',
-  GROUP_REQUEST_ACCEPTED = 'GROUP_REQUEST_ACCEPTED', // ✅ THÊM DÒNG NÀY
-  GROUP_REQUEST_REJECTED = 'GROUP_REQUEST_REJECTED', // ✅ THÊM DÒNG NÀY
+
+  GROUP_REQUEST_ACCEPTED = 'GROUP_REQUEST_ACCEPTED',
+  GROUP_REQUEST_REJECTED = 'GROUP_REQUEST_REJECTED',
+
   GROUP_INVITE = 'GROUP_INVITE',
+  GROUP_INVITE_ACCEPTED = 'GROUP_INVITE_ACCEPTED',
+  GROUP_INVITE_DECLINED = 'GROUP_INVITE_DECLINED',
+
   POST_DELETED_BY_ADMIN = 'POST_DELETED_BY_ADMIN',
 }
 
@@ -26,22 +36,33 @@ export class Notification {
   recipient: User; // Người nhận
 
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-  sender: User; // Người gây ra sự kiện
+  sender: User; // Tác nhân
 
-  @Prop({ required: true, enum: NotificationType })
+  // Khai báo rõ kiểu string + enum các giá trị hợp lệ
+  @Prop({ type: String, enum: Object.values(NotificationType), required: true })
   type: NotificationType;
 
   @Prop({ default: false })
   isRead: boolean;
 
-  @Prop()
+  @Prop({ type: String })
   link?: string;
 
+  // Cho phép đính kèm dữ liệu linh hoạt (inviteId, groupId, reason, ...)
   @Prop({ type: Object })
   metadata?: {
     gameName?: string;
     boxArtUrl?: string;
+    reason?: string;
+    reportReason?: string;
+    postContent?: string;
+    groupName?: string;
+    inviteId?: string;
+    groupId?: string;
   };
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
+
+// Index phổ biến: lấy theo người nhận, sắp xếp mới nhất
+NotificationSchema.index({ recipient: 1, createdAt: -1 });
