@@ -1,24 +1,38 @@
-// @use '../../../styles/index' as *;
-
-
 .shop-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #0e4420;
+  color: #d5e4c3;
+  border-radius: 8px;
+
   .shop-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 15px;
-    border-bottom: 1px solid $surface-color;
+    border-bottom: 1px solid #c1cd78;
 
-    h1 { font-size: 28px; font-weight: 700; }
+    h1 { 
+      font-size: 28px; 
+      font-weight: 700;
+      color: #c1cd78;
+    }
     
     .user-coins {
-      background-color: $surface-color;
+      background-color: #083b38;
       padding: 8px 16px;
-      border-radius: $border-radius-md;
+      border-radius: 8px;
       font-size: 16px;
-      span { color: $text-secondary; margin-right: 8px; }
-      strong { color: $accent-light; font-weight: 700; }
+      span { 
+        color: #d5e4c3; 
+        margin-right: 8px; 
+      }
+      strong { 
+        color: #c1cd78; 
+        font-weight: 700; 
+      }
     }
   }
 
@@ -27,19 +41,30 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 25px;
   }
+
   .user-coins {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 
-  .topup-button {
-    margin-left: 1rem;
-    background-color: #ffd700;
-    border: none;
-    padding: 0.3rem 0.6rem;
-    border-radius: 4px;
-    cursor: pointer;
+    .topup-button {
+      margin-left: 1rem;
+      background-color: #c1cd78;
+      color: #0e4420;
+      border: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background-color: #d5e4c3;
+      }
+    }
   }
-}
 
+  .page-status {
+    text-align: center;
+    color: #d5e4c3;
+  }
 }

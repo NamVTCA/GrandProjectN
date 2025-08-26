@@ -7,6 +7,8 @@ import UserPostList from '../features/profile/components/UserPostList';
 import type { UserProfile } from '../features/profile/types/UserProfile';
 import { useAuth } from '../features/auth/AuthContext';
 import './ProfilePage.scss';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 type LocationState = {
   updatedProfile?: UserProfile;
@@ -79,9 +81,9 @@ const ProfilePage: React.FC = () => {
       } catch (err) {
         console.error(err);
         setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
     }
   }, [paramUsername, stateProfile, computeIsFollowing]);
 
@@ -98,24 +100,19 @@ const ProfilePage: React.FC = () => {
       if (isFollowing) {
         await api.delete(`/users/${userProfile._id}/follow`);
         setUserProfile(prev =>
-          prev
-            ? {
-                ...prev,
-                followers: normIds(prev.followers).filter(id => id !== myId) as any,
-              }
-            : prev
+          prev ? { ...prev, followers: normIds(prev.followers).filter(id => id !== myId) as any } : prev
         );
+        toast.success(`Đã bỏ theo dõi ${userProfile.username}`);
       } else {
         await api.post(`/users/${userProfile._id}/follow`);
         setUserProfile(prev =>
-          prev
-            ? { ...prev, followers: [...normIds(prev.followers), myId] as any }
-            : prev
+          prev ? { ...prev, followers: [...normIds(prev.followers), myId] as any } : prev
         );
+        toast.success(`Đã theo dõi ${userProfile.username}`);
       }
       setIsFollowing(!isFollowing);
-    } catch (err) {
-      console.error('Lỗi khi (un)follow:', err);
+    } catch {
+      toast.error('Lỗi khi thực hiện thao tác');
     }
   };
 

@@ -39,24 +39,25 @@ const GroupDetailPage: React.FC = () => {
   });
 
   const joinStatus = joinStatusData?.status || 'NONE';
-  const isOwner = user?._id === group?.owner._id;
+  const isOwner = !!(user && group && (group as any).owner && user._id === (group as any).owner._id);
   const isMember = joinStatus === 'MEMBER';
 
   // --- MUTATIONS ---
-  const joinLeaveMutation = useMutation<unknown, Error>({
+  const joinLeaveMutation = useMutation({
     mutationFn: () =>
       isMember ? groupApi.leaveGroup(groupId!) : groupApi.joinGroup(groupId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group', groupId] });
       queryClient.invalidateQueries({ queryKey: ['groups', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['group', groupId, 'joinStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['posts', 'group', groupId] });
     },
   });
 
   const reactionMutation = useMutation({
     mutationFn: ({ postId, reaction }: { postId: string; reaction: ReactionType }) =>
       postApi.reactToPost(postId, reaction),
-    onSuccess: (updatedPost) => {
+    onSuccess: (updatedPost: Post) => {
       queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
         oldData?.map((p) => (p._id === updatedPost._id ? updatedPost : p)),
       );
@@ -65,7 +66,7 @@ const GroupDetailPage: React.FC = () => {
 
   const deletePostMutation = useMutation({
     mutationFn: (postId: string) => postApi.deletePost(postId),
-    onSuccess: (_, postId) => {
+    onSuccess: (_: unknown, postId: string) => {
       queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
         oldData?.filter((p) => p._id !== postId),
       );
@@ -87,16 +88,16 @@ const GroupDetailPage: React.FC = () => {
     deletePostMutation.mutate(postId);
   };
 
-  // Cập nhật comment count
+  // Cập nhật comment count (+1 / -1), nhận vào id hoặc fallback post._id từ closure.
   const handleCommentChange = (postId: string, change: 1 | -1) => {
     queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
       oldData?.map((p) =>
-        p._id === postId ? { ...p, commentCount: Math.max(0, p.commentCount + change) } : p,
+        p._id === postId ? { ...p, commentCount: Math.max(0, (p.commentCount || 0) + change) } : p,
       ),
     );
   };
 
-  // ⬅️ BỔ SUNG: cập nhật post khi PostCard chỉnh sửa
+  // Cập nhật post sau khi PostCard chỉnh sửa
   const handlePostUpdated = (updated: Post) => {
     queryClient.setQueryData(['posts', 'group', groupId], (oldData: Post[] | undefined) =>
       oldData?.map((p) => (p._id === updated._id ? updated : p)),
@@ -124,7 +125,7 @@ const GroupDetailPage: React.FC = () => {
             <>
               <CreatePost
                 context="group"
-                contextId={group._id}
+                contextId={(group as any)._id}
                 onPostCreated={handlePostCreated}
               />
 
@@ -140,9 +141,10 @@ const GroupDetailPage: React.FC = () => {
                     post={post}
                     onReact={handleReact}
                     onPostDeleted={handlePostDeleted}
-                    onCommentAdded={(id) => handleCommentChange(id, 1)}
-                    onCommentDeleted={(id) => handleCommentChange(id, -1)}
-                    onRepost={(id, content, visibility) => {
+                    // Chấp nhận cả 2 kiểu chữ ký: (id) => ... hoặc () => ...
+                    onCommentAdded={(id?: string) => handleCommentChange(id ?? post._id, 1)}
+                    onCommentDeleted={(id?: string) => handleCommentChange(id ?? post._id, -1)}
+                    onRepost={(id: string, content: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
                       // TODO: nếu có API repost thì gọi ở đây
                       console.debug('repost', { id, content, visibility });
                     }}
@@ -169,7 +171,7 @@ const GroupDetailPage: React.FC = () => {
 
         <div className="sidebar-content">
           <h3>Giới thiệu</h3>
-          <p>{group.description}</p>
+          <p>{(group as any).description}</p>
           {isMember && (
             <Button variant="secondary" onClick={() => setInviteModalOpen(true)}>
               Mời bạn bè
@@ -181,7 +183,7 @@ const GroupDetailPage: React.FC = () => {
       {/* Modal mời bạn bè */}
       <InviteFriendsModal
         open={isInviteModalOpen}
-        groupId={group._id}
+        groupId={(group as any)._id}
         onClose={() => setInviteModalOpen(false)}
       />
     </div>

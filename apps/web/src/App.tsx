@@ -2,6 +2,8 @@
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from './features/auth/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -48,64 +50,75 @@ const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Routes>
-      {/* === ADMIN ROUTES === */}
-      <Route element={<AdminRoute />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/users" element={<UserManagementPage />} />
-          <Route path="/admin/content" element={<ContentManagementPage />} />
+    <>
+      <Routes>
+        {/* === ADMIN ROUTES === */}
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/users" element={<UserManagementPage />} />
+            <Route path="/admin/content" element={<ContentManagementPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* === AUTHENTICATED USER ROUTES === */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/top-up" element={<TopUpPage />} />
-          <Route path="/profile/:username/edit" element={<EditProfileUser />} />
-          <Route path="/profile/:username" element={<ProfilePageWithKey />} />
-          <Route path="/user-reports/:userId" element={<UserReportsPage />} />
-          <Route path="/admin/content-management" element={<ContentManagementPage />} />
-          
-          
-          {/* ================================================================== */}
-          {/* ✅ SỬA LỖI TẠI ĐÂY: Đảm bảo thứ tự các route như sau */}
-          {/* Route tĩnh (không có tham số) phải luôn nằm trên route động */}
-          {/* ================================================================== */}
-          <Route path="/groups" element={<GroupsPage />} />
-          <Route path="/groups/create" element={<CreateGroupPage />} /> {/* <-- PHẢI NẰM TRÊN */}
-          <Route path="/groups/:id" element={<GroupDetailPage />} />     {/* <-- NẰM DƯỚI */}
-          <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
-          {/* ================================================================== */}
+        {/* === AUTHENTICATED USER ROUTES === */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/top-up" element={<TopUpPage />} />
+            <Route path="/profile/:username/edit" element={<EditProfileUser />} />
+            <Route path="/profile/:username" element={<ProfilePageWithKey />} />
+            <Route path="/user-reports/:userId" element={<UserReportsPage />} />
+            <Route path="/admin/content-management" element={<ContentManagementPage />} />
 
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/chat-bot" element={<ChatPageBot />} />
-          <Route path="/shop" element={<ShopPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
+            {/* Nhóm Groups — route tĩnh trước route động */}
+            <Route path="/groups" element={<GroupsPage />} />
+            <Route path="/groups/create" element={<CreateGroupPage />} />
+            <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
+            <Route path="/groups/:id" element={<GroupDetailPage />} />
+
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/chat-bot" element={<ChatPageBot />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route path="/select-interests" element={<SelectInterestsPage />} />
+        {/* === SEMI-PUBLIC === */}
+        <Route path="/select-interests" element={<SelectInterestsPage />} />
 
-      {/* === PUBLIC ROUTES === */}
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-        <Route path="/banned" element={<BannedPage />} />
+        {/* === PUBLIC ROUTES === */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/banned" element={<BannedPage />} />
+        </Route>
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-      </Route>
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
+        {/* === FALLBACK === */}
+        <Route
+          path="*"
+          element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />}
+        />
+      </Routes>
 
-      {/* === FALLBACK ROUTE === */}
-      <Route
-        path="*"
-        element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />}
+      {/* Toasts */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
       />
-    </Routes>
+    </>
   );
 };
 
@@ -113,11 +126,7 @@ const App: React.FC = () => {
   const { isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="app-loading">
-        Đang tải ứng dụng...
-      </div>
-    );
+    return <div className="app-loading">Đang tải ứng dụng...</div>;
   }
 
   return <AppRoutes />;

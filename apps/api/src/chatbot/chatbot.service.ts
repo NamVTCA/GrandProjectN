@@ -36,19 +36,19 @@ export class ChatbotService {
       return 'Rất tiếc, đã có lỗi xảy ra. Vui lòng thử lại sau.';
     }
   }
-    async AddRegister(message: string): Promise<string> {
-    if (this.apiKey) {
-      return 'Bạn nhấp vào đường link này để đăng ký tài khoản nha: "http://localhost:5173/register"';
-    }
-    const payload = {
-      contents: [{ parts: [{ text: `Bạn có thể chỉ tôi đăng ký tài khoản được không"${message}"` }] }],
-    };
-    try {
-      const response = await firstValueFrom(this.httpService.post(this.apiUrl, payload));
-      return response.data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      this.logger.error('Error calling Gemini API for chatbot', error.response?.data);
-      return 'Rất tiếc, đã có lỗi xảy ra. Vui lòng thử lại sau.';
-    }
-  }
+  //   async AddRegister(message: string): Promise<string> {
+  //   if (this.apiKey) {
+  //     return 'Bạn nhấp vào đường link này để đăng ký tài khoản nha: "http://localhost:5173/register"';
+  //   }
+  //   const payload = {
+  //     contents: [{ parts: [{ text: `Bạn có thể chỉ tôi đăng ký tài khoản được không"${message}"` }] }],
+  //   };
+  //   try {
+  //     const response = await firstValueFrom(this.httpService.post(this.apiUrl, payload));
+  //     return response.data.candidates[0].content.parts[0].text;
+  //   } catch (error) {
+  //     this.logger.error('Error calling Gemini API for chatbot', error.response?.data);
+  //     return 'Rất tiếc, đã có lỗi xảy ra. Vui lòng thử lại sau.';
+  //   }
+  // }
 }

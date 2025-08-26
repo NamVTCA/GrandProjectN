@@ -654,4 +654,80 @@ export class GroupsService {
 
     return { status: 'NONE' };
   }
+
+
+   // ✅ HÀM MỜI NGƯỜI DÙNG ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH
+  async inviteUser(
+    groupId: string,
+    inviter: UserDocument,
+    inviteeId: string,
+  ): Promise<{ message: string }> {
+    const group = await this.groupModel.findById(groupId);
+    if (!group) {
+      throw new NotFoundException('Không tìm thấy nhóm.');
+    }
+
+    const invitee = await this.userModel.findById(inviteeId);
+    if (!invitee) {
+      throw new NotFoundException('Không tìm thấy người dùng bạn muốn mời.');
+    }
+
+    // Kiểm tra xem người được mời đã ở trong nhóm chưa
+    const isAlreadyMember = await this.groupMemberModel.findOne({
+      user: inviteeId,
+      group: groupId,
+    });
+    if (isAlreadyMember) {
+      throw new ConflictException('Người này đã là thành viên của nhóm.');
+    }
+
+    // Xử lý cho NHÓM CÔNG KHAI
+    if (group.privacy === 'public') {
+      // Thêm thẳng người dùng vào nhóm
+      await new this.groupMemberModel({
+        user: inviteeId,
+        group: groupId,
+        role: GroupRole.MEMBER,
+      }).save();
+
+      // Gửi thông báo cho người được mời
+      this.eventEmitter.emit('notification.create', {
+        recipientId: inviteeId,
+        actor: inviter,
+        type: NotificationType.GROUP_INVITE, // Loại thông báo mới
+        // type: NotificationType.GROUP_INVITE_ACCEPTED, // Loại thông báo mới
+        link: `/groups/${group._id}`,
+        message: `${inviter.username} đã thêm bạn vào nhóm "${group.name}".`,
+      });
+
+      return { message: `Đã thêm ${invitee.username} vào nhóm.` };
+    }
+
+    // Xử lý cho NHÓM RIÊNG TƯ
+    // Kiểm tra xem đã có yêu cầu tham gia đang chờ xử lý chưa
+    const existingRequest = await this.joinRequestModel.findOne({
+      user: inviteeId,
+      group: groupId,
+    });
+    if (existingRequest) {
+      throw new ConflictException('Bạn đã gửi một lời mời cho người này rồi, đang chờ phê duyệt.');
+    }
+
+    // Tạo một yêu cầu tham gia mới
+    await new this.joinRequestModel({
+      user: inviteeId,
+      group: groupId,
+    }).save();
+
+    // Gửi thông báo cho chủ sở hữu nhóm
+    this.eventEmitter.emit('notification.create', {
+      recipientId: group.owner.toString(),
+      actor: inviter,
+      type: NotificationType.GROUP_INVITE, // Loại thông báo mới
+      link: `/groups/${group._id}/manage?tab=requests`, // Dẫn đến tab yêu cầu
+      message: `${inviter.username} đã mời ${invitee.username} tham gia nhóm "${group.name}".`,
+    });
+
+    return { message: 'Đã gửi lời mời. Yêu cầu cần được phê duyệt.' };
+  }
 }

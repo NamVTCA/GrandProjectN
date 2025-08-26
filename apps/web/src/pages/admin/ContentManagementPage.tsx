@@ -1,5 +1,6 @@
 // ContentManagementPage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../components/common/Toast/ToastContext';
 import type { ModeratedPost, ModeratedComment } from '../../features/admin/types/Moderation';
@@ -89,11 +90,20 @@ const ContentManagementPage: React.FC = () => {
               </div>
               <div className="report-meta">
                 <span className="report-type">{report.type}</span>
-                <span className="report-id">Reason: {report.reason}</span>
-                
+                {report.type === 'USER' ? (
+                  <Link to={`/admin/users/${report.targetId}`} className="report-link">
+                    Xem người dùng
+                  </Link>
+                ) : report.type === 'POST' ? (
+                  <Link to={`/posts/${report.targetId}`} className="report-link">
+                    Xem bài viết
+                  </Link>
+                ) : report.type === 'COMMENT' ? (
+                  <span className="report-link">Bình luận #{report.targetId}</span>
+                ) : null}
               </div>
-              <div className="report-content">
-                {/* <p>{report.reason}</p> */}
+              <div className="report-reason">
+                <p>Lý do: {report.reason}</p>
               </div>
             </div>
           ))}

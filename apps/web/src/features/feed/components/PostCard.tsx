@@ -241,6 +241,9 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
+  // Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   const isAuthor = user?._id === post.author?._id;
   const isAdmin = user?.globalRole === 'ADMIN';
   const currentUserReaction = user
@@ -312,6 +315,86 @@ const PostCard: React.FC<PostCardProps> = ({
     return "🌍";
   };
 
+  const renderMedia = (mediaUrls: string[]) => {
+    if (!mediaUrls || mediaUrls.length === 0) return null;
+
+    const firstMedia = mediaUrls[0];
+
+    return (
+      <div className="post-media">
+        {firstMedia.endsWith(".mp4") || firstMedia.includes("video") ? (
+          <video controls onClick={() => setLightboxIndex(0)}>
+            <source src={firstMedia} type="video/mp4" />
+            Trình duyệt không hỗ trợ video.
+          </video>
+        ) : (
+          <img
+            src={firstMedia}
+            alt="Media"
+            onClick={() => setLightboxIndex(0)}
+            onError={(e) =>
+              (e.currentTarget.src =
+                "https://placehold.co/600x400/242526/e4e6eb?text=Lỗi+tải+ảnh")
+            }
+          />
+        )}
+
+        {mediaUrls.length > 1 && (
+          <div
+            className="show-more-overlay"
+            onClick={() => setLightboxIndex(0)}
+          >
+            +{mediaUrls.length - 1}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderLightbox = (mediaUrls: string[]) => {
+    if (lightboxIndex === null) return null;
+
+    const currentMedia = mediaUrls[lightboxIndex];
+
+    return (
+      <div className="lightbox-overlay" onClick={() => setLightboxIndex(null)}>
+        <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+          <button className="lightbox-close" onClick={() => setLightboxIndex(null)}>✕</button>
+          {currentMedia.endsWith(".mp4") || currentMedia.includes("video") ? (
+            <video controls autoPlay>
+              <source src={currentMedia} type="video/mp4" />
+            </video>
+          ) : (
+            <img src={currentMedia} alt="Media" />
+          )}
+
+          {mediaUrls.length > 1 && (
+            <>
+              <button
+                className="lightbox-prev"
+                onClick={() =>
+                  setLightboxIndex(
+                    (lightboxIndex! - 1 + mediaUrls.length) % mediaUrls.length
+                  )
+                }
+              >
+                ‹
+              </button>
+              <button
+                className="lightbox-next"
+                onClick={() =>
+                  setLightboxIndex((lightboxIndex! + 1) % mediaUrls.length)
+                }
+              >
+                ›
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderOptionsMenu = () => {
     return (
       <div className="options-menu">
@@ -379,7 +462,7 @@ const PostCard: React.FC<PostCardProps> = ({
           </Link>
 
           <div className="post-options">
-            <div 
+            <div
               className="options-trigger"
               onClick={() => setShowOptionsMenu(!showOptionsMenu)}
             >
@@ -393,26 +476,10 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {p.content && <p className="post-content">{p.content}</p>}
         {p.mediaUrls && p.mediaUrls.length > 0 && (
-          <div className="post-media">
-            {p.mediaUrls.map((url) =>
-              url.endsWith(".mp4") || url.includes("video") ? (
-                <video key={url} controls>
-                  <source src={url} type="video/mp4" />
-                  Trình duyệt không hỗ trợ video.
-                </video>
-              ) : (
-                <img
-                  key={url}
-                  src={url}
-                  alt="Media"
-                  onError={(e) =>
-                    (e.currentTarget.src =
-                      "https://placehold.co/600x400/242526/e4e6eb?text=Lỗi+tải+ảnh")
-                  }
-                />
-              )
-            )}
-          </div>
+          <>
+            {renderMedia(p.mediaUrls)}
+            {renderLightbox(p.mediaUrls)}
+          </>
         )}
       </>
     );
@@ -490,8 +557,8 @@ const PostCard: React.FC<PostCardProps> = ({
           </button>
         </div>
 
-        <button 
-          className="action-button" 
+        <button
+          className="action-button"
           onClick={() => setShowComments(!showComments)}
         >
           <FaRegCommentAlt /> Bình luận
