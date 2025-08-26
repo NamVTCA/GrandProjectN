@@ -4,6 +4,7 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -27,7 +28,7 @@ import {
   GroupInvite,
   GroupInviteDocument,
 } from './schemas/group-invite.schema';
-import { UpdateGroupDto } from './dto/update-group.dto'
+import { UpdateGroupDto } from './dto/update-group.dto';
 
 @Injectable()
 export class GroupsService {
@@ -44,6 +45,25 @@ export class GroupsService {
     private groupInviteModel: Model<GroupInviteDocument>,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  // ========= Helpers =========
+  private oid(id: string | Types.ObjectId) {
+    return typeof id === 'string' ? new Types.ObjectId(id) : id;
+  }
+
+  /** Có quyền mời? -> là member & (role cao hoặc group cho phép member mời) */
+  private async canInvite(userId: Types.ObjectId, groupId: Types.ObjectId) {
+    const member = await this.groupMemberModel
+      .findOne({ group: groupId, user: userId })
+      .lean();
+    if (!member) return false;
+
+    const group = await this.groupModel.findById(groupId).lean();
+    const elevated = ['OWNER', 'ADMIN', 'MOD'].includes(member.role as any);
+    return elevated || !!(group as any)?.allowMemberInvite;
+  }
+
+  // ========= Groups =========
 
   async createGroup(
     owner: UserDocument,
@@ -66,47 +86,43 @@ export class GroupsService {
     return savedGroup;
   }
 
-    // ✅ [BỔ SUNG] HÀM CẬP NHẬT THÔNG TIN NHÓM
-async updateGroup(
-  groupId: string,
-  updateGroupDto: UpdateGroupDto,
-): Promise<Group> {
-  // Tạo một đối tượng để cập nhật
-  const updatePayload: any = { ...updateGroupDto };
+  // ✅ Cập nhật thông tin nhóm
+  async updateGroup(
+    groupId: string,
+    updateGroupDto: UpdateGroupDto,
+  ): Promise<Group> {
+    const updatePayload: any = { ...updateGroupDto };
+    if (updateGroupDto.interestIds) {
+      updatePayload.interests = updateGroupDto.interestIds;
+      delete updatePayload.interestIds;
+    }
 
-  // ✅ SỬA LỖI: Kiểm tra nếu 'interestIds' tồn tại trước khi gán
-  if (updateGroupDto.interestIds) {
-    updatePayload.interests = updateGroupDto.interestIds;
-    delete updatePayload.interestIds; // Xóa key cũ để tránh lỗi
+    const updatedGroup = await this.groupModel.findByIdAndUpdate(
+      groupId,
+      updatePayload,
+      { new: true },
+    );
+
+    if (!updatedGroup) {
+      throw new NotFoundException(`Không tìm thấy nhóm với ID: ${groupId}`);
+    }
+    return updatedGroup;
   }
 
-  const updatedGroup = await this.groupModel.findByIdAndUpdate(
-    groupId,
-    updatePayload,
-    { new: true },
-  );
-
-  if (!updatedGroup) {
-    throw new NotFoundException(`Không tìm thấy nhóm với ID: ${groupId}`);
-  }
-  return updatedGroup;
-}
-
-  // ✅ BỔ SUNG: HÀM CẬP NHẬT ẢNH (AVATAR HOẶC COVER)
+  // ✅ Cập nhật ảnh avatar/cover
   async updateGroupImage(
     groupId: string,
     filePath: string,
     imageType: 'avatar' | 'cover',
   ): Promise<Group> {
     const fieldToUpdate = imageType === 'avatar' ? 'avatar' : 'coverImage';
-    
-    // Chuyển đổi đường dẫn file để client có thể truy cập được
-    // Ví dụ: 'uploads\\groups\\avatars\\...' -> '/uploads/groups/avatars/...'
     const accessiblePath = filePath.replace(/\\/g, '/');
+    const normalized =
+      accessiblePath.startsWith('/') ? accessiblePath : `/${accessiblePath}`;
 
     const updatedGroup = await this.groupModel.findByIdAndUpdate(
       groupId,
-      { [fieldToUpdate]: accessiblePath },
+      { [fieldToUpdate]: normalized },
       { new: true },
     );
 
@@ -156,11 +172,8 @@ async updateGroup(
     return { message: 'Đã gửi yêu cầu tham gia nhóm. Vui lòng chờ phê duyệt.' };
   }
 
-    // ✅ BƯỚC 3: THÊM LOGIC LẤY BÀI ĐĂNG
+  // ✅ Lấy bài đăng trong nhóm
   async getPosts(groupId: string) {
-    // Tìm tất cả các bài đăng có trường `group` khớp với groupId
-    // Sắp xếp để bài mới nhất hiển thị trước
-    // Populate để lấy kèm thông tin chi tiết của tác giả
     return this.postModel
       .find({ group: new Types.ObjectId(groupId) })
       .sort({ createdAt: -1 })
@@ -183,11 +196,86 @@ async updateGroup(
     return this.findOneById(groupId);
   }
 
+  // ========= Invites (MỜI BẠN BÈ) =========
+
+  /**
+   * Danh sách bạn bè có thể mời (lọc theo search; loại thành viên hiện tại và invite PENDING)
+   * Giả định: User có field `friends: ObjectId[]`
+   */
+  async getInviteCandidates(
+    currentUser: UserDocument,
+    groupId: string,
+    search?: string,
+  ) {
+    const uid = this.oid(currentUser._id);
+    const gid = this.oid(groupId);
+
+    // Quyền mời
+    const can = await this.canInvite(uid, gid);
+    if (!can) throw new ForbiddenException('Bạn không có quyền mời vào nhóm này.');
+
+    // 1) danh sách bạn bè
+    const me = await this.userModel
+      .findById(uid)
+      .select('friends')
+      .lean<{ friends?: Types.ObjectId[] }>();
+    const friendIds = me?.friends ?? [];
+    if (friendIds.length === 0) return [];
+
+    // 2) user là member hiện tại
+    const members = await this.groupMemberModel
+      .find({ group: gid })
+      .select('user')
+      .lean();
+    const memberSet = new Set(members.map((m) => String(m.user)));
+
+    // 3) user đã có invite PENDING
+    const pendings = await this.groupInviteModel
+      .find({ group: gid, status: 'PENDING' })
+      .select('invitee')
+      .lean();
+    const pendingSet = new Set(pendings.map((p) => String(p.invitee)));
+
+    // 4) lọc
+    const filteredIds = friendIds.filter(
+      (id) => !memberSet.has(String(id)) && !pendingSet.has(String(id)),
+    );
+    if (filteredIds.length === 0) return [];
+
+    // 5) áp dụng search (username hoặc fullName)
+    const cond: any = { _id: { $in: filteredIds } };
+    if (search?.trim()) {
+      const kw = search.trim();
+      cond.$or = [
+        { username: { $regex: kw, $options: 'i' } },
+        { fullName: { $regex: kw, $options: 'i' } },
+      ];
+    }
+
+    const users = await this.userModel
+      .find(cond)
+      .select('_id username fullName avatar')
+      .limit(50)
+      .lean();
+
+    return users.map((u) => ({
+      id: String(u._id),
+      username: (u as any).username,
+      fullName: (u as any).fullName,
+      avatar: (u as any).avatar,
+    }));
+  }
+
+  /** Gửi 1 lời mời (giữ lại để dùng khi cần) — đã thêm check quyền + sửa link */
   async createInvite(
     groupId: string,
     inviter: UserDocument,
     inviteeId: string,
   ): Promise<GroupInvite> {
+    const gid = this.oid(groupId);
+    const can = await this.canInvite(inviter._id, gid);
+    if (!can) throw new ForbiddenException('Bạn không có quyền mời vào nhóm này.');
+
     const invitee = await this.userModel.findById(inviteeId);
     if (!invitee)
       throw new NotFoundException('Không tìm thấy người dùng bạn muốn mời.');
@@ -211,17 +299,172 @@ async updateGroup(
       group: groupId,
       inviter: inviter._id,
       invitee: inviteeId,
+      status: 'PENDING',
     }).save();
 
     this.eventEmitter.emit('notification.create', {
       recipientId: inviteeId,
       actor: inviter,
       type: NotificationType.GROUP_INVITE,
-      link: `/invites`,
+      link: `/notifications`,
+      metadata: { groupId, inviteId: savedInvite._id.toString() },
     });
 
     return savedInvite;
   }
+
+  /** Gửi nhiều lời mời 1 lần */
+  async createInvitesBatch(
+    groupId: string,
+    inviter: UserDocument,
+    inviteeIds: string[],
+  ): Promise<{ created: number; skipped: number; details: any[] }> {
+    const gid = this.oid(groupId);
+    const can = await this.canInvite(inviter._id, gid);
+    if (!can) throw new ForbiddenException('Bạn không có quyền mời vào nhóm này.');
+
+    const uniqueIds = Array.from(new Set(inviteeIds || [])).filter(Boolean);
+    if (uniqueIds.length === 0) {
+      throw new BadRequestException('Danh sách người được mời trống.');
+    }
+
+    const details: { inviteeId: string; status: 'CREATED' | 'SKIPPED'; reason?: string }[] = [];
+    let created = 0;
+
+    for (const inviteeId of uniqueIds) {
+      // skip nếu đã là member
+      const isMember = await this.groupMemberModel.findOne({
+        group: gid,
+        user: inviteeId,
+      });
+      if (isMember) {
+        details.push({ inviteeId, status: 'SKIPPED', reason: 'ALREADY_MEMBER' });
+        continue;
+      }
+
+      // skip nếu đã có PENDING
+      const exist = await this.groupInviteModel.findOne({
+        group: gid,
+        invitee: inviteeId,
+        status: 'PENDING',
+      });
+      if (exist) {
+        details.push({ inviteeId, status: 'SKIPPED', reason: 'ALREADY_INVITED' });
+        continue;
+      }
+
+      // tạo
+      const inv = await new this.groupInviteModel({
+        group: gid,
+        inviter: inviter._id,
+        invitee: this.oid(inviteeId),
+        status: 'PENDING',
+      }).save();
+      created++;
+      details.push({ inviteeId, status: 'CREATED' });
+
+      // thông báo realtime
+      this.eventEmitter.emit('notification.create', {
+        recipientId: inviteeId,
+        actor: inviter,
+        type: NotificationType.GROUP_INVITE,
+        link: `/notifications`,
+        metadata: { groupId, inviteId: inv._id.toString() },
+      });
+    }
+
+    return { created, skipped: uniqueIds.length - created, details };
+  }
+
+  /** Danh sách lời mời mình nhận */
+  async getMyInvites(
+    user: UserDocument,
+    status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELED' = 'PENDING',
+  ) {
+    const rows = await this.groupInviteModel
+      .find({ invitee: user._id, status })
+      .populate('inviter', 'username fullName avatar')
+      .populate('group', 'name avatar')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return rows.map((r) => ({
+      id: String(r._id),
+      status: r.status,
+      inviter: {
+        id: String((r as any).inviter?._id),
+        username: (r as any).inviter?.username,
+        fullName: (r as any).inviter?.fullName,
+        avatar: (r as any).inviter?.avatar,
+      },
+      group: {
+        id: String((r as any).group?._id),
+        name: (r as any).group?.name,
+        avatar: (r as any).group?.avatar,
+      },
+      createdAt: r['createdAt'],
+    }));
+  }
+
+  /** Chấp nhận lời mời */
+  async acceptInvite(inviteId: string, user: UserDocument) {
+    const inv = await this.groupInviteModel
+      .findById(inviteId)
+      .populate('group')
+      .lean<GroupInvite & { group: any }>();
+    if (!inv || String(inv.invitee) !== String(user._id) || inv.status !== 'PENDING') {
+      throw new BadRequestException('Lời mời không hợp lệ.');
+    }
+
+    // Nếu đã là member thì chỉ đổi trạng thái lời mời
+    const existed = await this.groupMemberModel.findOne({
+      group: inv.group._id,
+      user: user._id,
+    });
+    if (!existed) {
+      await new this.groupMemberModel({
+        group: inv.group._id,
+        user: user._id,
+        role: GroupRole.MEMBER,
+      }).save();
+    }
+
+    await this.groupInviteModel.findByIdAndUpdate(inviteId, { status: 'ACCEPTED' });
+
+    // Thông báo cho người mời
+    this.eventEmitter.emit('notification.create', {
+      recipientId: String(inv['inviter']),
+      actor: user,
+      type: NotificationType.GROUP_INVITE_ACCEPTED,
+      link: `/groups/${inv.group._id}`,
+      metadata: { groupId: String(inv.group._id), inviteId },
+    });
+
+    return { message: 'Bạn đã tham gia nhóm.' };
+  }
+
+  /** Từ chối lời mời */
+  async declineInvite(inviteId: string, user: UserDocument) {
+    const inv = await this.groupInviteModel.findById(inviteId).lean();
+    if (!inv || String(inv.invitee) !== String(user._id) || inv.status !== 'PENDING') {
+      throw new BadRequestException('Lời mời không hợp lệ.');
+    }
+
+    await this.groupInviteModel.findByIdAndUpdate(inviteId, { status: 'DECLINED' });
+
+    // Thông báo cho người mời
+    this.eventEmitter.emit('notification.create', {
+      recipientId: String(inv['inviter']),
+      actor: user,
+      type: NotificationType.GROUP_INVITE_DECLINED,
+      link: `/notifications`,
+      metadata: { groupId: String(inv.group), inviteId },
+    });
+
+    return { message: 'Bạn đã từ chối lời mời.' };
+  }
+
+  // ========= Khác =========
 
   async suggestGroups(user: UserDocument): Promise<Group[]> {
     const userMemberships = await this.groupMemberModel
@@ -305,18 +548,18 @@ async updateGroup(
       );
 
     await new this.groupMemberModel({
-      user: request.user._id,
-      group: request.group._id,
+      user: (request as any).user._id,
+      group: (request as any).group._id,
       role: GroupRole.MEMBER,
     }).save();
 
     await request.deleteOne();
 
     this.eventEmitter.emit('notification.create', {
-      recipientId: request.user._id.toString(),
+      recipientId: (request as any).user._id.toString(),
       actor: owner,
       type: NotificationType.GROUP_REQUEST_ACCEPTED,
-      link: `/groups/${request.group._id}`,
+      link: `/groups/${(request as any).group._id}`,
     });
 
     return { message: 'Đã chấp thuận thành viên.' };
@@ -332,7 +575,7 @@ async updateGroup(
     await request.deleteOne();
 
     this.eventEmitter.emit('notification.create', {
-      recipientId: request.user._id.toString(),
+      recipientId: (request as any).user._id.toString(),
       actor: owner,
       type: NotificationType.GROUP_REQUEST_REJECTED,
       link: null,
@@ -340,6 +583,7 @@ async updateGroup(
 
     return { message: 'Đã từ chối yêu cầu.' };
   }
+
   async addXpToMember(
     userId: string,
     groupId: string,
@@ -351,7 +595,6 @@ async updateGroup(
     );
   }
 
-  // --- HÀM MỚI (ĐÃ SỬA LỖI VÀ HOÀN THIỆN) ---
   async deleteGroup(
     groupId: string,
     user: UserDocument,
@@ -361,11 +604,8 @@ async updateGroup(
       throw new NotFoundException('Không tìm thấy nhóm.');
     }
 
-    // SỬA LỖI: Truy cập trực tiếp vào thuộc tính `globalRole` từ đối tượng `user`.
-    // TypeScript có thể không suy luận được kiểu phức tạp, nhưng chúng ta biết thuộc tính này tồn tại.
-    const userRole = user.globalRole;
+    const userRole = (user as any).globalRole;
 
-    // Kiểm tra quyền: phải là chủ nhóm hoặc Admin
     if (
       group.owner.toString() !== user._id.toString() &&
       userRole !== GlobalRole.ADMIN
@@ -373,33 +613,25 @@ async updateGroup(
       throw new UnauthorizedException('Bạn không có quyền xóa nhóm này.');
     }
 
-    // === Xóa toàn bộ dữ liệu liên quan ===
-
-    // 1. Tìm tất cả bài đăng trong nhóm
+    // Xóa các dữ liệu liên quan
     const postsInGroup = await this.postModel
       .find({ group: groupId })
       .select('_id')
       .exec();
     const postIds = postsInGroup.map((p) => p._id);
 
-    // 2. Xóa tất cả bình luận thuộc các bài đăng đó
     if (postIds.length > 0) {
       await this.commentModel.deleteMany({ post: { $in: postIds } });
     }
 
-    // 3. Xóa tất cả các bài đăng đó
     await this.postModel.deleteMany({ group: groupId });
-
-    // 4. Xóa tất cả các bản ghi thành viên của nhóm
     await this.groupMemberModel.deleteMany({ group: groupId });
-
-    // 5. Xóa nhóm
     await group.deleteOne();
 
     return { message: 'Đã xóa nhóm và tất cả dữ liệu liên quan thành công.' };
   }
 
-  // ✅ BỔ SUNG HÀM LẤY DANH SÁCH THÀNH VIÊN
+  // ✅ Lấy danh sách thành viên
   async getGroupMembers(groupId: string): Promise<GroupMember[]> {
     return this.groupMemberModel
       .find({ group: groupId })

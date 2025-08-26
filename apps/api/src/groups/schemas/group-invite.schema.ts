@@ -1,23 +1,29 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
-import { User } from '../../auth/schemas/user.schema';
-import { Group } from './group.schema';
+import { HydratedDocument, Schema as MSchema, Types } from 'mongoose';
 
-export type GroupInviteDocument = GroupInvite & Document;
+export type GroupInviteDocument = HydratedDocument<GroupInvite>;
 
-@Schema({ timestamps: true })
+export type GroupInviteStatus = 'PENDING'|'ACCEPTED'|'DECLINED'|'CANCELED';
+
+@Schema({ timestamps: true, collection: 'group_invites' })
 export class GroupInvite {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true })
-  group: Group; // Nhóm được mời
+  @Prop({ type: MSchema.Types.ObjectId, ref: 'Group', required: true })
+  group: Types.ObjectId;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  inviter: User; // Người mời
+  @Prop({ type: MSchema.Types.ObjectId, ref: 'User', required: true })
+  inviter: Types.ObjectId;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  invitee: User; // Người được mời
+  @Prop({ type: MSchema.Types.ObjectId, ref: 'User', required: true })
+  invitee: Types.ObjectId;
 
-  @Prop({ type: String, enum: ['PENDING', 'ACCEPTED', 'DECLINED'], default: 'PENDING' })
-  status: string;
+  @Prop({ type: String, enum: ['PENDING','ACCEPTED','DECLINED','CANCELED'], default: 'PENDING' })
+  status: GroupInviteStatus;
 }
 
 export const GroupInviteSchema = SchemaFactory.createForClass(GroupInvite);
+
+// 🔐 Index tránh trùng lời mời PENDING trong cùng group cho cùng invitee
+GroupInviteSchema.index(
+  { group: 1, invitee: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: 'PENDING' } }
+);

@@ -1,7 +1,14 @@
+// src/services/chat.ts
 import api from './api';
 
 const unwrap = (res: any) => res?.data ?? res;
 const pickRoom = (x: any) => x?.room ?? x?.data?.room ?? x;
+const uniqStr = (ids: (string | number)[]) => Array.from(new Set(ids.map((v) => String(v))));
+
+const rethrow = (fallbackMsg: string) => (err: any) => {
+  const msg = err?.response?.data?.message || err?.message || fallbackMsg;
+  throw new Error(msg);
+};
 
 // ---- Rooms ----
 export async function listRooms() {
@@ -33,48 +40,62 @@ export async function createDM(userId: string) {
 }
 
 export async function createGroup(name: string | undefined, memberIds: string[], avatarFile?: File | null) {
-  if (memberIds.length === 1 && !avatarFile) return createDM(memberIds[0]);
+  const ids = uniqStr(memberIds);
+  if (ids.length === 1 && !avatarFile) return createDM(ids[0]);
 
   // with avatar
   if (avatarFile) {
     const form = new FormData();
     if (name) form.append('name', name);
-    memberIds.forEach(id => form.append('memberIds', id));
+    ids.forEach(id => form.append('memberIds', id));
     form.append('avatar', avatarFile);
-    try { return pickRoom(unwrap(await api.post('/chat/rooms', form))); } catch {}
-    try { return pickRoom(unwrap(await api.post('/rooms', form))); } catch {}
+    try { return pickRoom(unwrap(await api.post('/chat/rooms', form, { headers: { 'Content-Type': 'multipart/form-data' } }))); } catch {}
+    try { return pickRoom(unwrap(await api.post('/rooms', form, { headers: { 'Content-Type': 'multipart/form-data' } }))); } catch {}
     throw new Error('createGroup(with avatar): no compatible endpoint');
   }
 
   // without avatar
-  try { return pickRoom(unwrap(await api.post('/chat/rooms', { name, memberIds }))); } catch {}
-  try { return pickRoom(unwrap(await api.post('/rooms', { name, memberIds }))); } catch {}
+  try { return pickRoom(unwrap(await api.post('/chat/rooms', { name, memberIds: ids }))); } catch {}
+  try { return pickRoom(unwrap(await api.post('/rooms', { name, memberIds: ids }))); } catch {}
   throw new Error('createGroup: no compatible endpoint');
 }
 
-// ---- Members mgmt ----
+// ---- Members ----
 export async function addRoomMembers(roomId: string, memberIds: string[]) {
-  try { return unwrap(await api.post(`/chat/rooms/${roomId}/members`, { memberIds })); } catch {}
-  try { return unwrap(await api.post(`/chat/rooms/${roomId}/add-members`, { memberIds })); } catch {}
-  try { return unwrap(await api.post(`/rooms/${roomId}/members`, { memberIds })); } catch {}
-  throw new Error('addRoomMembers: no compatible endpoint');
+  const ids = uniqStr(memberIds);
+  if (!ids.length) throw new Error('addRoomMembers: empty memberIds');
+
+  try {
+    const res = await api.post(`/chat/rooms/${roomId}/members`, { memberIds: ids });
+    return res.data?.room ?? res.data;
+  } catch (e) { /* fallthrough */ }
+
+  try {
+    const res = await api.post(`/rooms/${roomId}/members`, { memberIds: ids });
+    return res.data?.room ?? res.data;
+  } catch (e) {
+    rethrow('addRoomMembers failed')(e);
+  }
 }
 
 export async function kickRoomMember(roomId: string, userId: string) {
-  try { return unwrap(await api.delete(`/chat/rooms/${roomId}/members/${userId}`)); } catch {}
-  try { return unwrap(await api.post(`/chat/rooms/${roomId}/kick`, { userId })); } catch {}
-  try { return unwrap(await api.delete(`/rooms/${roomId}/members/${userId}`)); } catch {}
-  throw new Error('kickRoomMember: no compatible endpoint');
+  try { return unwrap(await api.delete(`/chat/rooms/${roomId}/members/${userId}`)); }
+  catch {} 
+  try { return unwrap(await api.post(`/chat/rooms/${roomId}/kick`, { userId })); }
+  catch {} 
+  try { return unwrap(await api.delete(`/rooms/${roomId}/members/${userId}`)); }
+  catch (e) { rethrow('kickRoomMember failed')(e); }
 }
 
 // ---- Room avatar ----
 export async function uploadRoomAvatar(roomId: string, file: File) {
   const form = new FormData();
   form.append('avatar', file);
-  try { return unwrap(await api.post(`/chat/rooms/${roomId}/avatar`, form)); } catch {}
-  try { return unwrap(await api.post(`/chat/rooms/${roomId}/upload-avatar`, form)); } catch {}
-  try { return unwrap(await api.post(`/rooms/${roomId}/avatar`, form)); } catch {}
-  throw new Error('uploadRoomAvatar: no compatible endpoint');
+  try { return unwrap(await api.post(`/chat/rooms/${roomId}/avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } })); } catch {}
+  try { return unwrap(await api.post(`/chat/rooms/${roomId}/upload-avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } })); } catch {}
+  try { return unwrap(await api.post(`/rooms/${roomId}/avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } })); } catch (e) {
+    rethrow('uploadRoomAvatar failed')(e);
+  }
 }
 
 // ---- Leave room ----

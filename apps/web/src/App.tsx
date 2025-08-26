@@ -66,20 +66,16 @@ const AppRoutes: React.FC = () => {
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/top-up" element={<TopUpPage />} />
+            <Route path="/profile/:username/edit" element={<EditProfileUser />} />
             <Route path="/profile/:username" element={<ProfilePageWithKey />} />
             <Route path="/user-reports/:userId" element={<UserReportsPage />} />
             <Route path="/admin/content-management" element={<ContentManagementPage />} />
-            <Route path="/profile/:username/edit" element={<EditProfileUser />} />
-            
-            {/* ================================================================== */}
-            {/* ✅ SỬA LỖI TẠI ĐÂY: Đảm bảo thứ tự các route như sau */}
-            {/* Route tĩnh (không có tham số) phải luôn nằm trên route động */}
-            {/* ================================================================== */}
+
+            {/* Nhóm Groups — route tĩnh trước route động */}
             <Route path="/groups" element={<GroupsPage />} />
-            <Route path="/groups/create" element={<CreateGroupPage />} /> {/* <-- PHẢI NẰM TRÊN */}
-            <Route path="/groups/:id" element={<GroupDetailPage />} />     {/* <-- NẰM DƯỚI */}
+            <Route path="/groups/create" element={<CreateGroupPage />} />
             <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
-            {/* ================================================================== */}
+            <Route path="/groups/:id" element={<GroupDetailPage />} />
 
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/chat-bot" element={<ChatPageBot />} />
@@ -89,6 +85,7 @@ const AppRoutes: React.FC = () => {
           </Route>
         </Route>
 
+        {/* === SEMI-PUBLIC === */}
         <Route path="/select-interests" element={<SelectInterestsPage />} />
 
         {/* === PUBLIC ROUTES === */}
@@ -101,14 +98,14 @@ const AppRoutes: React.FC = () => {
         </Route>
         <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-        {/* === FALLBACK ROUTE === */}
+        {/* === FALLBACK === */}
         <Route
           path="*"
           element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />}
         />
       </Routes>
 
-      {/* Toast Container for notifications */}
+      {/* Toasts */}
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -129,11 +126,7 @@ const App: React.FC = () => {
   const { isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="app-loading">
-        Đang tải ứng dụng...
-      </div>
-    );
+    return <div className="app-loading">Đang tải ứng dụng...</div>;
   }
 
   return <AppRoutes />;

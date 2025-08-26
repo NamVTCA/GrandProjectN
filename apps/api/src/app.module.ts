@@ -34,6 +34,7 @@ import { PresenceModule } from './presence/presence.module';
 import { SettingsModule } from './settings/settings.module';
 import { CoinPackagesModule } from './coin-packages/coin-packages.module';
 import { SearchModule } from './search/search.module';
+import { BlockModule } from './block/block.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { SearchModule } from './search/search.module';
     SettingsModule,
     CoinPackagesModule,
     SearchModule,
+    BlockModule,
   ],
   controllers: [AppController],
   providers: [AppService],

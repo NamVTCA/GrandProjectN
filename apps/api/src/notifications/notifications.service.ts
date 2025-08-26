@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { OnEvent } from '@nestjs/event-emitter'; // 1. Import OnEvent
+import { OnEvent } from '@nestjs/event-emitter';
 
 import {
   Notification,
@@ -11,6 +11,14 @@ import {
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import { NotificationsGateway } from './notifications.gateway';
 import { PresenceService } from '../presence/presence.service';
+
+type CreateNotificationEvent = {
+  recipientId: string;
+  actor?: UserDocument;                 // optional cho thông báo hệ thống
+  type: NotificationType;
+  link?: string | null;
+  metadata?: Record<string, any>;       // ⬅️ thêm để giữ groupId, inviteId,...
+};
 
 @Injectable()
 export class NotificationsService {
@@ -23,23 +31,26 @@ export class NotificationsService {
     private presenceService: PresenceService,
   ) {}
 
-  // Hàm createNotification của bạn đã rất tốt, giữ nguyên
+  // Tạo + push realtime
   async createNotification(
     recipient: UserDocument,
-    sender: UserDocument,
+    sender: UserDocument | null | undefined,  // ⬅️ cho phép optional
     type: NotificationType,
     link: string | null,
     metadata?: any,
   ) {
-    if (recipient._id.toString() === sender._id.toString()) return;
+    // Không gửi cho chính mình (nếu có sender)
+    if (sender && recipient._id.toString() === sender._id.toString()) return;
 
-    const notification = new this.notificationModel({
+    const payload: any = {
       recipient: recipient._id,
-      sender: sender._id,
       type,
       link,
       metadata,
-    });
+    };
+    if (sender) payload.sender = sender._id;
+
+    const notification = new this.notificationModel(payload);
 
     const savedNotification = await notification.save();
     const populatedNotification = await savedNotification.populate(
@@ -47,7 +58,7 @@ export class NotificationsService {
       'username avatar',
     );
 
-    // Gửi tín hiệu real-time
+    // Gửi realtime nếu online
     if (await this.presenceService.isUserOnline(recipient._id.toString())) {
       const socketId = this.presenceService.getSocketId(
         recipient._id.toString(),
@@ -80,45 +91,36 @@ export class NotificationsService {
       { new: true },
     );
   }
+
   async getAllNotification(recivedId: string) {
     const notifications = await this.notificationModel
       .find({ recipient: recivedId })
-      .sort({ createdAt: -1 }) // mới nhất lên đầu
-      .populate('sender', 'username avatar') // chỉ lấy username, avatar của người gửi
+      .sort({ createdAt: -1 })
+      .populate('sender', 'username avatar')
       .exec();
-
     return notifications;
   }
 
-  // ✅ THÊM HÀM NÀY VÀO
-  // Hàm này sẽ tự động chạy mỗi khi có sự kiện 'notification.create' được phát ra
-  // Hàm này sẽ tự động chạy mỗi khi có sự kiện 'notification.create'
+  // Lắng nghe sự kiện tạo thông báo từ các module khác
   @OnEvent('notification.create')
-  async handleNotificationCreateEvent(payload: {
-    recipientId: string;
-    actor: UserDocument;
-    type: NotificationType;
-    link?: string;
-  }) {
-    // 3. ✅ DÙNG ID ĐỂ TÌM KIẾM USER ĐẦY ĐỦ
+  async handleNotificationCreateEvent(payload: CreateNotificationEvent) {
     const recipient = await this.userModel.findById(payload.recipientId);
     if (!recipient) {
       console.error(
-        `Không tìm thấy người dùng nhận thông báo với ID: ${payload.recipientId}`,
+        `Không tìm thấy người nhận thông báo: ${payload.recipientId}`,
       );
-      return; // Dừng lại nếu không tìm thấy người nhận
+      return;
     }
 
-    // 4. ✅ TẠO THÔNG BÁO VỚI DỮ LIỆU ĐÃ ĐƯỢC CHUẨN HÓA
-    // Logic tạo và gửi real-time đã nằm trong hàm này nên không cần lặp lại
     await this.createNotification(
       recipient,
-      payload.actor,
+      payload.actor ?? null,                      // ⬅️ giữ nguyên actor nếu có
       payload.type,
-      payload.link || null,
+      payload.link ?? null,
+      payload.metadata ?? undefined,              // ⬅️ GHI metadata
     );
   }
-  // notifications.service.ts
+
   async deleteNotification(notificationId: string, userId: string) {
     return this.notificationModel.findOneAndDelete({
       _id: notificationId,

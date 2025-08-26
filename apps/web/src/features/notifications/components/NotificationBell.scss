@@ -44,3 +44,25 @@
     }
   }
 }
+/* Buttons for group invite actions */
+.notification-bell .notification-dropdown .notification-item .actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.notification-bell .notification-dropdown .notification-item .btn-accept {
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.notification-bell .notification-dropdown .notification-item .btn-decline {
+  background: transparent;
+  color: #9aa0a6;
+  border: 1px solid #3a3f44;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
