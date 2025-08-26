@@ -1,4 +1,3 @@
-// File: src/pages/ChatPage.tsx
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../services/api';
@@ -16,6 +15,7 @@ import type { PickableUser } from '../features/chat/components/CreateGroupModal'
 import CreateGroupModal from '../features/chat/components/CreateGroupModal';
 import GroupSettingsModal from '../features/chat/components/GroupSettingsModal';
 import { blockUser, unblockUser, getBlockStatus } from '../services/user';
+import { leaveRoom } from '../services/chat';
 import UnreadBadge from '../features/chat/components/UnreadBadge';
 import { useNavigate } from 'react-router-dom';
 
@@ -640,11 +640,17 @@ const ChatPage: React.FC = () => {
         {
           key: 'leave', label: 'Rời nhóm', danger: true,
           onClick: async () => {
+            if (!selectedRoom) return;
+            const ok = window.confirm('Bạn có chắc muốn rời nhóm này?');
+            if (!ok) return;
             try {
-              await api.delete(`/chat/rooms/${selectedRoom._id}/members/me`);
+              await leaveRoom(String(selectedRoom._id), String(myId || ''));
               setSelectedRoom(null);
               await fetchRooms();
-            } catch (e) { console.error('Leave group failed', e); }
+            } catch (e) {
+              console.error('Leave group failed', e);
+              alert('Rời nhóm thất bại. Vui lòng thử lại.');
+            }
           },
         },
       ];

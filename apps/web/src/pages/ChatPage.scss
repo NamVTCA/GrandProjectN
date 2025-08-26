@@ -238,11 +238,11 @@
 .kebab-menu__item,
 .kebab-menu__item:link,
 .kebab-menu__item:visited {
-  display: flex;                 /* full bề ngang & canh giữa */
+  display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 40px;              /* vùng chạm ≥ 40px */
+  min-height: 40px;
   padding: 10px 14px;
   background: transparent;
   border: 0;
@@ -251,7 +251,7 @@
   color: $text-light;
   font-size: 14px;
   line-height: 1.2;
-  text-decoration: none;         /* cho <a> */
+  text-decoration: none;
   cursor: pointer;
 }
 

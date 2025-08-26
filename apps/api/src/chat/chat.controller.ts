@@ -74,7 +74,7 @@ export class ChatController {
     return this.chatService.findMessagesInRoomForUser(user._id, chatroomId);
   }
 
-  // ---------- NEW: thêm thành viên ----------
+  // ---------- Thêm thành viên ----------
   @Post('rooms/:id/members')
   async addMembers(
     @GetUser() user: UserDocument,
@@ -84,7 +84,7 @@ export class ChatController {
     return this.chatService.addMembersToGroup(user, chatroomId, body.memberIds || []);
   }
 
-  // ---------- NEW: kick thành viên ----------
+  // ---------- Kick thành viên ----------
   @Delete('rooms/:id/members/:userId')
   async removeMember(
     @GetUser() user: UserDocument,
@@ -94,7 +94,25 @@ export class ChatController {
     return this.chatService.removeMemberFromGroup(user, chatroomId, targetUserId);
   }
 
-  // ---------- NEW: đổi avatar nhóm ----------
+  // ---------- RỜI NHÓM (member tự rời) ----------
+  @Delete('rooms/:id/members/me')
+  async leaveMyself(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+  ) {
+    return this.chatService.leaveRoom(user, chatroomId);
+  }
+
+  // Fallback để FE cũ / fallback khác vẫn dùng được
+  @Post('rooms/:id/leave')
+  async leaveCompat(
+    @GetUser() user: UserDocument,
+    @Param('id') chatroomId: string,
+  ) {
+    return this.chatService.leaveRoom(user, chatroomId);
+  }
+
+  // ---------- Đổi avatar nhóm ----------
   @Patch('rooms/:id/avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
