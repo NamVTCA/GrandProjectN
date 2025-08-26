@@ -17,7 +17,7 @@ const FriendsPage = () => {
 
   const fetchFriends = async () => {
     try {
-      const response = await axios.get(`http://192.168.20.107:8888/api/users/get/friends`, {
+      const response = await axios.get(`http://192.168.20.34:8888/api/users/get/friends`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFriends(response.data);
