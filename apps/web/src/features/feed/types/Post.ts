@@ -56,5 +56,7 @@ export interface Comment {
   content: string;
   author: Author;
   createdAt: string;
+  replyCount: number; // Đổi thành bắt buộc, mặc định là 0
+  parentComment?: string;
+  replies?: Comment[];
 }
-

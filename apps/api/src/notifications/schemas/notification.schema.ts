@@ -18,6 +18,7 @@ export enum NotificationType {
   GROUP_REQUEST_REJECTED = 'GROUP_REQUEST_REJECTED', // ✅ THÊM DÒNG NÀY
   GROUP_INVITE = 'GROUP_INVITE',
   POST_DELETED_BY_ADMIN = 'POST_DELETED_BY_ADMIN',
+  NEW_REPLY = 'NEW_REPLY',
 }
 
 @Schema({ timestamps: true })

@@ -5,6 +5,7 @@ import {
   CoinPackage,
   CoinPackageDocument,
 } from '../payments/schemas/coin-package.schema';
+import { CreateCoinPackageDto } from './dto/create-coin-package.dto';
 
 @Injectable()
 export class CoinPackagesService {
@@ -17,7 +18,7 @@ export class CoinPackagesService {
     return this.coinPackageModel.find().exec();
   }
 
-  async createCoinPackage(dto: CoinPackageDocument): Promise<CoinPackage> {
+  async createCoinPackage(dto: CreateCoinPackageDto): Promise<CoinPackage> {
     const newPackage = new this.coinPackageModel(dto);
     return await newPackage.save();
   }
