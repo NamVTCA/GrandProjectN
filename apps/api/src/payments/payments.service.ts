@@ -2,9 +2,10 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Order, OrderDocument, OrderStatus } from './schemas/order.schema';
 import { UserDocument } from '../auth/schemas/user.schema';
 import {
@@ -29,9 +30,8 @@ export class PaymentsService {
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY is not defined in configuration');
     }
-    // SỬA LỖI 1: Ép kiểu apiVersion để bỏ qua lỗi không tương thích của @types/stripe
     this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2024-06-20' as any,
+      apiVersion: '2024-06-20' as any, // Use 'as any' to bypass type checking
     });
   }
 
@@ -41,47 +41,88 @@ export class PaymentsService {
   ): Promise<{ orderId: string; clientSecret: string }> {
     const coinPackage = await this.coinPackageModel.findOne({ packageId });
     if (!coinPackage) {
-      throw new NotFoundException('Gói nạp không tồn tại.');
+      throw new NotFoundException('Coin package not found.');
     }
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: coinPackage.price,
-      currency: coinPackage.currency.toLowerCase(),
-      metadata: {
-        userId: user.id,
-        packageId: coinPackage.packageId,
-      },
-    });
+    // Convert price to cents (Stripe expects amounts in smallest currency unit)
+    const amountInCents = Math.round(coinPackage.price * 100);
 
-    // SỬA LỖI 2: Kiểm tra xem client_secret có tồn tại không
-    if (!paymentIntent.client_secret) {
+    try {
+      const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: coinPackage.currency.toLowerCase(),
+        metadata: {
+          userId: user._id.toString(),
+          packageId: coinPackage.packageId,
+        },
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      if (!paymentIntent.client_secret) {
+        throw new InternalServerErrorException(
+          'Failed to create payment intent.',
+        );
+      }
+
+      const newOrder = new this.orderModel({
+        user: user._id,
+        coinPackage: coinPackage._id,
+        amount: coinPackage.price,
+        status: OrderStatus.PENDING,
+        paymentIntentId: paymentIntent.id,
+      });
+
+      const savedOrder = await newOrder.save();
+
+      return {
+        orderId: (savedOrder._id as Types.ObjectId).toString(),
+        clientSecret: paymentIntent.client_secret,
+      };
+    } catch (error) {
       throw new InternalServerErrorException(
-        'Không thể tạo yêu cầu thanh toán từ Stripe.',
+        `Failed to create payment intent: ${error.message}`,
       );
     }
-
-    const newOrder = new this.orderModel({
-      user: user._id,
-      coinPackage: coinPackage._id,
-      amount: coinPackage.price,
-      status: OrderStatus.PENDING,
-      paymentIntentId: paymentIntent.id,
-    });
-
-    const savedOrder = await newOrder.save();
-
-    return {
-      orderId: savedOrder.id,
-      clientSecret: paymentIntent.client_secret, // Bây giờ client_secret chắc chắn là một chuỗi string
-    };
   }
 
-  async fulfillOrder(orderId: string): Promise<{ message: string }> {
+  async handleWebhookEvent(payload: Buffer, signature: string) {
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
+
+    if (!webhookSecret) {
+      throw new InternalServerErrorException('Webhook secret not configured');
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        webhookSecret,
+      );
+    } catch (err) {
+      throw new BadRequestException(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      await this.fulfillOrder(paymentIntent.id);
+    }
+
+    return { received: true };
+  }
+
+  async fulfillOrder(paymentIntentId: string): Promise<{ message: string }> {
     const order = await this.orderModel
-      .findById(orderId)
+      .findOne({ paymentIntentId })
       .populate('coinPackage');
+
     if (!order || order.status !== OrderStatus.PENDING) {
-      throw new NotFoundException('Đơn hàng không hợp lệ hoặc đã được xử lý.');
+      throw new NotFoundException('Invalid order or already processed.');
     }
 
     const coinPackage = order.coinPackage as CoinPackageDocument;
@@ -93,16 +134,15 @@ export class PaymentsService {
     );
 
     if (!updatedUser) {
-      throw new InternalServerErrorException(
-        'Không thể cập nhật số dư của người dùng.',
-      );
+      throw new InternalServerErrorException('Failed to update user balance.');
     }
 
     order.status = OrderStatus.COMPLETED;
     await order.save();
 
-    return { message: `Nạp thành công ${coinPackage.coinsAmount} coins!` };
+    return { message: `Successfully added ${coinPackage.coinsAmount} coins!` };
   }
+
   async createCoinPackage(dto: CoinPackageDocument): Promise<CoinPackage> {
     const newPackage = new this.coinPackageModel(dto);
     return await newPackage.save();

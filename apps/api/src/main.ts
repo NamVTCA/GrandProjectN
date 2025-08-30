@@ -10,7 +10,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new CustomLogger(),
   });
-
+  app.useGlobalPipes(new ValidationPipe());
+  
   // Cho phép truy cập file tĩnh (ảnh, video) - Dùng process.cwd() để trỏ đúng thư mục uploads gốc
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
@@ -18,10 +19,10 @@ async function bootstrap() {
 
   // CORS: chỉ cho phép front-end và bật credentials
   app.enableCors({
-    origin: 'http://localhost:5173',  // URL dev server Vite
+    origin: 'http://localhost:5173', // URL dev server Vite
     credentials: true,
-    methods: ['GET','POST','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Tiền tố API

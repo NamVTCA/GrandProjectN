@@ -28,6 +28,7 @@ export enum NotificationType {
   GROUP_INVITE_DECLINED = 'GROUP_INVITE_DECLINED',
 
   POST_DELETED_BY_ADMIN = 'POST_DELETED_BY_ADMIN',
+  NEW_REPLY = 'NEW_REPLY',
 }
 
 @Schema({ timestamps: true })

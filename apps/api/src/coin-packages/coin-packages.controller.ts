@@ -9,23 +9,22 @@ import {
 } from '@nestjs/common';
 import { CoinPackagesService } from './coin-packages.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  CoinPackage,
-  CoinPackageDocument,
-} from 'src/payments/schemas/coin-package.schema';
+import { CoinPackage } from 'src/payments/schemas/coin-package.schema';
+import { CreateCoinPackageDto } from './dto/create-coin-package.dto';
 
 @Controller('coin-packages')
 export class CoinPackagesController {
   constructor(private readonly coinPackagesService: CoinPackagesService) {}
 
-  @UseGuards(JwtAuthGuard)
+  // ✅ Public GET (không cần token)
   @Get()
   findAll() {
     return this.coinPackagesService.findAll();
   }
 
+  // ✅ Tạo package (có thể thêm guard nếu chỉ admin được tạo)
   @Post()
-  async create(@Body() dto: CoinPackageDocument): Promise<CoinPackage> {
+  async create(@Body() dto: CreateCoinPackageDto): Promise<CoinPackage> {
     return this.coinPackagesService.createCoinPackage(dto);
   }
 

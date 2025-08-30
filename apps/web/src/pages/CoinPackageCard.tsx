@@ -1,35 +1,36 @@
-// src/features/payments/components/CoinPackageCard.tsx
 import React from 'react';
 import './CoinPackageCard.scss';
-import { Coins } from 'lucide-react';
 
-interface Props {
-  coinAmount: number;
-  price: number; // đơn vị cents (VD: 10000 = 100.00)
+export interface CoinPackage {
+  _id: string;
+  packageId: string;
+  name: string;
+  coinsAmount: number;
+  price: number;
   currency: string;
-  onSelect: () => void;
-  highlight?: boolean;
 }
 
-const CoinPackageCard: React.FC<Props> = ({
-  coinAmount,
-  price,
-  currency,
-  onSelect,
-  highlight,
-}) => {
+interface CoinPackageCardProps {
+  coinPackage: CoinPackage;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+const CoinPackageCard: React.FC<CoinPackageCardProps> = ({ coinPackage, isSelected, onSelect }) => {
+  // ✅ Format giá theo currency
+  const formattedPrice = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: coinPackage.currency,
+  }).format(coinPackage.price);
+
   return (
-    <div className={`coin-package-card ${highlight ? 'highlight' : ''}`}>
-      <div className="coin-icon">
-        <Coins size={28} strokeWidth={2.5} />
-      </div>
+    <div className={`coin-package-card ${isSelected ? 'selected' : ''}`} onClick={onSelect}>
+      <div className="coin-icon">🪙</div>
       <div className="coin-info">
-        <h3>{coinAmount.toLocaleString()} Coins</h3>
-        <p className="price">
-          {(price / 100).toFixed(2)} {currency}
-        </p>
+        <h3>{coinPackage.coinsAmount} Coins</h3>
+        <div className="price">{formattedPrice}</div>
       </div>
-      <button onClick={onSelect}>Nạp ngay</button>
+      <button>Select</button>
     </div>
   );
 };

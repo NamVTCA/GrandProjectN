@@ -1,16 +1,21 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Headers,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
-import { CoinPackage, CoinPackageDocument } from './schemas/coin-package.schema';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  // --- ENDPOINT MỚI ĐỂ TẠO YÊU CẦU THANH TOÁN ---
   @UseGuards(JwtAuthGuard)
   @Post('create-payment-intent')
   createPaymentIntent(
@@ -23,11 +28,11 @@ export class PaymentsController {
     );
   }
 
-  // Endpoint này mô phỏng webhook được gọi bởi cổng thanh toán khi giao dịch thành công.
-  // Trong thực tế, nó cần được bảo vệ bằng secret key hoặc chữ ký từ webhook.
-  @Post('webhook/success')
-  handleSuccessfulPayment(@Body('orderId') orderId: string) {
-    return this.paymentsService.fulfillOrder(orderId);
+  @Post('webhook')
+  handleWebhook(
+    @Req() req: any,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    return this.paymentsService.handleWebhookEvent(req.rawBody, signature);
   }
- 
 }

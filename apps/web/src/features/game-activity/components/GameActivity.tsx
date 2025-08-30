@@ -19,8 +19,9 @@ const GameActivity: React.FC = () => {
 
     const delayDebounceFn = setTimeout(() => {
       setIsSearching(true);
-      api.get(`/game-activity/search?q=${searchTerm}`)
-        .then(res => setResults(res.data))
+      api
+        .get(`/game-activity/search?q=${searchTerm}`)
+        .then((res) => setResults(res.data))
         .catch(console.error)
         .finally(() => setIsSearching(false));
     }, 500);
@@ -35,7 +36,7 @@ const GameActivity: React.FC = () => {
       setResults([]);
       fetchUser(); // Cập nhật lại thông tin user để hiển thị game đang chơi
     } catch (error) {
-      console.error("Lỗi khi đặt trạng thái game:", error);
+      console.error('Lỗi khi đặt trạng thái game:', error);
     }
   };
 
@@ -45,19 +46,25 @@ const GameActivity: React.FC = () => {
       await api.post('/game-activity/playing', { gameId: null });
       fetchUser();
     } catch (error) {
-      console.error("Lỗi khi xóa trạng thái game:", error);
+      console.error('Lỗi khi xóa trạng thái game:', error);
     }
   };
 
   if (user?.currentGame) {
     return (
       <div className="currently-playing">
-        <img src={user.currentGame.boxArtUrl} alt={user.currentGame.name} />
+        {user.currentGame.boxArtUrl ? (
+          <img src={user.currentGame.boxArtUrl} alt={user.currentGame.name} />
+        ) : (
+          <div className="placeholder">No image</div>
+        )}
         <div className="game-info">
           <span>Đang chơi</span>
           <strong>{user.currentGame.name}</strong>
         </div>
-        <button onClick={handleClearPlaying} className="clear-btn">&times;</button>
+        <button onClick={handleClearPlaying} className="clear-btn">
+          &times;
+        </button>
       </div>
     );
   }
@@ -73,9 +80,20 @@ const GameActivity: React.FC = () => {
       {isSearching && <div className="search-result-item">Đang tìm...</div>}
       {results.length > 0 && (
         <div className="search-results">
-          {results.map(game => (
-            <div key={game.id} className="search-result-item" onClick={() => handleSetPlaying(game.id)}>
-              {game.cover && <img src={`https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover.image_id}.jpg`} alt={game.name} />}
+          {results.map((game) => (
+            <div
+              key={game.id}
+              className="search-result-item"
+              onClick={() => handleSetPlaying(game.id)}
+            >
+              {game.cover?.image_id ? (
+                <img
+                  src={`https://images.igdb.com/igdb/image/upload/t_cover_small/${game.cover.image_id}.jpg`}
+                  alt={game.name}
+                />
+              ) : (
+                <div className="placeholder">No image</div>
+              )}
               <span>{game.name}</span>
             </div>
           ))}

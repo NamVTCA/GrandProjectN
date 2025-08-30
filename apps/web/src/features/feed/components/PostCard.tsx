@@ -16,6 +16,7 @@ import {
   FaAngry,
   FaFlag,
   FaEdit,
+  FaReply,
 } from "react-icons/fa";
 import api from "../../../services/api";
 import { useAuth } from "../../auth/AuthContext";
@@ -23,6 +24,157 @@ import type { Post, Comment, ReactionType } from "../types/Post";
 import { ReactionTypes, PostVisibility } from "../types/Post";
 import UserAvatar from "../../../components/common/UserAvatar";
 import "./PostCard.scss";
+
+interface ReplyFormProps {
+  parentCommentId: string;
+  onSubmit: (content: string, parentCommentId: string) => void;
+  onCancel: () => void;
+  placeholder?: string;
+}
+
+const ReplyForm: React.FC<ReplyFormProps> = ({
+  parentCommentId,
+  onSubmit,
+  onCancel,
+  placeholder = "Viết trả lời..."
+}) => {
+  const [content, setContent] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (content.trim()) {
+      onSubmit(content, parentCommentId);
+      setContent("");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="reply-form">
+      <input
+        type="text"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={placeholder}
+        autoFocus
+      />
+      <div className="reply-actions">
+        <button type="submit">Gửi</button>
+        <button type="button" onClick={onCancel}>Hủy</button>
+      </div>
+    </form>
+  );
+};
+
+const CommentItem: React.FC<{
+  comment: Comment;
+  onDelete: (commentId: string) => void;
+  onReply: (parentCommentId: string, content: string) => void;
+  level?: number;
+}> = ({ comment, onDelete, onReply, level = 0 }) => {
+  const { user } = useAuth();
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replies, setReplies] = useState<Comment[]>([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+
+  const fetchReplies = async () => {
+    if (loadingReplies) return;
+    
+    setLoadingReplies(true);
+    try {
+      const response = await api.get(`/posts/comments/${comment._id}/replies`);
+      setReplies(response.data);
+    } catch (error) {
+      console.error("Lỗi khi tải trả lời:", error);
+    } finally {
+      setLoadingReplies(false);
+    }
+  };
+
+  const handleReplySubmit = async (content: string, parentCommentId: string) => {
+    try {
+      await api.post(`/posts/comments/${parentCommentId}/replies`, { content });
+      toast.success("Đã thêm trả lời");
+      setShowReplyForm(false);
+      await fetchReplies();
+    } catch (error) {
+      console.error("Lỗi khi gửi trả lời:", error);
+      toast.error("Không thể thêm trả lời");
+    }
+  };
+
+  return (
+    <div className={`comment ${level > 0 ? 'reply' : ''}`} style={{ marginLeft: level * 30 }}>
+      <UserAvatar
+        size={32}
+        src={
+          comment.author.avatarUrl ||
+          "https://placehold.co/32x32/242526/b0b3b8?text=..." ||
+          (comment.author as any)?.avatarUrl ||
+          (comment.author as any)?.avatar ||
+          (comment.author as any)?.avatar_url
+        }
+      />
+      <div className="comment-content">
+        <Link to={`/profile/${comment.author.username}`}>
+          <strong>{comment.author.username}</strong>
+        </Link>
+        <p>{comment.content}</p>
+        
+        <div className="comment-actions">
+          <button
+            className="reply-btn"
+            onClick={() => setShowReplyForm(!showReplyForm)}
+          >
+            <FaReply /> Trả lời
+          </button>
+          
+          {user?._id === comment.author._id && (
+            <button
+              className="comment-delete-button"
+              onClick={() => onDelete(comment._id)}
+              title="Xóa bình luận"
+            >
+              <FaTrash />
+            </button>
+          )}
+        </div>
+
+        {showReplyForm && (
+          <ReplyForm
+            parentCommentId={comment._id}
+            onSubmit={handleReplySubmit}
+            onCancel={() => setShowReplyForm(false)}
+            placeholder={`Trả lời ${comment.author.username}...`}
+          />
+        )}
+
+        {comment.replyCount > 0 && replies.length === 0 && (
+          <button 
+            className="view-replies-btn"
+            onClick={fetchReplies}
+            disabled={loadingReplies}
+          >
+            {loadingReplies ? 'Đang tải...' : `Xem ${comment.replyCount} trả lời`}
+          </button>
+        )}
+
+        {replies.length > 0 && (
+          <div className="replies">
+            {replies.map((reply) => (
+              <CommentItem
+                key={reply._id}
+                comment={reply}
+                onDelete={onDelete}
+                onReply={onReply}
+                level={level + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const CommentSection: React.FC<{
   postId: string;
@@ -68,6 +220,18 @@ const CommentSection: React.FC<{
     }
   };
 
+  const handleReplyComment = async (parentCommentId: string, content: string) => {
+    try {
+      await api.post(`/posts/comments/${parentCommentId}/replies`, { content });
+      await fetchComments();
+      onCommentAdded();
+      toast.success("Đã thêm trả lời");
+    } catch (error) {
+      console.error("Lỗi khi gửi trả lời:", error);
+      toast.error("Không thể thêm trả lời");
+    }
+  };
+
   const handleDeleteComment = async (commentId: string) => {
     try {
       await api.delete(`/posts/comments/${commentId}`);
@@ -96,33 +260,12 @@ const CommentSection: React.FC<{
       </form>
       <div className="comment-list">
         {comments.map((comment) => (
-          <div key={comment._id} className="comment">
-            <UserAvatar
-              size={32}
-              src={
-                comment.author.avatarUrl ||
-                "https://placehold.co/32x32/242526/b0b3b8?text=..." ||
-                (comment.author as any)?.avatarUrl ||
-                (comment.author as any)?.avatar ||
-                (comment.author as any)?.avatar_url
-              }
-            />
-            <div className="comment-content">
-              <Link to={`/profile/${comment.author.username}`}>
-                <strong>{comment.author.username}</strong>
-              </Link>
-              <p>{comment.content}</p>
-            </div>
-            {user?._id === comment.author._id && (
-              <button
-                className="comment-delete-button"
-                onClick={() => handleDeleteComment(comment._id)}
-                title="Xóa bình luận"
-              >
-                <FaTrash />
-              </button>
-            )}
-          </div>
+          <CommentItem
+            key={comment._id}
+            comment={comment}
+            onDelete={handleDeleteComment}
+            onReply={handleReplyComment}
+          />
         ))}
       </div>
     </div>
@@ -240,8 +383,6 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isReportModalOpen, setReportModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-
-  // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const isAuthor = user?._id === post.author?._id;
@@ -276,7 +417,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleCommentAddedWrapper = async () => {
     try {
-      const response = await api.get(`/posts/${post._id}`);
+      const response = await api.get(`/posts/${post._id}/comment-count`);
       setLocalCommentCount(response.data.commentCount);
       onCommentAdded(post._id);
     } catch (error) {
@@ -286,8 +427,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleCommentDeletedWrapper = async () => {
     try {
-      const response = await api.get(`/posts/${post._id}`);
-      setLocalCommentCount(response.data.commentCount);
+      setLocalCommentCount(prev => Math.max(0, prev - 1));
       onCommentDeleted(post._id);
     } catch (error) {
       console.error("Error updating comment count:", error);
@@ -317,7 +457,6 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const renderMedia = (mediaUrls: string[]) => {
     if (!mediaUrls || mediaUrls.length === 0) return null;
-
     const firstMedia = mediaUrls[0];
 
     return (
@@ -353,7 +492,6 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const renderLightbox = (mediaUrls: string[]) => {
     if (lightboxIndex === null) return null;
-
     const currentMedia = mediaUrls[lightboxIndex];
 
     return (
@@ -512,26 +650,18 @@ const PostCard: React.FC<PostCardProps> = ({
       </div>
 
       <div className="post-actions">
-        <div className="action-button reaction-container">
-          {showReactions && (
-            <div className="reaction-popup">
-              {Object.values(ReactionTypes).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    handleReact(type as ReactionType);
-                    setShowReactions(false);
-                  }}
-                  className="reaction-icon"
-                >
-                  {reactionDetails[type as ReactionType].icon}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="reaction-container">
           <button
-            className="main-action"
-            onClick={() => setShowReactions((prev) => !prev)}
+            className="action-button"
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setShowReactions(false)}
+            onClick={() => {
+              if (currentUserReaction) {
+                handleReact(currentUserReaction.type as ReactionType);
+              } else {
+                handleReact('LIKE');
+              }
+            }}
           >
             {currentUserReaction ? (
               <span
@@ -555,6 +685,25 @@ const PostCard: React.FC<PostCardProps> = ({
               </span>
             )}
           </button>
+          
+          {showReactions && (
+            <div 
+              className="reaction-popup"
+              onMouseEnter={() => setShowReactions(true)}
+              onMouseLeave={() => setShowReactions(false)}
+            >
+              {Object.values(ReactionTypes).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => handleReact(type as ReactionType)}
+                  className="reaction-icon"
+                  title={reactionDetails[type as ReactionType].text}
+                >
+                  {reactionDetails[type as ReactionType].icon}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <button

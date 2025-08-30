@@ -128,4 +128,29 @@ export class PostsController {
   ) {
     return this.postsService.updatePost(postId, user, updatePostDto);
   }
+  @UseGuards(JwtAuthGuard)
+  @Post('comments/:id/replies')
+  async replyComment(
+    @Param('id') parentCommentId: string,
+    @GetUser() user: UserDocument,
+    @Body() createCommentDto: CreateCommentDto,
+  ) {
+    return this.postsService.replyComment(
+      parentCommentId,
+      user,
+      createCommentDto,
+    );
+  }
+
+  @Get('comments/:id/replies')
+  async getCommentReplies(@Param('id') commentId: string) {
+    return this.postsService.getCommentReplies(commentId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/comment-count')
+  async getCommentCount(@Param('id') postId: string) {
+    const post = await this.postsService.findPostById(postId);
+    return { commentCount: post.commentCount };
+  }
 }
