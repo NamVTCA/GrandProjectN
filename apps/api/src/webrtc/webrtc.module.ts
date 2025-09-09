@@ -13,5 +13,6 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   providers: [WebRTCGateway, JwtService, ConfigService],
+  exports: [WebRTCGateway],
 })
 export class WebRTCModule {}

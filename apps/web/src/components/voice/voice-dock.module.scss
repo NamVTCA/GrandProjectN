@@ -1,0 +1,38 @@
+/* Khung video giữ tỉ lệ 16:9 và tránh reflow */
+.vdRatio {
+  position: relative;
+  border: 1px solid #2b2e37;
+  border-radius: 10px;
+  background: #0b0e13;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    display: block;
+    padding-top: 56.25%; // 16:9
+  }
+
+  > video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  &[data-show="0"] {
+    > video {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+  &[data-show="1"] {
+    > video {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.12s ease;
+    }
+  }
+}
