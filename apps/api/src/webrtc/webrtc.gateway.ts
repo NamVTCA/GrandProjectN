@@ -18,100 +18,96 @@ import { User, UserDocument } from '../auth/schemas/user.schema';
 @WebSocketGateway({ namespace: 'webrtc', cors: { origin: '*' } })
 export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  private logger: Logger = new Logger('WebRTCGateway');
+  private logger = new Logger('WebRTCGateway');
 
   constructor(
     private jwtService: JwtService,
-    private configService: ConfigService,
+    private config: ConfigService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
-  // --- Quản lý kết nối ---
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.headers.authorization?.split(' ')[1];
+      const bearer = client.handshake.headers.authorization;
+      const tokenFromHeader = bearer?.startsWith('Bearer ') ? bearer.slice(7) : bearer;
+      const tokenFromAuth = (client.handshake as any)?.auth?.token;
+      const tokenFromQuery = (client.handshake.query?.token as string) || undefined;
+      const token = tokenFromHeader || tokenFromAuth || tokenFromQuery;
       if (!token) throw new Error('No token provided');
-      
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get('JWT_SECRET'),
-      });
-      const user = await this.userModel.findById(payload.sub).select('username avatar');
-      if (!user) throw new Error('User not found');
 
-      client.data.user = user; // Gắn thông tin user vào socket
-      this.logger.log(`Client connected: ${user.username} (${client.id})`);
-    } catch (e) {
-      this.logger.error(`Authentication failed: ${e.message}`);
-      client.disconnect();
+      const payload = this.jwtService.verify(token, {
+        secret: this.config.get<string>('JWT_SECRET'),
+      });
+      const userId = (payload as any)?.sub || (payload as any)?.userId || (payload as any)?.id;
+
+      const u = await this.userModel
+        .findById(userId)
+        .select('username avatar avatarUrl profile.avatarUrl')
+        .lean();
+
+      if (!u) throw new Error('User not found');
+
+      const avatar =
+        (u as any)?.avatarUrl ||
+        (u as any)?.profile?.avatarUrl ||
+        (u as any)?.avatar ||
+        null;
+
+      client.data.user = { _id: String(userId), username: u.username, avatar };
+      this.logger.log(`Client connected: ${u.username} (${client.id})`);
+    } catch (e: any) {
+      this.logger.error(`Authentication failed: ${e?.message || e}`);
+      client.disconnect(true);
     }
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.data.user?.username || client.id}`);
+    const name = client.data?.user?.username || client.id;
+    this.logger.log(`Client disconnected: ${name}`);
   }
 
-  // --- Xử lý tín hiệu WebRTC ---
-
   @SubscribeMessage('join-call')
-  handleJoinCall(
-    @MessageBody() data: { roomId: string }, // **[SỬA]** Dùng roomId chung
-    @ConnectedSocket() client: Socket,
-  ) {
+  async handleJoinCall(@MessageBody() data: { roomId: string }, @ConnectedSocket() client: Socket) {
     const roomName = `call-${data.roomId}`;
-    client.join(roomName);
-    this.logger.log(`${client.data.user.username} joined call in room ${data.roomId}`);
 
-    // Thông báo cho những người khác trong phòng rằng có người mới tham gia
-    client.to(roomName).emit('user-joined', {
-      socketId: client.id,
-      user: client.data.user,
-    });
+    // sockets đang ở phòng (kèm user)
+    const sockets = await this.server.in(roomName).fetchSockets();
+    const existing = sockets
+      .filter((s) => s.id !== client.id)
+      .map((s) => ({ socketId: s.id, user: s.data.user }));
+
+    client.join(roomName);
+
+    client.emit('existing-participants', existing); // gửi cho người mới
+    client.to(roomName).emit('user-joined', { socketId: client.id, user: client.data.user }); // báo cho người cũ
+
+    this.logger.log(`${client.data.user.username} joined room ${data.roomId}`);
   }
 
   @SubscribeMessage('leave-call')
-  handleLeaveCall(
-    @MessageBody() data: { roomId: string }, // **[SỬA]** Dùng roomId chung
-    @ConnectedSocket() client: Socket,
-  ) {
+  handleLeaveCall(@MessageBody() data: { roomId: string }, @ConnectedSocket() client: Socket) {
     const roomName = `call-${data.roomId}`;
     client.to(roomName).emit('user-left', { socketId: client.id });
     client.leave(roomName);
-    this.logger.log(`${client.data.user.username} left call in room ${data.roomId}`);
+    this.logger.log(`${client.data?.user?.username || client.id} left room ${data.roomId}`);
   }
 
   @SubscribeMessage('offer')
-  handleOffer(
-    @MessageBody() data: { targetSocketId: string; sdp: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.logger.log(`Relaying offer from ${client.id} to ${data.targetSocketId}`);
-    // Gửi offer đến một client cụ thể
-    this.server.to(data.targetSocketId).emit('offer', {
-      fromSocketId: client.id,
-      sdp: data.sdp,
-    });
+  handleOffer(@MessageBody() d: { targetSocketId: string; sdp: any }, @ConnectedSocket() c: Socket) {
+    this.server.to(d.targetSocketId).emit('offer', { fromSocketId: c.id, sdp: d.sdp });
   }
-
   @SubscribeMessage('answer')
-  handleAnswer(
-    @MessageBody() data: { targetSocketId: string; sdp: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.logger.log(`Relaying answer from ${client.id} to ${data.targetSocketId}`);
-    this.server.to(data.targetSocketId).emit('answer', {
-      fromSocketId: client.id,
-      sdp: data.sdp,
-    });
+  handleAnswer(@MessageBody() d: { targetSocketId: string; sdp: any }, @ConnectedSocket() c: Socket) {
+    this.server.to(d.targetSocketId).emit('answer', { fromSocketId: c.id, sdp: d.sdp });
+  }
+  @SubscribeMessage('ice-candidate')
+  handleIce(@MessageBody() d: { targetSocketId: string; candidate: any }, @ConnectedSocket() c: Socket) {
+    this.server.to(d.targetSocketId).emit('ice-candidate', { fromSocketId: c.id, candidate: d.candidate });
   }
 
-  @SubscribeMessage('ice-candidate')
-  handleIceCandidate(
-    @MessageBody() data: { targetSocketId: string; candidate: any },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.server.to(data.targetSocketId).emit('ice-candidate', {
-      fromSocketId: client.id,
-      candidate: data.candidate,
-    });
+  @SubscribeMessage('screen-share')
+  handleScreen(@MessageBody() d: { roomId: string; on: boolean }, @ConnectedSocket() c: Socket) {
+    const room = `call-${d.roomId}`;
+    c.to(room).emit('screen-share', { socketId: c.id, on: d.on });
   }
 }

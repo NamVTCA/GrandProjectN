@@ -26,6 +26,12 @@ import { useTyping } from '../hooks/useTyping';
 // Presence
 import { usePresence } from '../hooks/usePresence';
 
+// ✅ Ảnh an toàn với fallback
+import SafeImg from '../components/SafeImg';
+
+// ✅ Voice dock (Discord-style voice + screen share)
+import VoiceDock from '../components/voice/VoiceDock';
+
 declare global {
   interface WindowEventMap {
     'open-dm': CustomEvent<{ userId: string; username?: string; avatar?: string }>;
@@ -34,6 +40,9 @@ declare global {
 }
 
 /* ================== Helpers ================== */
+const GROUP_FALLBACK = '/images/default-group.svg';
+const USER_FALLBACK  = '/images/default-user.svg';
+
 const getId = (x: any): string | null => {
   if (!x) return null;
   if (typeof x === 'string' || typeof x === 'number') return String(x);
@@ -174,6 +183,9 @@ const ChatPage: React.FC = () => {
 
   const [headerFlash, setHeaderFlash] = useState(false);
 
+  // ✅ Voice dock toggle
+  const [showVoice, setShowVoice] = useState(false);
+
   const myId = getMyIdFromAuth(user);
   const meUsername = (user as any)?.username || (user as any)?.name || 'Bạn';
   const isMe = (uid?: any) => !!uid && !!myId && String(uid) === String(myId);
@@ -282,10 +294,14 @@ const ChatPage: React.FC = () => {
   const getPeer = (room: TChatRoom): TChatParticipant | undefined =>
     room.members.find((m) => !isMe(getId((m as any).user) ?? undefined))?.user;
 
+  // ✅ Luôn trả avatar có fallback; không bao giờ để src=""
   const getRoomDetails = (room: TChatRoom) => {
     if (room.isGroupChat) {
-      const avatar = room.avatarUrl || room.avatar || '';
-      return { name: room.name || 'Nhóm chat', avatar: avatar ? publicUrl(avatar) : '/images/default-group.png' };
+      const raw = room.avatarUrl || room.avatar;
+      return {
+        name: room.name || 'Nhóm chat',
+        avatar: raw ? publicUrl(raw) : GROUP_FALLBACK,
+      };
     }
     const other = getPeer(room);
     const raw =
@@ -297,7 +313,7 @@ const ChatPage: React.FC = () => {
       (other as any)?.picture ||
       '';
     const name = (other as any)?.fullName || (other as any)?.username || 'Người dùng';
-    return { name, avatar: raw ? publicUrl(raw) : '/images/default-user.png' };
+    return { name, avatar: raw ? publicUrl(raw) : USER_FALLBACK };
   };
 
   /* ===== Unread cập nhật khi có message đến ===== */
@@ -628,7 +644,13 @@ const ChatPage: React.FC = () => {
         setRooms((prev) => (prev.some((r) => String(r._id) === String(roomFromRes._id)) ? prev : [roomFromRes, ...prev]));
         await handleSelectRoom(roomFromRes);
       }
-      await fetchRooms();
+
+      // Chỉ refetch nếu thấy dữ liệu còn thiếu (hiếm khi cần)
+      const needsPopulate =
+        roomFromRes.isGroupChat &&
+        (!Array.isArray(roomFromRes.members) || roomFromRes.members.length === 0);
+      if (needsPopulate) await fetchRooms();
+
     } catch (e) {
       console.error('Create group error', e);
       await fetchRooms();
@@ -648,12 +670,11 @@ const ChatPage: React.FC = () => {
     (!isGroup && !!blockStatus && (blockStatus.blockedByMe || blockStatus.blockedMe));
 
   // ======= Presence helpers + dot CSS =======
-  const { presence: pr } = { presence };
   const isOnline = useCallback((uid?: any) => {
     if (!uid) return false;
-    const s = pr[String(uid)];
+    const s = presence[String(uid)];
     return !!s?.online;
-  }, [pr]);
+  }, [presence]);
 
   const fmtLastSeen = (ts?: number) => {
     if (!ts) return 'Ngoại tuyến';
@@ -803,11 +824,11 @@ const ChatPage: React.FC = () => {
                 onClick={() => handleSelectRoom(room)}
               >
                 <div style={{ position: 'relative' }}>
-                  <img
-                    src={details.avatar}
-                    alt={details.name}
+                  <SafeImg
                     className="room-avatar"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = room.isGroupChat ? '/images/default-group.png' : '/images/default-user.png'; }}
+                    src={details.avatar}
+                    fallback={room.isGroupChat ? GROUP_FALLBACK : USER_FALLBACK}
+                    alt={details.name}
                   />
                   {(room.isGroupChat ? groupOnline : peerOnline) ? <span style={dotCSS} /> : null}
                 </div>
@@ -834,11 +855,11 @@ const ChatPage: React.FC = () => {
                 style={{ cursor: isGroup ? 'default' : 'pointer' }}
               >
                 <div style={{ position: 'relative' }}>
-                  <img
+                  <SafeImg
                     className="peer-avatar"
-                    src={headerInfo?.avatar || '/images/default-group.png'}
+                    src={headerInfo?.avatar}
+                    fallback={isGroup ? GROUP_FALLBACK : USER_FALLBACK}
                     alt={headerInfo?.name || ''}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/default-group.png'; }}
                   />
                   {(() => {
                     if (isGroup) {
@@ -883,7 +904,16 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="chat-actions">
+              <div className="chat-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {/* ✅ Nút bật/tắt voice dock cho phòng hiện tại */}
+                <button
+                  className="fab-btn"
+                  title="Voice (nói chuyện + share màn hình)"
+                  onClick={() => setShowVoice(v => !v)}
+                >
+                  {showVoice ? 'Ẩn Voice' : 'Voice'}
+                </button>
+
                 <button
                   ref={menuBtnRef}
                   className="fab-btn header-kebab"
@@ -962,6 +992,7 @@ const ChatPage: React.FC = () => {
               })}
             </div>
 
+            {/* ✅ Hiển thị người đang nhập */}
             <TypingIndicator typers={typers} />
 
             <form className="message-input-area" onSubmit={handleSendMessage}>
@@ -983,6 +1014,15 @@ const ChatPage: React.FC = () => {
           <div className="no-chat-selected"><p>Chọn một cuộc trò chuyện để bắt đầu</p></div>
         )}
       </div>
+
+      {/* ✅ Voice dock nổi: gắn theo phòng đang mở */}
+      {selectedRoom && showVoice && (
+        <VoiceDock
+          key={String(selectedRoom._id)}
+          roomId={String(selectedRoom._id)}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
 
       <CreateGroupModal
         open={openCreate}
