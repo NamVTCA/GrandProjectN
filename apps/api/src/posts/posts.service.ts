@@ -25,7 +25,8 @@ import { ReactToPostDto } from './dto/react-to-post.dto';
 import { RepostDto } from './dto/repost.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { UsersService } from 'src/users/users.service';
+// Thay dòng 28:
+import { UsersService } from '../users/users.service';
 import { GroupDocument } from '../groups/schemas/group.schema';
 @Injectable()
 export class PostsService {
@@ -530,7 +531,6 @@ export class PostsService {
     await savedComment.populate({ path: 'author', select: 'username avatar' });
     return savedComment;
   }
-
 
   // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY
   // ✅ HÀM DÀNH RIÊNG CHO TRANG NHÓM

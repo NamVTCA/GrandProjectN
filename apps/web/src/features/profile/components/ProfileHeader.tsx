@@ -11,7 +11,9 @@ import AvatarWithFrame from "../../../components/common/AvatarWithFrame";
 const ReportModal: React.FC<{
   onClose: () => void;
   onSubmit: (reason: string) => void;
-}> = ({ onClose, onSubmit }) => {
+  userId: string;
+  username: string;
+}> = ({ onClose, onSubmit, userId, username }) => {
   const [reason, setReason] = useState("");
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -20,10 +22,24 @@ const ReportModal: React.FC<{
         onClick={(e) => e.stopPropagation()}
       >
         <h3>🚩 Gửi báo cáo</h3>
+        
+        {/* Link to view the reported user's profile */}
+        <p className="report-link">
+          <a 
+            href={`/profile/${username}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Xem hồ sơ người dùng được báo cáo
+          </a>
+        </p>
+        
         <textarea
           placeholder="Nhập lý do bạn muốn báo cáo..."
           value={reason}
           onChange={(e) => setReason(e.target.value)}
+          rows={4}
         />
         <div className="modal-actions">
           <button onClick={onClose}>Hủy</button>
@@ -242,14 +258,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <ReportModal
           onClose={() => setReportModalOpen(false)}
           onSubmit={async (reason) => {
-            await api.post("/reports", {
-              type: "USER",
-              targetId: userProfile._id,
-              reason,
-            });
-            alert("✅ Cảm ơn bạn đã báo cáo người dùng này.");
-            setReportModalOpen(false);
+            try {
+              await api.post("/reports", {
+                type: "USER",
+                targetId: userProfile._id,
+                reason,
+              });
+              alert("✅ Cảm ơn bạn đã báo cáo người dùng này.");
+              setReportModalOpen(false);
+            } catch (error) {
+              console.error("Error submitting report:", error);
+              alert("❌ Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.");
+            }
           }}
+          userId={userProfile._id}
+          username={userProfile.username}
         />
       )}
     </header>

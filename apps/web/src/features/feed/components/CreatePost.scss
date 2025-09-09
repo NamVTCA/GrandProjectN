@@ -1,26 +1,16 @@
-// Giả sử bạn có các biến màu sắc và kích thước được định nghĩa sẵn
-// Ví dụ:
-// $primary-color: #3ea6ff;
-// $background-component: #242526;
-// $surface-color: #3a3b3c;
-// $text-light: #e4e6eb;
-// $text-secondary: #b0b3b8;
-// $border-radius-lg: 12px;
-// $border-radius-md: 8px;
-
 .create-post-card {
-  background-color: #242526; // $background-component;
-  border-radius: 12px; // $border-radius-lg;
+  background-color: #083b38;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 25px;
-  border: 1px solid #3a3b3c; // $surface-color;
+  border: 1px solid #0e4420;
 
   .card-header {
     display: flex;
     align-items: flex-start;
     gap: 15px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #3a3b3c; // $surface-color;
+    border-bottom: 1px solid #0e4420;
   }
 
   .user-avatar {
@@ -35,14 +25,14 @@
     background: transparent;
     border: none;
     resize: none;
-    color: #e4e6eb; // $text-light;
+    color: #d5e4c3;
     font-size: 18px;
     font-family: inherit;
     outline: none;
     padding-top: 10px;
     line-height: 1.5;
     &::placeholder {
-      color: #b0b3b8; // $text-secondary;
+      color: #a3b18a;
     }
   }
 
@@ -59,37 +49,37 @@
   }
 
   .action-btn {
-    background-color: #3a3b3c; // $surface-color;
-    color: #e4e6eb; // $text-light;
+    background-color: #0e4420;
+    color: #d5e4c3;
     border: none;
     padding: 8px 12px;
-    border-radius: 8px; // $border-radius-md;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: #4e4f50;
+      background-color: #1a5d48;
     }
   }
 
   .submit-btn {
-    background-color: #3ea6ff; // $primary-color;
-    color: white;
+    background-color: #c1cd78;
+    color: #0e4420;
     border: none;
     padding: 10px 20px;
-    border-radius: 8px; // $border-radius-md;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: #1a8cff;
+      background-color: #d5e4c3;
     }
 
     &:disabled {
-      background-color: #3a3b3c; // $surface-color;
-      color: #b0b3b8; // $text-secondary;
+      background-color: #0e4420;
+      color: #a3b18a;
       cursor: not-allowed;
     }
   }
@@ -97,13 +87,13 @@
   .media-preview {
     margin-top: 15px;
     padding-top: 15px;
-    border-top: 1px dashed #3a3b3c; // $surface-color;
+    border-top: 1px dashed #0e4420;
     
     p {
         font-size: 14px;
-        color: #b0b3b8; // $text-secondary;
+        color: #a3b18a;
         margin: 0 0 5px 0;
-        background-color: #3a3b3c;
+        background-color: #0e4420;
         padding: 5px 10px;
         border-radius: 4px;
     }
