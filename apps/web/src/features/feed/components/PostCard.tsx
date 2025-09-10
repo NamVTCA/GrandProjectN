@@ -286,12 +286,28 @@ const reactionDetails: {
 const ReportModal: React.FC<{
   onClose: () => void;
   onSubmit: (reason: string) => void;
-}> = ({ onClose, onSubmit }) => {
+  postId?: string;
+  userId?: string;
+}> = ({ onClose, onSubmit, postId, userId }) => {
   const [reason, setReason] = useState("");
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
         <h3>🚩 Gửi báo cáo</h3>
+        {postId && (
+          <p className="report-link">
+            <Link to={`/posts/${postId}`} target="_blank">
+              Xem bài viết được báo cáo
+            </Link>
+          </p>
+        )}
+        {userId && (
+          <p className="report-link">
+            <Link to={`/profile/${userId}`} target="_blank">
+              Xem hồ sơ người dùng
+            </Link>
+          </p>
+        )}
         <textarea
           placeholder="Nhập lý do bạn muốn báo cáo..."
           value={reason}
@@ -384,6 +400,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [reactionHoverTimeout, setReactionHoverTimeout] = useState<number | null>(null);
 
   const isAuthor = user?._id === post.author?._id;
   const isAdmin = user?.globalRole === 'ADMIN';
@@ -653,8 +670,28 @@ const PostCard: React.FC<PostCardProps> = ({
         <div className="reaction-container">
           <button
             className="action-button"
-            onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => setShowReactions(false)}
+            onMouseEnter={() => {
+              // Clear any existing timeout
+              if (reactionHoverTimeout) {
+                window.clearTimeout(reactionHoverTimeout);
+                setReactionHoverTimeout(null);
+              }
+              // Show reactions after a short delay
+              const timeout = window.setTimeout(() => {
+                setShowReactions(true);
+              }, 300);
+              setReactionHoverTimeout(timeout);
+            }}
+            onMouseLeave={() => {
+              // Hide reactions after a short delay
+              if (reactionHoverTimeout) {
+                window.clearTimeout(reactionHoverTimeout);
+              }
+              const timeout = window.setTimeout(() => {
+                setShowReactions(false);
+              }, 300);
+              setReactionHoverTimeout(timeout);
+            }}
             onClick={() => {
               if (currentUserReaction) {
                 handleReact(currentUserReaction.type as ReactionType);
@@ -689,13 +726,29 @@ const PostCard: React.FC<PostCardProps> = ({
           {showReactions && (
             <div 
               className="reaction-popup"
-              onMouseEnter={() => setShowReactions(true)}
-              onMouseLeave={() => setShowReactions(false)}
+              onMouseEnter={() => {
+                // Clear timeout when mouse enters the popup
+                if (reactionHoverTimeout) {
+                  window.clearTimeout(reactionHoverTimeout);
+                  setReactionHoverTimeout(null);
+                }
+                setShowReactions(true);
+              }}
+              onMouseLeave={() => {
+                // Hide reactions after a short delay
+                const timeout = window.setTimeout(() => {
+                  setShowReactions(false);
+                }, 300);
+                setReactionHoverTimeout(timeout);
+              }}
             >
               {Object.values(ReactionTypes).map((type) => (
                 <button
                   key={type}
-                  onClick={() => handleReact(type as ReactionType)}
+                  onClick={() => {
+                    handleReact(type as ReactionType);
+                    setShowReactions(false);
+                  }}
                   className="reaction-icon"
                   title={reactionDetails[type as ReactionType].text}
                 >
@@ -765,6 +818,7 @@ const PostCard: React.FC<PostCardProps> = ({
               console.error("Error submitting report:", error);
             }
           }}
+          postId={post._id}
         />
       )}
 
