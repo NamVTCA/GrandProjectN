@@ -14,6 +14,7 @@ export interface User {
   xp: number;
   coins: number;
   roles: ('user' | 'moderator' | 'admin')[];
+  hasSelectedInterests: boolean;
 }
 
 // Dựa trên post.schema.ts

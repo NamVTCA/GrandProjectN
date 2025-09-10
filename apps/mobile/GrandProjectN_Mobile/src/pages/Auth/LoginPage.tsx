@@ -4,8 +4,20 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../../features/auth/AuthContext';
 import { colors, spacing, typography } from '../../styles/theme';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const LoginPage = () => { // Chúng ta sẽ thêm navigation sau
+type AuthStackParamList = {
+    Login: undefined;
+    Register: undefined;
+};
+
+type LoginPageNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
+interface Props {
+    navigation: LoginPageNavigationProp;
+}
+
+const LoginPage: React.FC<Props> = ({ navigation }) => { // Chúng ta sẽ thêm navigation sau
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -55,7 +67,9 @@ const LoginPage = () => { // Chúng ta sẽ thêm navigation sau
           <Text style={styles.buttonText}>Đăng nhập</Text>
         )}
       </TouchableOpacity>
-      {/* Sẽ thêm nút đăng ký ở đây sau */}
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.linkText}>Chưa có tài khoản? Tạo ngay</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -66,6 +80,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: 'center',
     padding: spacing.large,
+  },
+    linkText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.large,
+    padding: spacing.small,
   },
   title: {
     ...typography.h1,
