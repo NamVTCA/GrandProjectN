@@ -1,21 +1,17 @@
+// src/App.tsx
+
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { AuthProvider } from './features/auth/AuthContext';
+import AppNavigator from './navigation/AppNavigator';
 
 const App = () => {
   return (
-    <View style={styles.container}>
-      <Text style={{ color: 'white' }}>Chào mừng đến với GrandProjectN!</Text>
-    </View>
+    <AuthProvider>
+      <AppNavigator />
+      <StatusBar style="light" />
+    </AuthProvider>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#111',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 export default App;
