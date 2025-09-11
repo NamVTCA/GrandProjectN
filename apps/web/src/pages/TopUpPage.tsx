@@ -39,7 +39,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!stripe || !elements) {
       return;
     }
@@ -48,20 +48,26 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
     setError(null);
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Bạn cần đăng nhập để thực hiện thanh toán.");
+      }
+
       // Create payment intent
       const response = await fetch(`${API_BASE_URL}/payments/create-payment-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           packageId: selectedPackage.packageId,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to create payment intent');
       }
 
@@ -71,17 +77,34 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)!,
-          billing_details: {
-            // You can add user billing details here
-          },
+          billing_details: {},
         },
       });
 
       if (result.error) {
         setError(result.error.message || 'Payment failed');
-      } else {
-        // Payment succeeded
+      } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+        // Payment succeeded, now call the backend to fulfill the order
+        const fulfillResponse = await fetch(`${API_BASE_URL}/payments/fulfill-payment`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            paymentIntentId: result.paymentIntent.id,
+          }),
+        });
+
+        if (!fulfillResponse.ok) {
+          const errorData = await fulfillResponse.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to fulfill order');
+        }
+
         onSuccess();
+      } else {
+        setError('Payment did not succeed.');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during payment');
@@ -114,7 +137,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
           Cancel
         </button>
         <button type="submit" disabled={!stripe || processing}>
-          {processing ? 'Processing...' : `Pay $${selectedPackage.price}`}
+          {processing ? 'Processing...' : `Pay ₫${selectedPackage.price}`}
         </button>
       </div>
     </form>
@@ -135,12 +158,14 @@ const TopUpPage: React.FC = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/coin-packages`);
-      
+      const response = await fetch(`${API_BASE_URL}/coin-packages`, {
+        credentials: 'include',
+      });
+
       if (!response.ok) {
         throw new Error('Failed to fetch packages');
       }
-      
+
       const data: CoinPackage[] = await response.json();
       setPackages(data);
     } catch (error: any) {
@@ -194,15 +219,15 @@ const TopUpPage: React.FC = () => {
   return (
     <div className="topup-page">
       <h2>Buy Coins</h2>
-      
+
       <div className="coin-packages-grid">
         {packages.map((pkg) => (
-         <CoinPackageCard
-           key={pkg._id}
-           coinPackage={pkg}
-           isSelected={selectedPackage !== null && selectedPackage._id === pkg._id}
-           onSelect={() => handlePackageSelect(pkg)}
-         />
+          <CoinPackageCard
+            key={pkg._id}
+            coinPackage={pkg}
+            isSelected={selectedPackage !== null && selectedPackage._id === pkg._id}
+            onSelect={() => handlePackageSelect(pkg)}
+          />
         ))}
       </div>
 

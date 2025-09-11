@@ -11,6 +11,7 @@ import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
+import { DeleteResult } from 'mongoose';
 
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
@@ -52,7 +53,9 @@ export class NotificationsController {
   }
 
   @Delete('/clear')
-  async clearAllNotifications(@GetUser() user: UserDocument) {
+  async clearAllNotifications(
+    @GetUser() user: UserDocument,
+  ): Promise<DeleteResult> {
     return this.notificationsService.clearAllNotifications(user._id.toString());
   }
 }

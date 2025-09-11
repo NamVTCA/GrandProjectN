@@ -39,6 +39,8 @@ import TopUpPage from './pages/TopUpPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import BannedPage from './pages/BannedPage';
+import FriendsListPage from './pages/FriendsListPage';
+import AdminTransactionsPage from './pages/admin/admin-transactions';
 
 // Wrapper để force remount ProfilePage
 const ProfilePageWithKey: React.FC = () => {
@@ -58,6 +60,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/admin/users" element={<UserManagementPage />} />
             <Route path="/admin/content" element={<ContentManagementPage />} />
+            <Route path="/admin/transactions" element={<AdminTransactionsPage />} /> {/* BỔ SUNG */}
           </Route>
         </Route>
 
@@ -76,7 +79,18 @@ const AppRoutes: React.FC = () => {
             <Route path="/groups/create" element={<CreateGroupPage />} />
             <Route path="/groups/:id/manage" element={<GroupManagementPage />} />
             <Route path="/groups/:id" element={<GroupDetailPage />} />
-
+            <Route
+              path="/chat"
+              element={
+                <ChatPage />
+              }
+            />
+            <Route
+              path="/friends"
+              element={
+                <FriendsListPage />
+              }
+            />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/chat-bot" element={<ChatPageBot />} />
             <Route path="/shop" element={<ShopPage />} />
