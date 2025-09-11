@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 import './TopUpPage.scss';
 import CoinPackageCard from './CoinPackageCard';
 
-// Define types
 interface CoinPackage {
   _id: string;
   packageId: string;
@@ -16,21 +17,25 @@ interface CoinPackage {
 
 interface CheckoutFormProps {
   selectedPackage: CoinPackage;
-  onSuccess: () => void;
+  onSuccess: (orderId: string) => void;
   onCancel: () => void;
 }
 
 interface PaymentIntentResponse {
   clientSecret: string;
+}
+
+interface FulfillPaymentResponse {
+  message: string;
   orderId: string;
 }
 
-// Load Stripe with the publishable key from environment variables
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888/api';
 
-// ✅ Define API base URL safely
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8888/api";
-
+/* -------------------------------------------------------
+   Form thanh toán
+------------------------------------------------------- */
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -39,41 +44,28 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
+    if (!stripe || !elements) return;
 
     setProcessing(true);
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Bạn cần đăng nhập để thực hiện thanh toán.");
-      }
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Bạn cần đăng nhập để thực hiện thanh toán.');
 
-      // Create payment intent
       const response = await fetch(`${API_BASE_URL}/payments/create-payment-intent`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         credentials: 'include',
-        body: JSON.stringify({
-          packageId: selectedPackage.packageId,
-        }),
+        body: JSON.stringify({ packageId: selectedPackage.packageId }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to create payment intent');
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || 'Lỗi khi tạo yêu cầu thanh toán.');
       }
 
-      const { clientSecret, orderId }: PaymentIntentResponse = await response.json();
-
-      // Confirm card payment
+      const { clientSecret }: PaymentIntentResponse = await response.json();
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)!,
@@ -82,32 +74,28 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
       });
 
       if (result.error) {
-        setError(result.error.message || 'Payment failed');
+        setError(result.error.message || 'Thanh toán thất bại');
       } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-        // Payment succeeded, now call the backend to fulfill the order
-        const fulfillResponse = await fetch(`${API_BASE_URL}/payments/fulfill-payment`, {
+        const fulfillRes = await fetch(`${API_BASE_URL}/payments/fulfill-payment`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           credentials: 'include',
-          body: JSON.stringify({
-            paymentIntentId: result.paymentIntent.id,
-          }),
+          body: JSON.stringify({ paymentIntentId: result.paymentIntent.id }),
         });
 
-        if (!fulfillResponse.ok) {
-          const errorData = await fulfillResponse.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to fulfill order');
+        if (!fulfillRes.ok) {
+          const errData = await fulfillRes.json().catch(() => ({}));
+          throw new Error(errData.message || 'Lỗi khi hoàn tất đơn hàng.');
         }
 
-        onSuccess();
+        const fulfillData: FulfillPaymentResponse = await fulfillRes.json();
+        onSuccess(fulfillData.orderId);
       } else {
-        setError('Payment did not succeed.');
+        setError('Thanh toán không thành công.');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during payment');
+      setError(err.message || 'Đã xảy ra lỗi trong quá trình thanh toán.');
+      toast.error(err.message || 'Đã xảy ra lỗi trong quá trình thanh toán.');
     } finally {
       setProcessing(false);
     }
@@ -115,7 +103,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
 
   return (
     <form onSubmit={handleSubmit} className="payment-form">
-      <h3>Payment Details</h3>
+      <h3>Thông tin thanh toán</h3>
       <div className="card-element-container">
         <CardElement
           options={{
@@ -123,9 +111,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
               base: {
                 fontSize: '16px',
                 color: '#424770',
-                '::placeholder': {
-                  color: '#aab7c4',
-                },
+                '::placeholder': { color: '#aab7c4' },
               },
             },
           }}
@@ -134,20 +120,50 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
       {error && <div className="error-message">{error}</div>}
       <div className="button-group">
         <button type="button" onClick={onCancel} disabled={processing}>
-          Cancel
+          Hủy
         </button>
         <button type="submit" disabled={!stripe || processing}>
-          {processing ? 'Processing...' : `Pay ₫${selectedPackage.price}`}
+          {processing ? 'Đang xử lý...' : `Thanh toán $${selectedPackage.price}`}
         </button>
       </div>
     </form>
   );
 };
 
+/* -------------------------------------------------------
+   Component hiển thị thành công
+------------------------------------------------------- */
+interface TopUpSuccessProps {
+  lastOrderId: string | null;
+  onDownloadReceipt: () => void;
+  onBuyMore: () => void;
+}
+
+const TopUpSuccess: React.FC<TopUpSuccessProps> = ({ lastOrderId, onDownloadReceipt, onBuyMore }) => (
+  <div className="topup-page payment-success-message">
+    <h2>Thanh toán thành công!</h2>
+    <p>Coin đã được thêm vào tài khoản của bạn.</p>
+    <div className="button-group">
+      {lastOrderId && (
+        <button onClick={onDownloadReceipt} className="download-button">
+          Tải Hóa đơn (PDF)
+        </button>
+      )}
+      <button onClick={onBuyMore} className="buy-more-button">
+        Mua thêm Coin
+      </button>
+    </div>
+  </div>
+);
+
+/* -------------------------------------------------------
+   Trang TopUpPage
+------------------------------------------------------- */
 const TopUpPage: React.FC = () => {
   const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<CoinPackage | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,19 +174,12 @@ const TopUpPage: React.FC = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/coin-packages`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch packages');
-      }
-
-      const data: CoinPackage[] = await response.json();
+      const res = await fetch(`${API_BASE_URL}/coin-packages`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Lỗi khi tải các gói coin.');
+      const data: CoinPackage[] = await res.json();
       setPackages(data);
-    } catch (error: any) {
-      console.error('Failed to fetch packages:', error);
-      setError(error.message);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -179,19 +188,48 @@ const TopUpPage: React.FC = () => {
   const handlePackageSelect = (pkg: CoinPackage) => {
     setSelectedPackage(pkg);
     setPaymentSuccess(false);
+    setLastOrderId(null);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (orderId: string) => {
     setPaymentSuccess(true);
+    setLastOrderId(orderId);
     setSelectedPackage(null);
-    // You might want to refresh user coin balance here
+    toast.success('Thanh toán thành công! Coin đã được thêm vào tài khoản của bạn.');
+  };
+
+  const handleDownloadReceipt = async () => {
+    if (!lastOrderId) return toast.error('Không tìm thấy ID hóa đơn để tải.');
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Vui lòng đăng nhập lại.');
+
+      const res = await axios.get(`${API_BASE_URL}/payments/receipt/${lastOrderId}`, {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt-${lastOrderId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Hóa đơn đang được tải về!');
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi tải hóa đơn.');
+    }
   };
 
   if (loading) {
     return (
       <div className="topup-page">
-        <h2>Buy Coins</h2>
-        <div className="loading">Loading packages...</div>
+        <h2>Mua Coin</h2>
+        <div className="loading">Đang tải các gói coin...</div>
       </div>
     );
   }
@@ -199,33 +237,33 @@ const TopUpPage: React.FC = () => {
   if (error) {
     return (
       <div className="topup-page">
-        <h2>Buy Coins</h2>
-        <div className="error-message">Error: {error}</div>
-        <button onClick={fetchPackages}>Try Again</button>
+        <h2>Mua Coin</h2>
+        <div className="error-message">Lỗi: {error}</div>
+        <button onClick={fetchPackages}>Thử lại</button>
       </div>
     );
   }
 
   if (paymentSuccess) {
     return (
-      <div className="topup-page">
-        <h2>Payment Successful!</h2>
-        <p>Your coins have been added to your account.</p>
-        <button onClick={() => setPaymentSuccess(false)}>Buy More Coins</button>
-      </div>
+      <TopUpSuccess
+        lastOrderId={lastOrderId}
+        onDownloadReceipt={handleDownloadReceipt}
+        onBuyMore={() => setPaymentSuccess(false)}
+      />
     );
   }
 
   return (
     <div className="topup-page">
-      <h2>Buy Coins</h2>
+      <h2>Mua Coin</h2>
 
       <div className="coin-packages-grid">
         {packages.map((pkg) => (
           <CoinPackageCard
             key={pkg._id}
             coinPackage={pkg}
-            isSelected={selectedPackage !== null && selectedPackage._id === pkg._id}
+            isSelected={selectedPackage?._id === pkg._id}
             onSelect={() => handlePackageSelect(pkg)}
           />
         ))}
