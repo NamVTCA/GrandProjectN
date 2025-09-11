@@ -17,7 +17,12 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       const response = await api.post('/auth/login', { email, password });
-      login(response.data.accessToken);
+
+      // ✅ lưu token vào AuthContext + localStorage (key thống nhất: "token")
+      const token = response.data.accessToken;
+      login(token);
+      localStorage.setItem('token', token);
+
       toast.success('Đăng nhập thành công');
       navigate('/');
     } catch (err: any) {
@@ -29,15 +34,35 @@ const LoginPage: React.FC = () => {
     <>
       <h2>Đăng nhập</h2>
       <form onSubmit={handleSubmit}>
-        <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <Input type="password" placeholder="Mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <Input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Input
+          type="password"
+          placeholder="Mật khẩu"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         <Button type="submit">Đăng nhập</Button>
       </form>
       <div className="form-footer">
-        <Link to="/forgot-password" className="link">Quên mật khẩu?</Link>
-        <span>Chưa có tài khoản? <Link to="/register" className="link">Đăng ký ngay</Link></span>
+        <Link to="/forgot-password" className="link">
+          Quên mật khẩu?
+        </Link>
+        <span>
+          Chưa có tài khoản?{' '}
+          <Link to="/register" className="link">
+            Đăng ký ngay
+          </Link>
+        </span>
       </div>
     </>
   );
 };
-export default LoginPage; 
+
+export default LoginPage;
