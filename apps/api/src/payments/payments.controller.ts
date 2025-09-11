@@ -23,7 +23,6 @@ import { Response } from 'express'; // Import Response from express
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
-
   @UseGuards(JwtAuthGuard)
   @Post('create-payment-intent')
   createPaymentIntent(
@@ -39,7 +38,13 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Patch('fulfill-payment')
   async fulfillPayment(@Body() fulfillPaymentDto: FulfillPaymentDto) {
-    return this.paymentsService.fulfillOrder(fulfillPaymentDto.paymentIntentId);
+    const result = await this.paymentsService.fulfillOrder(
+      fulfillPaymentDto.paymentIntentId,
+    );
+    return {
+      message: result.message,
+      orderId: result.orderId, // Thêm orderId vào phản hồi
+    };
   }
 
   @UseGuards(JwtAuthGuard)

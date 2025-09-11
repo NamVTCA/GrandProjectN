@@ -121,8 +121,9 @@ export class PaymentsService {
 
     return { received: true };
   }
-
-  async fulfillOrder(paymentIntentId: string): Promise<{ message: string }> {
+  async fulfillOrder(
+    paymentIntentId: string,
+  ): Promise<{ message: string; orderId: string }> {
     const paymentIntent =
       await this.stripe.paymentIntents.retrieve(paymentIntentId);
 
@@ -142,24 +143,17 @@ export class PaymentsService {
     const coinPackage = order.coinPackage as CoinPackageDocument;
     const user = order.user as UserDocument;
 
-    // Update user coins
-    const updatedUser = await this.userModel.findByIdAndUpdate(
+    await this.userModel.findByIdAndUpdate(
       order.user,
       { $inc: { coins: coinPackage.coinsAmount } },
       { new: true },
     );
 
-    if (!updatedUser) {
-      throw new InternalServerErrorException('Failed to update user balance.');
-    }
-
     order.status = OrderStatus.COMPLETED;
     await order.save();
 
-    // Generate PDF receipt
     const pdfPath = await this.generateReceiptPDF(order, user, coinPackage);
 
-    // Emit notification event
     this.eventEmitter.emit('notification.create', {
       recipientId: user._id.toString(),
       type: 'PAYMENT_SUCCESS',
@@ -168,11 +162,14 @@ export class PaymentsService {
         orderId: order._id,
         amount: coinPackage.price,
         coins: coinPackage.coinsAmount,
-        pdfPath: pdfPath,
+        pdfPath,
       },
     });
 
-    return { message: `Successfully added ${coinPackage.coinsAmount} coins!` };
+    return {
+      message: `Successfully added ${coinPackage.coinsAmount} coins!`,
+      orderId: (order._id as Types.ObjectId).toString(),
+    };
   }
 
   private async generateReceiptPDF(

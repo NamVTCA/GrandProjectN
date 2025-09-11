@@ -1,88 +1,81 @@
-// File: src/pages/admin/AdminTransactionsPage.tsx
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import axios from 'axios';
 import './AdminTransactionsPage.scss';
 
-// Define types for better type safety
-interface CoinPackage {
-  name: string;
-  coinsAmount: number;
-  price: number;
-}
-
-interface User {
-  username: string;
-  email: string;
-}
-
-interface Order {
-  _id: string;
-  user: User;
-  coinPackage: CoinPackage;
-  amount: number;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
-  paymentIntentId: string;
-  createdAt: string;
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8888/api";
+// Define the API base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888/api';
 
 const AdminTransactionsPage: React.FC = () => {
-  const [transactions, setTransactions] = useState<Order[]>([]);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Không tìm thấy mã thông báo xác thực. Vui lòng đăng nhập lại.');
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`${API_BASE_URL}/payments/transactions`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setTransactions(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Đã xảy ra lỗi khi tải giao dịch.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTransactions();
   }, []);
 
-  const fetchTransactions = async () => {
+  const handleDownloadReceipt = async (orderId: string) => {
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        throw new Error('Không tìm thấy mã thông báo xác thực. Vui lòng đăng nhập lại.');
       }
 
-      const response = await fetch(`${API_BASE_URL}/payments/transactions`, {
+      // ✅ Thêm header Authorization vào yêu cầu tải PDF
+      const response = await axios.get(`${API_BASE_URL}/payments/receipt/${orderId}`, {
+        responseType: 'blob', // Quan trọng: Yêu cầu dữ liệu dưới dạng Blob
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Không thể lấy dữ liệu giao dịch.');
-      }
-
-      const data: Order[] = await response.json();
-      setTransactions(data);
+      // Tạo một URL tạm thời cho Blob và kích hoạt tải xuống
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `receipt-${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      console.error('Lỗi khi tải giao dịch:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      alert(err.message || 'Đã xảy ra lỗi khi tải hóa đơn.');
     }
   };
 
   if (loading) {
-    return (
-      <div className="admin-transactions-page">
-        <h2>Quản lý Giao dịch</h2>
-        <p>Đang tải dữ liệu...</p>
-      </div>
-    );
+    return <div className="loading">Đang tải giao dịch...</div>;
   }
 
   if (error) {
-    return (
-      <div className="admin-transactions-page">
-        <h2>Quản lý Giao dịch</h2>
-        <div className="error-message">Lỗi: {error}</div>
-        <button onClick={fetchTransactions}>Thử lại</button>
-      </div>
-    );
+    return <div className="error-message">Lỗi: {error}</div>;
+  }
+
+  if (transactions.length === 0) {
+    return <div className="no-data">Chưa có giao dịch nào được tạo.</div>;
   }
 
   return (
@@ -97,16 +90,16 @@ const AdminTransactionsPage: React.FC = () => {
             <th>Số tiền</th>
             <th>Trạng thái</th>
             <th>Ngày tạo</th>
-            <th>Hóa đơn</th>
+            <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
-          {transactions.map((transaction) => (
+          {transactions.map((transaction: any) => (
             <tr key={transaction._id}>
-              <td>{transaction.paymentIntentId}</td>
-              <td>{transaction.user?.username} ({transaction.user?.email})</td>
-              <td>{transaction.coinPackage?.name}</td>
-              <td>${transaction.amount.toFixed(2)}</td>
+              <td>{transaction._id.substring(0, 8)}...</td>
+              <td>{transaction.user.username}</td>
+              <td>{transaction.coinPackage.name}</td>
+              <td>${transaction.amount}</td>
               <td>
                 <span className={`status ${transaction.status.toLowerCase()}`}>
                   {transaction.status}
@@ -115,15 +108,11 @@ const AdminTransactionsPage: React.FC = () => {
               <td>{new Date(transaction.createdAt).toLocaleString()}</td>
               <td>
                 {transaction.status === 'COMPLETED' ? (
-                  <a
-                    href={`${API_BASE_URL}/payments/receipt/${transaction._id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Tải về PDF
-                  </a>
+                  <button onClick={() => handleDownloadReceipt(transaction._id)}>
+                    Tải Hóa đơn
+                  </button>
                 ) : (
-                  '-'
+                  'N/A'
                 )}
               </td>
             </tr>
