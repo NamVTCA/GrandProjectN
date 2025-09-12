@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import GameActivity from '../../features/game-activity/components/GameActivity';
+import FriendsRecentActivity from '../../features/game-activity/components/FriendsRecentActivity'; // <<< NEW
 import './Rightbar.scss';
 import api from '../../services/api';
 import { publicUrl } from '../../untils/publicUrl';
@@ -17,32 +18,37 @@ const pickUser = (it: any) => it?.friend || it?.user || it;
 const pickAvatar = (u: any) =>
   u?.avatar || u?.avatarUrl || u?.profile?.avatarUrl || '';
 
+const REFRESH_MS = 20000; // 20s cập nhật bạn bè (tuỳ chọn)
+
 const Rightbar: React.FC = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  const fetchFriends = async () => {
+    try {
+      const res = await api.get('/users/get/friends');
+      const items: Friend[] = (res.data || []).map((it: any) => {
+        const u = pickUser(it);
+        return {
+          _id: String(u?._id),
+          username: String(u?.username || ''),
+          avatar: publicUrl(pickAvatar(u)) || AVATAR_FALLBACK,
+          presenceStatus: (u?.presenceStatus ||
+            it?.presenceStatus ||
+            'OFFLINE') as 'ONLINE' | 'OFFLINE',
+        };
+      });
+      setFriends(items);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách bạn bè:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchFriends = async () => {
-      try {
-        const res = await api.get('/users/get/friends');
-        const items: Friend[] = (res.data || []).map((it: any) => {
-          const u = pickUser(it);
-          return {
-            _id: String(u?._id),
-            username: String(u?.username || ''),
-            avatar: publicUrl(pickAvatar(u)) || AVATAR_FALLBACK,
-            presenceStatus: (u?.presenceStatus ||
-              it?.presenceStatus ||
-              'OFFLINE') as 'ONLINE' | 'OFFLINE',
-          };
-        });
-        setFriends(items);
-      } catch (error) {
-        console.error('Lỗi khi lấy danh sách bạn bè:', error);
-      }
-    };
     fetchFriends();
+    const id = setInterval(fetchFriends, REFRESH_MS); // (tuỳ chọn) auto refresh
+    return () => clearInterval(id);
   }, []);
 
   const handleFriendClick = (friend: Friend) => {
@@ -50,7 +56,11 @@ const Rightbar: React.FC = () => {
       // Đang ở trang chat → emit event để ChatPage mở DM
       window.dispatchEvent(
         new CustomEvent('open-dm', {
-          detail: { userId: friend._id, username: friend.username, avatar: friend.avatar },
+          detail: {
+            userId: friend._id,
+            username: friend.username,
+            avatar: friend.avatar,
+          },
         }),
       );
     } else {
@@ -87,7 +97,9 @@ const Rightbar: React.FC = () => {
                     (e.currentTarget as HTMLImageElement).src = AVATAR_FALLBACK;
                   }}
                 />
-                <span>{friend.username}</span>
+                <span className="friend-name" title={friend.username}>
+                  {friend.username}
+                </span>
                 <span className="status-indicator" />
               </li>
             ))}
@@ -97,7 +109,7 @@ const Rightbar: React.FC = () => {
 
       <div className="rightbar-section">
         <h4>Hoạt động gần đây</h4>
-        <p className="placeholder-text">Chưa có hoạt động mới.</p>
+        <FriendsRecentActivity friends={friends} /> {/* truyền friends xuống */}
       </div>
     </aside>
   );
