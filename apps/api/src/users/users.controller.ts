@@ -70,14 +70,24 @@ export class UsersController {
   }
 
   // ===== PATCH / MUTATIONS =====
-  @UseGuards(JwtAuthGuard)
-  @Patch('me')
-  updateProfile(
-    @GetUser() user: UserDocument,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
-    return this.usersService.updateProfile(user._id.toString(), updateUserDto);
+@Patch('me')
+@UseGuards(JwtAuthGuard)
+updateMyProfile(
+  @GetUser() user: UserDocument,
+  @Body() updateUserDto: UpdateUserDto,
+) {
+  // LOGIC MỚI: Kiểm tra xem DTO có chứa sở thích không
+  if (updateUserDto.interests && Array.isArray(updateUserDto.interests)) {
+    // Nếu có, gọi hàm updateUserInterests chuyên dụng
+    return this.usersService.updateUserInterests(
+      user._id.toString(),
+      updateUserDto.interests,
+    );
   }
+
+  // Nếu không có sở thích, giữ nguyên logic cũ cho web và các cập nhật khác
+  return this.usersService.updateProfile(user._id.toString(), updateUserDto);
+}
 
   @UseGuards(JwtAuthGuard)
   @Patch('me/avatar')

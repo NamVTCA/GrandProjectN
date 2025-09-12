@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { DeleteResult, Model } from 'mongoose';
 import { OnEvent } from '@nestjs/event-emitter';
 
 import {
@@ -34,7 +34,7 @@ export class NotificationsService {
   // Tạo + push realtime
   async createNotification(
     recipient: UserDocument,
-    sender: UserDocument | null | undefined,  // ⬅️ cho phép optional
+    sender: UserDocument | null | undefined, // ⬅️ cho phép optional
     type: NotificationType,
     link: string | null,
     metadata?: any,
@@ -114,10 +114,10 @@ export class NotificationsService {
 
     await this.createNotification(
       recipient,
-      payload.actor ?? null,                      // ⬅️ giữ nguyên actor nếu có
+      payload.actor ?? null, // ⬅️ giữ nguyên actor nếu có
       payload.type,
       payload.link ?? null,
-      payload.metadata ?? undefined,              // ⬅️ GHI metadata
+      payload.metadata ?? undefined, // ⬅️ GHI metadata
     );
   }
 
@@ -128,7 +128,7 @@ export class NotificationsService {
     });
   }
 
-  async clearAllNotifications(userId: string) {
+  async clearAllNotifications(userId: string): Promise<DeleteResult> {
     return this.notificationModel.deleteMany({ recipient: userId });
   }
 }

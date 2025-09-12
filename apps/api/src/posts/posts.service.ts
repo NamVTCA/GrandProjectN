@@ -25,7 +25,8 @@ import { ReactToPostDto } from './dto/react-to-post.dto';
 import { RepostDto } from './dto/repost.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { UsersService } from 'src/users/users.service';
+// Thay dòng 28:
+import { UsersService } from '../users/users.service';
 import { GroupDocument } from '../groups/schemas/group.schema';
 @Injectable()
 export class PostsService {
@@ -39,6 +40,99 @@ export class PostsService {
 
     private eventEmitter: EventEmitter2,
   ) {}
+  async replyComment(
+    parentCommentId: string,
+    user: UserDocument,
+    createCommentDto: CreateCommentDto,
+  ): Promise<Comment> {
+    const parentComment = await this.commentModel.findById(parentCommentId);
+    if (!parentComment) {
+      throw new NotFoundException('Không tìm thấy bình luận cha');
+    }
+
+    const textModeration = await this.moderationService.checkText(
+      createCommentDto.content,
+    );
+    if (textModeration.status === ModerationStatus.REJECTED) {
+      throw new BadRequestException(
+        `Bình luận của bạn không phù hợp: ${textModeration.reason}`,
+      );
+    }
+
+    const newReply = new this.commentModel({
+      ...createCommentDto,
+      author: user._id,
+      post: parentComment.post,
+      parentComment: parentCommentId,
+      moderationStatus: ModerationStatus.APPROVED,
+    });
+
+    // Tăng replyCount của comment cha
+    parentComment.replyCount = (parentComment.replyCount || 0) + 1;
+    await parentComment.save();
+
+    // Tăng commentCount của post
+    await this.postModel.findByIdAndUpdate(parentComment.post, {
+      $inc: { commentCount: 1 },
+    });
+
+    await this.userService.receiveXP(3, 'reply', user.id);
+
+    const savedReply = await newReply.save();
+    await savedReply.populate({ path: 'author', select: 'username avatar' });
+
+    // Gửi notification
+    if (parentComment.author.toString() !== user._id.toString()) {
+      await this.notificationsService.createNotification(
+        parentComment.author as UserDocument,
+        user,
+        NotificationType.NEW_REPLY,
+        `/posts/${parentComment.post}`,
+      );
+    }
+
+    return savedReply;
+  }
+
+  async deleteComment(id: string) {
+    const comment = await this.commentModel.findById(id);
+    if (!comment) {
+      throw new NotFoundException('Không tìm thấy bình luận');
+    }
+
+    // Nếu là reply, giảm replyCount của comment cha
+    if (comment.parentComment) {
+      await this.commentModel.findByIdAndUpdate(comment.parentComment, {
+        $inc: { replyCount: -1 },
+      });
+    }
+
+    // Giảm commentCount trong post
+    await this.postModel.findByIdAndUpdate(comment.post, {
+      $inc: { commentCount: -1 },
+    });
+
+    // Xóa tất cả replies
+    if (comment.replyCount > 0) {
+      await this.commentModel.deleteMany({ parentComment: id });
+      await this.postModel.findByIdAndUpdate(comment.post, {
+        $inc: { commentCount: -comment.replyCount },
+      });
+    }
+
+    return await this.commentModel.findByIdAndDelete(id);
+  }
+
+  async getCommentReplies(commentId: string): Promise<Comment[]> {
+    return this.commentModel
+      .find({
+        parentComment: commentId,
+        moderationStatus: ModerationStatus.APPROVED,
+      })
+      .populate('author', 'username avatar')
+      .sort({ createdAt: 'asc' })
+      .exec();
+  }
   async createPost(
     user: UserDocument,
     createPostDto: CreatePostDto,
@@ -436,9 +530,6 @@ export class PostsService {
     const savedComment = await comment.save();
     await savedComment.populate({ path: 'author', select: 'username avatar' });
     return savedComment;
-  }
-  async deleteComment(id: string) {
-    return await this.commentModel.findByIdAndDelete(id);
   }
 
   // ✅ BỔ SUNG PHẦN CÒN THIẾU VÀO ĐÂY

@@ -1,0 +1,116 @@
+/* File: src/pages/admin/AdminTransactionsPage.scss */
+
+.admin-transactions-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+    color: #c1cd78;
+    border-bottom: 1px solid #083b38;
+    padding-bottom: 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #0e4420;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    thead {
+      background: #c1cd78;
+
+      th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #0e4420;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        transition: background 0.2s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+          padding: 1rem;
+          font-size: 0.95rem;
+          color: #d5e4c3;
+
+          a {
+            color: #0077cc;
+            text-decoration: none;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+
+          .status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+
+            &.completed {
+              background: #28a745;
+              color: #e6f2b0;
+            }
+
+            &.pending {
+              background: #ffc107;
+              color: #0e4420;
+            }
+
+            &.failed {
+              background: #dc3545;
+              color: #e6f2b0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .loading,
+  .error-message {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1rem;
+    color: #d5e4c3;
+  }
+
+  .error-message {
+    color: #dc3545;
+    font-weight: bold;
+  }
+
+  button {
+    margin-top: 1rem;
+    background: #0077cc;
+    color: #e6f2b0;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #005fa3;
+    }
+  }
+}

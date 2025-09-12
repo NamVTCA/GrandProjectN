@@ -13,7 +13,121 @@
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
-    justify-content: center;
+    justify-content: center;/* --- Cấu hình chung và Typography --- */
+body {
+  background-color: #121212;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.topup-page {
+  max-width: 900px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background-color: #1e1e1e;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+  h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #4caf50;
+    margin-bottom: 2.5rem;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  }
+
+  /* --- Grid Gói Coin --- */
+  .coin-packages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  /* --- Form Thanh toán --- */
+  .payment-form {
+    max-width: 550px;
+    margin: 0 auto;
+    padding: 2rem;
+    border: 1px solid #333;
+    border-radius: 12px;
+    background-color: #2a2a2a;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+
+    h3 {
+      text-align: center;
+      color: #fafafa;
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      border-bottom: 2px solid #444;
+      padding-bottom: 0.5rem;
+    }
+
+    .card-element-container {
+      padding: 1rem;
+      border: 1px solid #444;
+      border-radius: 8px;
+      background-color: #333;
+      transition: border-color 0.3s ease;
+
+      &:focus-within {
+        border-color: #007bff;
+      }
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      background-color: #3a1e1e;
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1.5rem;
+
+      button {
+        flex: 1;
+        padding: 1rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s ease-in-out, background-color 0.2s ease;
+        text-transform: uppercase;
+
+        &:hover:not([disabled]) {
+          background-color: #0056b3;
+          transform: translateY(-2px);
+        }
+
+        &:disabled {
+          background-color: #4a4a4a;
+          cursor: not-allowed;
+          transform: none;
+        }
+      }
+    }
+  }
+
+  /* --- Trang thanh toán thành công --- */
+
+
+  /* --- Hiệu ứng loading --- */
+  .loading {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 1.2rem;
+  }
+}
   }
 
   .payment-form {
@@ -30,15 +144,90 @@
       width: 100%;
       padding: 0.75rem;
       background-color: #007bff;
-      color: white;
+      color: rgb(7, 7, 7);
       border: none;
       border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
-
+      
       &:hover {
         background-color: #0056b3;
       }
     }
+    
   }
+  .error-message{
+    color:black
+  }
+  .payment-success-message {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+  border: 1px solid #444;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+  h2 {
+    color: #4caf50;
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px rgba(76, 175, 80, 0.7);
+  }
+
+  p {
+    color: #b0b0b0;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .download-button,
+  .buy-more-button {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
+    }
+  }
+
+  .download-button {
+    background: linear-gradient(90deg, #4caf50, #45a049);
+    color: #fff;
+
+    &:hover {
+      background: linear-gradient(90deg, #45a049, #388e3c);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .buy-more-button {
+    background: linear-gradient(90deg, #616161, #505050);
+    color: #fff;
+
+    &:hover {
+      background: linear-gradient(90deg, #505050, #3c3c3c);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+}
+
+  
 }

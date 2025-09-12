@@ -19,6 +19,14 @@ export enum PostVisibility {
   PRIVATE = 'PRIVATE',
 }
 
+export enum ReactionType {
+  LIKE = 'LIKE',
+  LOVE = 'LOVE',
+  HAHA = 'HAHA',
+  WOW = 'WOW',
+  SAD = 'SAD',
+  ANGRY = 'ANGRY',
+}
 @Schema({ timestamps: true })
 export class Post {
   @Prop({ enum: ModerationStatus, default: ModerationStatus.PENDING })

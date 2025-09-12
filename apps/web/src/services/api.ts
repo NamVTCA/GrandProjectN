@@ -8,7 +8,8 @@ const api = axios.create({
 // Gắn token + xử lý Content-Type động
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    // ✅ đồng bộ key "token"
+    const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
     const isFormData =
@@ -37,6 +38,7 @@ api.interceptors.response.use(
     }),
 );
 
+// --- Example APIs ---
 export const chatWithBot = async (message: string): Promise<{ reply: string }> => {
   const res = await api.post('/chatbot', { message });
   if (typeof res.data === 'string') return { reply: res.data };
@@ -74,8 +76,7 @@ export const RoomsApi = {
       const form = new FormData();
       if (payload.name) form.append('name', payload.name);
       payload.memberIds.forEach((id) => form.append('memberIds', id));
-      // 👇 tên field phải khớp backend (thường là 'avatar')
-      form.append('avatar', payload.avatarFile);
+      form.append('avatar', payload.avatarFile); // 👈 khớp với backend
       const { data } = await api.post('/chat/rooms', form);
       return data;
     } else {

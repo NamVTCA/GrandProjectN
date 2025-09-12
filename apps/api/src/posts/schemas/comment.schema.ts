@@ -15,18 +15,28 @@ export enum ModerationStatus {
 export class Comment {
   @Prop({ enum: ModerationStatus, default: ModerationStatus.PENDING })
   moderationStatus: ModerationStatus;
-  
+
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   author: User;
 
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'Post' })
-  post: Post; // Bài viết mà bình luận này thuộc về
+  post: Post;
 
   @Prop({ required: true, trim: true })
   content: string;
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
   likes: User[];
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment',
+    required: false,
+  })
+  parentComment?: Comment;
+
+  @Prop({ default: 0 })
+  replyCount: number;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);
