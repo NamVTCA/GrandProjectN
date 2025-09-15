@@ -9,7 +9,7 @@ const apiClient = axios.create({
   // 3. Tìm địa chỉ IPv4 của bạn (ví dụ: 192.168.1.10).
   // 4. Thay thế `YOUR_COMPUTER_IP` bằng địa chỉ đó.
   // KHÔNG DÙNG `localhost` hoặc `127.0.0.1` vì điện thoại không hiểu.
-  baseURL: 'http://192.168.20.207:8888/api',
+  baseURL: 'http://192.168.1.40:8888/api',
 
   headers: {
     'Content-Type': 'application/json',

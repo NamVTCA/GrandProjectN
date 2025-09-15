@@ -1,3 +1,10 @@
-import App from './src/App';
+import React from "react";
+import { View, Text } from "react-native";
 
-export default App;
+export default function App() {
+  return (
+    <View>
+      <Text>Hello React Native</Text>
+    </View>
+  );
+}
