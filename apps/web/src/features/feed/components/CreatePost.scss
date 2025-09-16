@@ -36,15 +36,38 @@
     }
   }
 
+  .visibility-select {
+    background-color: #0d3b2e;
+    color: #d4e6c3;
+    border: 1px solid #1f513b;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .visibility-select option {
+    background-color: #0d3b2e;
+    color: #d4e6c3;
+  }
+
   .card-footer {
     margin-top: 15px;
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* giữ khoảng cách giữa actions và cụm bên phải */
     align-items: center;
   }
 
   .actions {
     display: flex;
+    gap: 10px;
+  }
+
+  .footer-right {
+    display: flex;
+    align-items: center;
     gap: 10px;
   }
 
@@ -72,6 +95,13 @@
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s;
+    border-radius: 6px;
+    height: 36px; /* cùng chiều cao */
+    display: flex;
+    align-items: center; /* căn giữa chữ theo chiều dọc */
+    padding: 0 12px; /* padding ngang */
+    font-size: 14px;
+    line-height: 1;
 
     &:hover {
       background-color: #d5e4c3;
@@ -88,14 +118,14 @@
     margin-top: 15px;
     padding-top: 15px;
     border-top: 1px dashed #0e4420;
-    
+
     p {
-        font-size: 14px;
-        color: #a3b18a;
-        margin: 0 0 5px 0;
-        background-color: #0e4420;
-        padding: 5px 10px;
-        border-radius: 4px;
+      font-size: 14px;
+      color: #a3b18a;
+      margin: 0 0 5px 0;
+      background-color: #0e4420;
+      padding: 5px 10px;
+      border-radius: 4px;
     }
   }
 }
