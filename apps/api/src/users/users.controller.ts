@@ -19,6 +19,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
 
+// DTO riêng cho cập nhật sở thích
+export class UpdateInterestsDto {
+  interestIds: string[];
+}
+
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -30,7 +35,7 @@ export class UsersController {
     return this.usersService.getMe(user._id.toString());
   }
 
-  // ===== PUBLIC / STATIC PATHS (đặt TRƯỚC đường dẫn động) =====
+  // ===== PUBLIC / STATIC PATHS =====
   @Get('by-id/:id')
   findPublicById(@Param('id') id: string) {
     return this.usersService.findPublicById(id);
@@ -63,31 +68,28 @@ export class UsersController {
     return this.usersService.deleteWarning(user._id.toString(), warningId);
   }
 
-  // ===== PUBLIC / DYNAMIC (nhận cả username hoặc ObjectId) =====
+  // ===== PUBLIC / DYNAMIC =====
   @Get(':param')
   findByUsernameOrId(@Param('param') param: string) {
     return this.usersService.findByUsernameOrId(param);
   }
 
   // ===== PATCH / MUTATIONS =====
-@Patch('me')
-@UseGuards(JwtAuthGuard)
-updateMyProfile(
-  @GetUser() user: UserDocument,
-  @Body() updateUserDto: UpdateUserDto,
-) {
-  // LOGIC MỚI: Kiểm tra xem DTO có chứa sở thích không
-  if (updateUserDto.interests && Array.isArray(updateUserDto.interests)) {
-    // Nếu có, gọi hàm updateUserInterests chuyên dụng
-    return this.usersService.updateUserInterests(
-      user._id.toString(),
-      updateUserDto.interests,
-    );
-  }
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  updateMyProfile(
+    @GetUser() user: UserDocument,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    if (updateUserDto.interests && Array.isArray(updateUserDto.interests)) {
+      return this.usersService.updateUserInterests(
+        user._id.toString(),
+        updateUserDto.interests,
+      );
+    }
 
-  // Nếu không có sở thích, giữ nguyên logic cũ cho web và các cập nhật khác
-  return this.usersService.updateProfile(user._id.toString(), updateUserDto);
-}
+    return this.usersService.updateProfile(user._id.toString(), updateUserDto);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me/avatar')
@@ -159,11 +161,11 @@ updateMyProfile(
   @Patch('me/interests')
   updateInterests(
     @GetUser() user: UserDocument,
-    @Body('interestIds') interestIds: string[],
+    @Body() dto: UpdateInterestsDto,
   ) {
     return this.usersService.updateUserInterests(
       user._id.toString(),
-      interestIds,
+      dto.interestIds,
     );
   }
 }
