@@ -44,7 +44,9 @@ export class UsersService {
   // ===== PUBLIC: nhận cả username hoặc ObjectId =====
   async findByUsernameOrId(param: string): Promise<UserDocument> {
     const isId = Types.ObjectId.isValid(param);
-    const query = isId ? this.userModel.findById(param) : this.userModel.findOne({ username: param });
+    const query = isId
+      ? this.userModel.findById(param)
+      : this.userModel.findOne({ username: param });
 
     const user = await query
       .select('-password -email')
@@ -305,7 +307,7 @@ export class UsersService {
     const me = await this.userModel
       .findById(userId)
       .select(
-        'username email avatar coins hasSelectedInterests globalRole friends currentGame coverImage equippedAvatarFrame'
+        'username email avatar coins hasSelectedInterests globalRole friends currentGame coverImage equippedAvatarFrame',
       )
       .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
       .lean()
