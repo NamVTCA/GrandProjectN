@@ -13,119 +13,88 @@
     border-bottom: 1px solid #0e4420;
   }
 
-  .user-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
+  .user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 
   textarea {
     flex: 1;
-    background: transparent;
-    border: none;
-    resize: none;
-    color: #d5e4c3;
-    font-size: 18px;
-    font-family: inherit;
-    outline: none;
-    padding-top: 10px;
-    line-height: 1.5;
-    &::placeholder {
-      color: #a3b18a;
-    }
+    background: transparent; border: none; resize: none;
+    color: #d5e4c3; font-size: 18px; font-family: inherit; outline: none;
+    padding-top: 10px; line-height: 1.5;
+    &::placeholder { color: #a3b18a; }
   }
 
   .visibility-select {
-    background-color: #0d3b2e;
-    color: #d4e6c3;
-    border: 1px solid #1f513b;
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 14px;
-    outline: none;
-    cursor: pointer;
-    border-radius: 6px;
+    background-color: #0d3b2e; color: #d4e6c3;
+    border: 1px solid #1f513b; border-radius: 6px;
+    padding: 6px 10px; font-size: 14px; outline: none; cursor: pointer;
   }
-
-  .visibility-select option {
-    background-color: #0d3b2e;
-    color: #d4e6c3;
-  }
+  .visibility-select option { background-color: #0d3b2e; color: #d4e6c3; }
 
   .card-footer {
     margin-top: 15px;
-    display: flex;
-    justify-content: space-between; /* giữ khoảng cách giữa actions và cụm bên phải */
-    align-items: center;
+    display: flex; justify-content: space-between; align-items: center;
   }
 
-  .actions {
-    display: flex;
-    gap: 10px;
-  }
+  .actions { display: flex; gap: 10px; }
 
-  .footer-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .footer-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .submit-row  { display: flex; align-items: center; gap: 10px; }
 
   .action-btn {
-    background-color: #0e4420;
-    color: #d5e4c3;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
+    background-color: #0e4420; color: #d5e4c3; border: none;
+    padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
     transition: background-color 0.2s;
-
-    &:hover {
-      background-color: #1a5d48;
-    }
+    &:hover { background-color: #1a5d48; }
   }
 
   .submit-btn {
-    background-color: #c1cd78;
-    color: #0e4420;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s;
-    border-radius: 6px;
-    height: 36px; /* cùng chiều cao */
-    display: flex;
-    align-items: center; /* căn giữa chữ theo chiều dọc */
-    padding: 0 12px; /* padding ngang */
-    font-size: 14px;
-    line-height: 1;
-
-    &:hover {
-      background-color: #d5e4c3;
-    }
-
-    &:disabled {
-      background-color: #0e4420;
-      color: #a3b18a;
-      cursor: not-allowed;
-    }
+    background-color: #c1cd78; color: #0e4420; border: none;
+    padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
+    transition: background-color 0.2s; height: 36px; display: flex; align-items: center;
+    padding: 0 12px; font-size: 14px; line-height: 1;
+    &:hover { background-color: #d5e4c3; }
+    &:disabled { background-color: #0e4420; color: #a3b18a; cursor: not-allowed; }
   }
 
+  /* ===== Media preview ===== */
   .media-preview {
     margin-top: 15px;
-    padding-top: 15px;
+    padding-top: 10px;
     border-top: 1px dashed #0e4420;
 
-    p {
-      font-size: 14px;
-      color: #a3b18a;
+    /* "Xóa tất cả" ngay TRÊN danh sách file, canh phải */
+    .media-header {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+    }
+    .clear-all-link {
+      background: transparent; border: 0; color: #ff7b7b;
+      cursor: pointer; font-size: 13px;
+    }
+
+    p.media-line {
+      position: relative; /* để nút × bám theo từng dòng */
+      font-size: 14px; color: #a3b18a;
       margin: 0 0 5px 0;
       background-color: #0e4420;
-      padding: 5px 10px;
-      border-radius: 4px;
+      padding: 5px 34px 5px 10px; /* chừa bên phải cho nút × */
+      border-radius: 4px; width: 100%;
+    }
+
+    .media-name {
+      display: block;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* nút × sát mép phải của cả hàng */
+    .remove-btn-abs {
+      position: absolute;
+      right: 8px; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px; line-height: 20px;
+      border: 0; border-radius: 999px; background: transparent; color: #fff;
+      cursor: pointer;
     }
   }
 }
