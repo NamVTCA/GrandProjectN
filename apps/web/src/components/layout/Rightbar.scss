@@ -32,48 +32,46 @@
     .friend-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 10px;                /* bỏ space-between để tránh kéo dãn */
       padding: 0.5rem;
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.2s;
 
-      &:hover {
-        background: rgba(193, 205, 120, 0.1);
-      }
+      &:hover { background: rgba(193, 205, 120, 0.1); }
 
       img {
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        margin-right: 0.5rem;
         object-fit: cover;
         border: 2px solid #083b38;
       }
 
-      span {
+      /* CHỈ tên mới flex:1 để đẩy chấm ra phải */
+      .friend-name {
         flex: 1;
+        min-width: 0;
         color: #d5e4c3;
         font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-     .status-indicator {
-        width: 10px;
-        height: 10px;
+      /* CHẤM TRÒN CỐ ĐỊNH 10x10, SÁT BÊN PHẢI */
+      .status-indicator {
+        flex: 0 0 12px;         /* quan trọng: không cho giãn */
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        margin-left: 0.5rem;
-        border: 2px solid #083b38;
-        position: relative;
+        margin-left: auto;      /* canh sát phải hàng */
+        border: 2px solid #083b38;   /* viền tách khỏi nền, giống FB */
+        background: #6c757d;    /* mặc định xám (offline) */
       }
 
-      &.online .status-indicator {
-        background: #28a745;
-        box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
-      }
-
-      &.offline .status-indicator {
-        background: #6c757d;
-      }
+      &.online  .status-indicator { background: #28a745; box-shadow: 0 0 5px rgba(40,167,69,.5); }
+      &.offline .status-indicator { background: #6c757d; }
     }
   }
 }
