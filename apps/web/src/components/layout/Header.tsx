@@ -33,7 +33,7 @@ const Header: React.FC = () => {
       api.get<SearchHit[]>(`/search?q=${encodeURIComponent(query)}`)
         .then(res => setResults(res.data || []))
         .catch(err => console.error('Lỗi tìm kiếm:', err))
-        .finally(() => setIsSearching(false));
+        .then(() => setIsSearching(false));
     }, 500);
     return () => clearTimeout(t);
   }, [query]);

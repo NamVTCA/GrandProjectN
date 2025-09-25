@@ -1,5 +1,5 @@
 // Thêm các biến màu sắc nếu chưa có
-$background-page: #008c75; // Màu nền trang
+$background-page: #4eeeae; // Màu nền trang
 $surface-color: #42a0e8;   // Màu nền component
 $text-secondary: #6236c9; // Màu chữ phụ
 $primary-color: #3a7ca5;  // Màu chính
@@ -11,6 +11,7 @@ $border-radius-md: 8px;   // Border radius
   padding: 20px;
   background-color: $background-page;
   min-height: 100vh;
+  border-radius: 12px; // bo tròn 12px
 }
 
 .feed-container {

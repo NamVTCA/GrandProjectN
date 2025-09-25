@@ -1,6 +1,5 @@
-@use '../../../styles/index' as *;
+@use "../../../styles/index" as *;
 @use "sass:color";
-@use "sass:string";
 
 .post-card {
   background-color: $background-component;
@@ -8,8 +7,9 @@
   padding: 20px;
   margin-bottom: 20px;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
+  /* ===== Header ===== */
   .post-header {
     display: flex;
     justify-content: space-between;
@@ -29,8 +29,9 @@
       }
 
       div {
-        strong { 
+        strong {
           font-weight: 600;
+          color: $text-light;
           span {
             margin-left: 5px;
             font-size: 14px;
@@ -54,7 +55,7 @@
         display: flex;
         flex-direction: column;
         gap: 3px;
-        
+
         .dot {
           width: 4px;
           height: 4px;
@@ -98,7 +99,6 @@
           }
 
           svg {
-            padding: 0;
             margin-right: 5px;
           }
         }
@@ -106,30 +106,24 @@
     }
   }
 
+  /* ===== Content ===== */
+  .post-content {
+    line-height: 1.6;
+    margin-bottom: 15px;
+    white-space: pre-line;
+    color: $text-light;
+  }
+
   .post-media {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
     margin-bottom: 15px;
 
-    img, video {
+    img,
+    video {
       width: 100%;
       border-radius: $border-radius-md;
       object-fit: cover;
       max-height: 500px;
       cursor: pointer;
-    }
-
-    .media-gallery {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 8px;
-
-      img, video {
-        height: 100%;
-        max-height: 200px;
-      }
     }
 
     .show-more-overlay {
@@ -155,13 +149,47 @@
     }
   }
 
-  .post-content {
-    line-height: 1.6;
-    margin-bottom: 15px;
-    white-space: pre-line;
-    color: $text-light;
+  .post-media-carousel {
+    position: relative;
+
+    img,
+    video {
+      width: 100%;
+      max-height: 500px;
+      border-radius: $border-radius-md;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      font-size: 32px;
+      font-weight: bold;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 50%;
+      z-index: 5;
+      transition: background 0.2s;
+
+      &.prev {
+        left: 10px;
+      }
+      &.next {
+        right: 10px;
+      }
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.7);
+      }
+    }
   }
 
+  /* ===== Stats ===== */
   .post-stats {
     display: flex;
     gap: 15px;
@@ -172,6 +200,7 @@
     border-bottom: 1px solid $surface-color;
   }
 
+  /* ===== Actions ===== */
   .post-actions {
     display: flex;
     justify-content: space-around;
@@ -185,12 +214,12 @@
       cursor: pointer;
       padding: 8px 12px;
       border-radius: $border-radius-md;
-      transition: all 0.2s;
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
+      transition: all 0.2s;
 
       &:hover {
         background-color: $surface-color;
@@ -203,393 +232,235 @@
 
       .reaction-popup {
         position: absolute;
-        top: -50px;
+        top: -55px;
         left: 0;
         background: $background-component;
-        padding: 5px 10px;
+        padding: 6px 10px;
         border-radius: $border-radius-md;
         box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
         display: flex;
-        gap: 6px;
+        gap: 8px;
         z-index: 10;
-        transition: opacity 0.2s ease-in-out;
 
         .reaction-icon {
           background: none;
           border: none;
+          font-size: 20px;
           cursor: pointer;
-          font-size: 18px;
           transition: transform 0.2s;
-          padding: 5px;
+          color: white; // fix icon đen
 
           &:hover {
-            transform: string.unquote("scale(1.2)");
+            transform: #{"scale(1.3)"};
+          }
+          &.like {
+            color: #3ea6ff;
+            -webkit-text-stroke: 0;
+          }
+          &.love {
+            color: #ff4d6d;
+            -webkit-text-stroke: 0;
+          }
+          &.haha {
+            color: #f7b928;
+            -webkit-text-stroke: 0;
+          }
+          &.wow {
+            color: #f7b928;
+            -webkit-text-stroke: 0;
+          }
+          &.sad {
+            color: #f7b928;
+            -webkit-text-stroke: 0;
+          }
+          &.angry {
+            color: #e0245e;
+            -webkit-text-stroke: 0;
           }
         }
       }
     }
   }
 
-  .repost-header {
+  .comment-form {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: $text-secondary;
     margin-bottom: 10px;
 
-    a {
-      color: $primary-color;
-      font-weight: 600;
-    }
-  }
+    input {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid $surface-color;
+      border-right: none; // ✅ bỏ viền phải để liền với nút
+      border-radius: $border-radius-md 0 0 $border-radius-md; // ✅ bo góc trái
+      background: $surface-color;
+      color: $text-light;
+      height: 40px;
 
-  .reposter-comment {
-    font-style: italic;
-    color: $text-secondary;
-    margin-bottom: 10px;
-  }
-
-  .original-post-embed {
-    background-color: $surface-color;
-    border-radius: $border-radius-md;
-    padding: 12px;
-    margin-bottom: 15px;
-
-    .post-header {
-      margin-bottom: 10px;
-    }
-
-    .post-content {
-      margin-bottom: 10px;
-    }
-  }
-
-  .comment-section {
-    margin-top: 15px;
-
-    .comment-form {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-
-      input {
-        flex: 1;
-        padding: 8px 10px;
-        border-radius: $border-radius-md;
-        border: 1px solid $surface-color;
-        background: transparent;
-        color: $text-light;
-        transition: border-color 0.2s;
-
-        &:focus {
-          border-color: $primary-color;
-          outline: none;
-        }
+      &:focus {
+        border-color: $primary-color;
+        outline: none;
       }
+    }
+
+    button {
+      height: 40px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 600;
+      background: $primary-color;
+      color: white;
+      border: 1px solid $primary-color;
+      border-radius: 0 $border-radius-md $border-radius-md 0; // ✅ bo góc phải
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: color.scale($primary-color, $lightness: 10%);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.upload-section {
+  margin-top: 10px;
+
+  .upload-btn {
+    display: inline-block;
+    background-color: $primary-color;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: color.adjust($primary-color, $lightness: -10%);
+    }
+  }
+}
+
+.new-media-preview {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+
+  .media-item {
+    position: relative;
+
+    img,
+    video {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: $border-radius-md;
+    }
+  }
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+
+  .modal-content {
+    background: $background-component;
+    border-radius: $border-radius-lg;
+    padding: 20px;
+    max-width: 500px;
+    width: 90%;
+    color: $text-light;
+
+    textarea,
+    select {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: $border-radius-md;
+      border: 1px solid $surface-color;
+      background: $surface-color; // fix bị trong suốt
+      color: $text-light;
+    }
+
+    select option {
+      background: $background-component;
+      color: $text-light; // fix option bị đen
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
 
       button {
-        padding: 8px 14px;
-        background: $primary-color;
-        color: #fff;
+        padding: 6px 12px;
+        border-radius: $border-radius-md;
         border: none;
-        border-radius: $border-radius-md;
         cursor: pointer;
-        transition: background-color 0.2s;
 
-        &:hover {
-          background-color: color.adjust($primary-color, $lightness: -10%);
-        }
-
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      }
-    }
-
-    .comment-list {
-      .comment {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 10px;
-        position: relative;
-
-        &.reply {
-          margin-left: 30px;
-          border-left: 2px solid $surface-color;
-          padding-left: 10px;
-        }
-
-        .comment-author-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          object-fit: cover;
-        }
-
-        .comment-content {
-          background: $surface-color;
-          border-radius: $border-radius-md;
-          padding: 8px 10px;
-          flex: 1;
-
-          strong {
-            display: block;
-            color: $primary-color;
-            margin-bottom: 2px;
-          }
-
-          p {
-            margin: 0;
-            font-size: 14px;
-            color: $text-light;
-          }
-
-          .comment-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 5px;
-
-            .reply-btn {
-              background: none;
-              border: none;
-              color: $text-secondary;
-              cursor: pointer;
-              font-size: 12px;
-              display: flex;
-              align-items: center;
-              gap: 4px;
-
-              &:hover {
-                color: $primary-color;
-              }
-            }
-
-            .comment-delete-button {
-              background: none;
-              border: none;
-              color: $text-secondary;
-              cursor: pointer;
-              padding: 2px;
-              transition: color 0.2s;
-
-              &:hover {
-                color: #e0245e;
-              }
-            }
-          }
-        }
-
-        .reply-form {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 8px;
-
-          input {
-            padding: 6px 8px;
-            border-radius: $border-radius-md;
-            border: 1px solid $surface-color;
-            background: transparent;
-            color: $text-light;
-
-            &:focus {
-              border-color: $primary-color;
-              outline: none;
-            }
-          }
-
-          .reply-actions {
-            display: flex;
-            gap: 8px;
-
-            button {
-              padding: 4px 8px;
-              border: none;
-              border-radius: $border-radius-md;
-              cursor: pointer;
-              font-size: 12px;
-
-              &:first-child {
-                background: $primary-color;
-                color: white;
-              }
-
-              &:last-child {
-                background: $surface-color;
-                color: $text-light;
-              }
-            }
-          }
-        }
-
-        .replies {
-          margin-top: 8px;
-        }
-      }
-    }
-  }
-
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
-
-    .modal-content {
-      background: $background-component;
-      border-radius: $border-radius-lg;
-      padding: 20px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-
-      h3 {
-        margin-bottom: 15px;
-        color: $text-light;
-      }
-
-      textarea, select {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 15px;
-        border-radius: $border-radius-md;
-        border: 1px solid $surface-color;
-        background: transparent;
-        color: $text-light;
-        resize: vertical;
-        min-height: 100px;
-
-        &:focus {
-          border-color: $primary-color;
-          outline: none;
-        }
-      }
-
-      .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-
-        button {
-          padding: 8px 16px;
-          border: none;
-          border-radius: $border-radius-md;
-          cursor: pointer;
-          transition: background-color 0.2s;
-
-          &:first-child {
-            background: $surface-color;
-            color: $text-light;
-          }
-
-          &:last-child {
-            background: $primary-color;
-            color: white;
-          }
-
-          &:hover {
-            opacity: 0.9;
-          }
-        }
-      }
-    }
-
-    .report-modal {
-      textarea {
-        min-height: 120px;
-      }
-    }
-
-    .confirm-delete-modal {
-      text-align: center;
-
-      p {
-        margin-bottom: 20px;
-        color: $text-light;
-      }
-
-      .modal-actions {
-        justify-content: center;
-
-        .btn-cancel {
+        &:first-child {
           background: $surface-color;
           color: $text-light;
         }
-
-        .btn-confirm-delete {
-          background: #e0245e;
+        &:last-child {
+          background: $primary-color;
           color: white;
         }
       }
     }
   }
+}
 
-  .lightbox-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
+.edit-media-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
 
-    .lightbox-content {
-      position: relative;
-      max-width: 90vw;
-      max-height: 90vh;
+  .media-item {
+    position: relative;
 
-      img, video {
-        max-width: 100%;
-        max-height: 90vh;
-        object-fit: contain;
-      }
+    img,
+    video {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: $border-radius-md;
+      border: 1px solid $surface-color;
+    }
 
-      .lightbox-close {
-        position: absolute;
-        top: -40px;
-        right: 0;
-        background: none;
-        border: none;
-        color: white;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 5px;
-      }
-
-      .lightbox-prev,
-      .lightbox-next {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(0, 0, 0, 0.5);
-        border: none;
-        color: white;
-        font-size: 24px;
-        padding: 10px 15px;
-        cursor: pointer;
-        border-radius: 50%;
-      }
-
-      .lightbox-prev {
-        left: 10px;
-      }
-
-      .lightbox-next {
-        right: 10px;
-      }
+    .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 }
@@ -603,70 +474,4 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-.view-replies-btn {
-  background: none;
-  border: none;
-  color: $primary-color;
-  cursor: pointer;
-  font-size: 12px;
-  margin-top: 5px;
-  padding: 0;
-  
-  &:hover {
-    text-decoration: underline;
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-.reply-form {
-  margin-top: 8px;
-  
-  input {
-    width: 100%;
-    padding: 6px 8px;
-    border-radius: $border-radius-md;
-    border: 1px solid $surface-color;
-    background: transparent;
-    color: $text-light;
-    margin-bottom: 5px;
-
-    &:focus {
-      border-color: $primary-color;
-      outline: none;
-    }
-  }
-
-  .reply-actions {
-    display: flex;
-    gap: 8px;
-
-    button {
-      padding: 4px 8px;
-      border: none;
-      border-radius: $border-radius-md;
-      cursor: pointer;
-      font-size: 12px;
-
-      &:first-child {
-        background: $primary-color;
-        color: white;
-      }
-
-      &:last-child {
-        background: $surface-color;
-        color: $text-light;
-      }
-    }
-  }
-}
-
-.comment.reply {
-  margin-left: 30px;
-  border-left: 2px solid $surface-color;
-  padding-left: 10px;
 }

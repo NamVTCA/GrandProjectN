@@ -28,7 +28,8 @@ const Rightbar: React.FC = () => {
   const fetchFriends = async () => {
     try {
       const res = await api.get('/users/get/friends');
-      const items: Friend[] = (res.data || []).map((it: any) => {
+      const dataArray = Array.isArray(res.data) ? res.data : [];
+      const items: Friend[] = dataArray.map((it: any) => {
         const u = pickUser(it);
         return {
           _id: String(u?._id),
