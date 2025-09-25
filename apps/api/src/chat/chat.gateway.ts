@@ -296,8 +296,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       map.set(uId, setTimeout(() => {
         this.clearTyping(roomId, uId);
         this.server.to(roomId).emit('typing_list', { chatroomId: roomId, typers: this.getTypers(roomId) });
-      }, ChatGateway.TYPING_TTL_MS));
-
+      }, ChatGateway.TYPING_TTL_MS) as unknown as NodeJS.Timeout);
+      // phát cho người khác trong phòng (không gửi lại cho chính người gõ)
       client.to(roomId).emit('typing_list', { chatroomId: roomId, typers: this.getTypers(roomId) });
     } catch (e) { this.logger.error('typing_ping error', e); }
   }

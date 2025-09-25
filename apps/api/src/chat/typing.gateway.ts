@@ -65,8 +65,7 @@ export class TypingGateway implements OnGatewayConnection, OnGatewayDisconnect {
     map.set(uId, setTimeout(() => {
       this.clearUser(rId, uId);
       this.io.to(rId).emit('typing:list', { roomId: rId, typers: this.getTypers(rId) });
-    }, TYPING_TTL_MS));
-
+    }, TYPING_TTL_MS) as unknown as NodeJS.Timeout);
     // phát cho người khác trong phòng (không gửi lại cho chính người gõ)
     socket.to(rId).emit('typing:list', { roomId: rId, typers: this.getTypers(rId, /*excludeId*/ undefined) });
   }

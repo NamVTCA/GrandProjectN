@@ -8,7 +8,7 @@ const AuthLayout: React.FC = () => {
     <div className="auth-page">
       <div className="card">
         <div className="left">
-          <h1>Chào mừng đến với GrandProject.</h1>
+          <h1>Chào mừng đến với SocialMedia.</h1>
           <p>Kết nối, chia sẻ và khám phá cộng đồng game thủ lớn mạnh. Hãy tham gia cùng chúng tôi ngay hôm nay!</p>
         </div>
         <div className="right">

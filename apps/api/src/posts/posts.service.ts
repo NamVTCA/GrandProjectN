@@ -475,42 +475,52 @@ export class PostsService {
       .exec();
   }
 
-  async updatePost(
-    postId: string,
-    user: UserDocument,
-    updatePostDto: UpdatePostDto,
-  ): Promise<Post> {
-    const post = await this.postModel.findById(postId);
-    if (!post) {
-      throw new NotFoundException('Không tìm thấy bài đăng.');
-    }
-    if (post.author.toString() !== user._id.toString()) {
-      throw new UnauthorizedException(
-        'Bạn không có quyền chỉnh sửa bài đăng này.',
-      );
-    }
-
-    if (updatePostDto.content !== undefined) {
-      post.content = updatePostDto.content;
-    }
-
-    // Chỉ cập nhật visibility nếu không phải bài viết trong nhóm
-    if (updatePostDto.visibility !== undefined && !(post as any).group) {
-      post.visibility = updatePostDto.visibility;
-    }
-
-    const updatedPost = await post.save();
-
-    await updatedPost.populate([
-      { path: 'author', select: 'username avatar' },
-      {
-        path: 'repostOf',
-        populate: { path: 'author', select: 'username avatar' },
-      },
-      { path: 'group', select: 'name' }, // Thêm populate cho group nếu cần
-    ]);
-    return updatedPost;
+async updatePost(
+  postId: string,
+  user: UserDocument,
+  updatePostDto: UpdatePostDto,
+): Promise<Post> {
+  const post = await this.postModel.findById(postId);
+  if (!post) {
+    throw new NotFoundException('Không tìm thấy bài đăng.');
   }
+
+  if (post.author.toString() !== user._id.toString()) {
+    throw new UnauthorizedException(
+      'Bạn không có quyền chỉnh sửa bài đăng này.',
+    );
+  }
+
+  // Cập nhật nội dung
+  if (updatePostDto.content !== undefined) {
+    post.content = updatePostDto.content;
+  }
+
+  // Cập nhật chế độ hiển thị (chỉ nếu không phải post trong group)
+  if (updatePostDto.visibility !== undefined && !(post as any).group) {
+    post.visibility = updatePostDto.visibility;
+  }
+
+  // ✅ Cập nhật mediaUrls (ghi đè toàn bộ)
+  if (updatePostDto.mediaUrls !== undefined) {
+    post.mediaUrls = updatePostDto.mediaUrls;
+  }
+
+  const updatedPost = await post.save();
+
+  // Populate để trả về dữ liệu đầy đủ cho FE
+  await updatedPost.populate([
+    { path: 'author', select: 'username avatar' },
+    {
+      path: 'repostOf',
+      populate: { path: 'author', select: 'username avatar' },
+    },
+    { path: 'group', select: 'name' },
+  ]);
+
+  return updatedPost;
+}
+
   async updateComment(
     commentId: string,
     user: UserDocument,

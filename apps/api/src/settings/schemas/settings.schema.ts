@@ -8,7 +8,7 @@ export class Settings {
   @Prop({ required: true, unique: true, default: 'singleton_key' })
   key: string; // Dùng để đảm bảo chỉ có một document cài đặt duy nhất
 
-  @Prop({ required: true, default: 'GrandProject' })
+  @Prop({ required: true, default: 'SocialMedia' })
   siteName: string;
 
   @Prop({ default: 'Một mạng xã hội tuyệt vời cho cộng đồng.' })

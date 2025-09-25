@@ -19,7 +19,7 @@ console.log('user in SelectInterestsPage:', user);
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/interests').then(res => {
+    api.get<Interest[]>('/interests').then(res => {
       console.log('res.data', res.data);
       setInterests(res.data);
     });

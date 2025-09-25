@@ -35,6 +35,7 @@ import { SettingsModule } from './settings/settings.module';
 import { CoinPackagesModule } from './coin-packages/coin-packages.module';
 import { SearchModule } from './search/search.module';
 import { BlockModule } from './block/block.module';
+import { UploadModule } from './posts/upload.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { BlockModule } from './block/block.module';
     CoinPackagesModule,
     SearchModule,
     BlockModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

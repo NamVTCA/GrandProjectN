@@ -1,10 +1,10 @@
 .rightbar {
-  background: #0e4420;
-  border-left: 1px solid #083b38;
+  background: #2cb05c;
+  border-left: 1px solid #2cb05c;
   padding: 1rem;
   width: 260px;
   flex-shrink: 0;
-  color: #d5e4c3;
+  color: #ffffff;
 
   .rightbar-section {
     margin-bottom: 1.5rem;
@@ -12,14 +12,14 @@
     h4 {
       font-size: 1rem;
       margin-bottom: 0.75rem;
-      color: #c1cd78;
-      border-bottom: 1px solid #083b38;
+      color: #ffffff;
+      border-bottom: 1px solid #000000;
       padding-bottom: 0.25rem;
     }
 
     .placeholder-text {
       font-size: 0.9rem;
-      color: #9db38c;
+      color: #ffffff;
       font-style: italic;
     }
   }
