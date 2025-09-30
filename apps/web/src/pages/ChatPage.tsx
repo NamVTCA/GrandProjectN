@@ -43,6 +43,26 @@ declare global {
 const GROUP_FALLBACK = '/images/default-group.svg';
 const USER_FALLBACK  = '/images/default-user.svg';
 
+/* ====== Mic icons (inline SVG) ====== */
+const MicIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor" />
+    <path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M12 18v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M8 21h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const MicOffIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor" />
+    <path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M12 18v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M8 21h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M3 3L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
 const getId = (x: any): string | null => {
   if (!x) return null;
   if (typeof x === 'string' || typeof x === 'number') return String(x);
@@ -905,13 +925,15 @@ const ChatPage: React.FC = () => {
               </div>
 
               <div className="chat-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {/* ✅ Nút bật/tắt voice dock cho phòng hiện tại */}
+                {/* ✅ Nút bật/tắt voice dock cho phòng hiện tại — đổi sang ICON */}
                 <button
                   className="fab-btn"
-                  title="Voice (nói chuyện + share màn hình)"
+                  title={showVoice ? 'Ẩn voice' : 'Mở voice'}
+                  aria-label="Voice channel"
+                  aria-pressed={showVoice}
                   onClick={() => setShowVoice(v => !v)}
                 >
-                  {showVoice ? 'Ẩn Voice' : 'Voice'}
+                  {showVoice ? <MicOffIcon /> : <MicIcon />}
                 </button>
 
                 <button

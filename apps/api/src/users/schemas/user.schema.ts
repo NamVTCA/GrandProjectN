@@ -28,6 +28,9 @@ export class User {
 
   @Prop({ type: Types.ObjectId, ref: 'ShopItem' })
   equippedAvatarFrame?: Types.ObjectId;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  friends: Types.ObjectId[];
 }
 
 export type UserDocument = User & Document;
