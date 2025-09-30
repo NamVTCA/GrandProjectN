@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -19,7 +20,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserDocument } from '../auth/schemas/user.schema';
 
-// DTO riêng cho cập nhật sở thích
 export class UpdateInterestsDto {
   interestIds: string[];
 }
@@ -28,14 +28,12 @@ export class UpdateInterestsDto {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // ===== AUTH-REQUIRED =====
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@GetUser() user: UserDocument) {
     return this.usersService.getMe(user._id.toString());
   }
 
-  // ===== PUBLIC / STATIC PATHS =====
   @Get('by-id/:id')
   findPublicById(@Param('id') id: string) {
     return this.usersService.findPublicById(id);
@@ -68,6 +66,39 @@ export class UsersController {
     return this.usersService.deleteWarning(user._id.toString(), warningId);
   }
 
+  // ======= SEED QUICK VIA BROWSER =======
+
+  // GET /api/users/generate-fake?count=70
+  @Get('generate-fake')
+  async generateFakeUsersGet(@Query('count') count?: string) {
+    const n = Math.min(Math.max(Number(count) || 50, 1), 500);
+    return this.usersService.generateFakeUsers(n);
+  }
+
+  // GET /api/users/seed-posts?min=15&max=20&days=120
+  @Get('seed-posts')
+  async seedPosts(
+    @Query('min') min?: string,
+    @Query('max') max?: string,
+    @Query('days') days?: string,
+  ) {
+    const mi = Math.max(1, Number(min) || 15);
+    const ma = Math.max(mi, Number(max) || 20);
+    const d  = Math.max(1, Number(days) || 120);
+    return this.usersService.seedPostsForAllUsers(mi, ma, d);
+  }
+
+  // GET /api/users/seed-reactions?min=10&max=40
+  @Get('seed-reactions')
+  async seedReactions(
+    @Query('min') min?: string,
+    @Query('max') max?: string,
+  ) {
+    const mi = Math.max(0, Number(min) || 10);
+    const ma = Math.max(mi, Number(max) || 40);
+    return this.usersService.seedReactionsForAllPosts(mi, ma);
+  }
+
   // ===== PUBLIC / DYNAMIC =====
   @Get(':param')
   findByUsernameOrId(@Param('param') param: string) {
@@ -87,7 +118,6 @@ export class UsersController {
         updateUserDto.interests,
       );
     }
-
     return this.usersService.updateProfile(user._id.toString(), updateUserDto);
   }
 
@@ -167,5 +197,12 @@ export class UsersController {
       user._id.toString(),
       dto.interestIds,
     );
+  }
+
+  // (seed qua POST nếu thích)
+  @Post('generate-fake')
+  async generateFakeUsers(@Body() body: { count?: number }) {
+    const n = Number(body?.count ?? 50);
+    return this.usersService.generateFakeUsers(n);
   }
 }
