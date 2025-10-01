@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
@@ -50,7 +49,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="reply-form">
+    <form onSubmit={handleSubmit} className="post-card__reply-form">
       <input
         type="text"
         value={content}
@@ -58,9 +57,11 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
         placeholder={placeholder}
         autoFocus
       />
-      <div className="reply-actions">
-        <button type="submit">Gửi</button>
-        <button type="button" onClick={onCancel}>
+      <div className="post-card__reply-actions">
+        <button type="submit" className="btn-submit">
+          Gửi
+        </button>
+        <button type="button" className="btn-cancel" onClick={onCancel}>
           Hủy
         </button>
       </div>
@@ -109,29 +110,31 @@ const CommentItem: React.FC<{
   };
 
   return (
-    <div
-      className={`comment ${level > 0 ? "reply" : ""}`}
-      style={{ marginLeft: level * 30 }}
-    >
+    <div className={`post-card__comment ${level > 0 ? "is-reply" : ""}`}>
       <UserAvatar
         size={32}
+        className="post-card__comment-avatar"
         src={
-          comment.author.avatarUrl ||
-          "https://placehold.co/32x32/242526/b0b3b8?text=..." ||
           (comment.author as any)?.avatarUrl ||
           (comment.author as any)?.avatar ||
-          (comment.author as any)?.avatar_url
+          (comment.author as any)?.avatar_url ||
+          "https://placehold.co/32x32/242526/e4e6eb?text=?"
         }
       />
-      <div className="comment-content">
-        <Link to={`/profile/${comment.author.username}`}>
+
+      <div className="post-card__comment-body">
+        <Link
+          to={`/profile/${comment.author.username}`}
+          className="post-card__comment-username"
+        >
           <strong>{comment.author.username}</strong>
         </Link>
-        <p>{comment.content}</p>
 
-        <div className="comment-actions">
+        <p className="post-card__comment-text">{comment.content}</p>
+
+        <div className="post-card__comment-actions">
           <button
-            className="reply-btn"
+            className="post-card__btn-reply"
             onClick={() => setShowReplyForm(!showReplyForm)}
           >
             <FaReply /> Trả lời
@@ -139,7 +142,7 @@ const CommentItem: React.FC<{
 
           {user?._id === comment.author._id && (
             <button
-              className="comment-delete-button"
+              className="post-card__btn-delete"
               onClick={() => onDelete(comment._id)}
               title="Xóa bình luận"
             >
@@ -159,7 +162,7 @@ const CommentItem: React.FC<{
 
         {comment.replyCount > 0 && replies.length === 0 && (
           <button
-            className="view-replies-btn"
+            className="post-card__btn-view-replies"
             onClick={fetchReplies}
             disabled={loadingReplies}
           >
@@ -170,7 +173,7 @@ const CommentItem: React.FC<{
         )}
 
         {replies.length > 0 && (
-          <div className="replies">
+          <div className="post-card__comment-replies">
             {replies.map((reply) => (
               <CommentItem
                 key={reply._id}
@@ -261,17 +264,21 @@ const CommentSection: React.FC<{
   return (
     <div className="comment-section">
       <form onSubmit={handleCommentSubmit} className="comment-form">
-        <input
-          type="text"
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Viết bình luận..."
-          disabled={isLoading}
-        />
-        <button type="submit" disabled={isLoading || !newComment.trim()}>
-          Gửi
-        </button>
+        <UserAvatar size={28} src={user?.avatar} />
+        <div className="comment-input-wrapper">
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Viết bình luận..."
+            disabled={isLoading}
+          />
+          <button type="submit" disabled={isLoading || !newComment.trim()}>
+            Gửi
+          </button>
+        </div>
       </form>
+
       <div className="comment-list">
         {comments.map((comment) => (
           <CommentItem
@@ -516,7 +523,6 @@ const EditModal: React.FC<{
   );
 };
 
-
 interface PostCardProps {
   post: Post;
   onReact: (postId: string, reaction: ReactionType) => void;
@@ -638,105 +644,108 @@ const PostCard: React.FC<PostCardProps> = ({
   };
   const [activeIndex, setActiveIndex] = useState(0);
 
-const renderMedia = (mediaUrls: string[]) => {
-  if (!mediaUrls || mediaUrls.length === 0) return null;
+  const renderMedia = (mediaUrls: string[]) => {
+    if (!mediaUrls || mediaUrls.length === 0) return null;
 
-  // Giữ index không vượt quá mảng
-  const safeIndex = Math.min(activeIndex, mediaUrls.length - 1);
-  const current = mediaUrls[safeIndex];
-  if (!current) return null;
+    // Giữ index không vượt quá mảng
+    const safeIndex = Math.min(activeIndex, mediaUrls.length - 1);
+    const current = mediaUrls[safeIndex];
+    if (!current) return null;
 
-  const isVideo = current.endsWith(".mp4") || current.includes("video");
+    const isVideo = current.endsWith(".mp4") || current.includes("video");
 
-  return (
-    <div className="post-media-carousel">
-      {isVideo ? (
-        <video
-          src={current}
-          controls
-          onClick={() => setLightboxIndex(safeIndex)}
-        />
-      ) : (
-        <img
-          src={current}
-          alt={`media-${safeIndex}`}
-          onClick={() => setLightboxIndex(safeIndex)}
-        />
-      )}
-
-      {mediaUrls.length > 1 && (
-        <>
-          <button
-            className="nav prev"
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveIndex((prev) =>
-                prev === 0 ? mediaUrls.length - 1 : prev - 1
-              );
-            }}
-          >
-            ‹
-          </button>
-          <button
-            className="nav next"
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveIndex((prev) => (prev + 1) % mediaUrls.length);
-            }}
-          >
-            ›
-          </button>
-        </>
-      )}
-    </div>
-  );
-};
-
-
-
-const renderLightbox = (mediaUrls: string[]) => {
-  if (lightboxIndex === null) return null;
-  const currentMedia = mediaUrls[lightboxIndex];
-  const isVideo = currentMedia.endsWith(".mp4") || currentMedia.includes("video");
-
-  return (
-    <div className="lightbox-overlay" onClick={() => setLightboxIndex(null)}>
-      <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-        <button className="lightbox-close" onClick={() => setLightboxIndex(null)}>✕</button>
-
+    return (
+      <div className="post-media-carousel">
         {isVideo ? (
-          <video src={currentMedia} controls autoPlay />
+          <video
+            src={current}
+            controls
+            onClick={() => setLightboxIndex(safeIndex)}
+          />
         ) : (
-          <img src={currentMedia} alt={`media-${lightboxIndex}`} />
+          <img
+            src={current}
+            alt={`media-${safeIndex}`}
+            onClick={() => setLightboxIndex(safeIndex)}
+          />
         )}
 
         {mediaUrls.length > 1 && (
           <>
             <button
-              className="lightbox-prev"
-              onClick={() =>
-                setLightboxIndex(
-                  (lightboxIndex! - 1 + mediaUrls.length) % mediaUrls.length
-                )
-              }
+              className="nav prev"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveIndex((prev) =>
+                  prev === 0 ? mediaUrls.length - 1 : prev - 1
+                );
+              }}
             >
               ‹
             </button>
             <button
-              className="lightbox-next"
-              onClick={() =>
-                setLightboxIndex((lightboxIndex! + 1) % mediaUrls.length)
-              }
+              className="nav next"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveIndex((prev) => (prev + 1) % mediaUrls.length);
+              }}
             >
               ›
             </button>
           </>
         )}
       </div>
-    </div>
-  );
-};
+    );
+  };
 
+  const renderLightbox = (mediaUrls: string[]) => {
+    if (lightboxIndex === null) return null;
+    const currentMedia = mediaUrls[lightboxIndex];
+    const isVideo =
+      currentMedia.endsWith(".mp4") || currentMedia.includes("video");
+
+    return (
+      <div className="lightbox-overlay" onClick={() => setLightboxIndex(null)}>
+        <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="lightbox-close"
+            onClick={() => setLightboxIndex(null)}
+          >
+            ✕
+          </button>
+
+          {isVideo ? (
+            <video src={currentMedia} controls autoPlay />
+          ) : (
+            <img src={currentMedia} alt={`media-${lightboxIndex}`} />
+          )}
+
+          {mediaUrls.length > 1 && (
+            <>
+              <button
+                className="lightbox-prev"
+                onClick={() =>
+                  setLightboxIndex(
+                    (lightboxIndex! - 1 + mediaUrls.length) % mediaUrls.length
+                  )
+                }
+              >
+                ‹
+              </button>
+              <button
+                className="lightbox-next"
+                onClick={() =>
+                  setLightboxIndex((lightboxIndex! + 1) % mediaUrls.length)
+                }
+              >
+                ›
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderOptionsMenu = () => {
     return (

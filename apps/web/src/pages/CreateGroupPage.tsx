@@ -71,7 +71,7 @@ const CreateGroupPage: React.FC = () => {
         {/* Các trường Name và Description giữ nguyên */}
         <div className="form-group">
           <label htmlFor="name">Tên nhóm</label>
-          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Hội những người yêu game..." required />
+          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="" required />
         </div>
         <div className="form-group">
           <label htmlFor="description">Mô tả (tùy chọn)</label>
