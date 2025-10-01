@@ -189,4 +189,37 @@ export class FriendsService {
       })
       .populate('sender', 'username avatar');
   }
+
+  async getFriendStatus(myId: string, otherId: string) {
+    if (myId === otherId) return { status: 'NONE' };
+
+    const me = await this.userModel.findById(myId).lean();
+    if (!me) throw new NotFoundException('Không tìm thấy người dùng.');
+
+    // Nếu đã là bạn bè
+    if (me.friends.some((f) => String(f) === String(otherId))) {
+      return { status: 'FRIENDS' };
+    }
+
+    // Kiểm tra lời mời đang chờ
+    const request = await this.friendRequestModel
+      .findOne({
+        $or: [
+          { sender: myId, recipient: otherId },
+          { sender: otherId, recipient: myId },
+        ],
+        status: FriendRequestStatus.PENDING,
+      })
+      .lean();
+
+    if (request) {
+      if (String(request.sender) === myId) {
+        return { status: 'REQUEST_SENT' };
+      } else {
+        return { status: 'REQUEST_RECEIVED' };
+      }
+    }
+
+    return { status: 'NONE' };
+  }
 }

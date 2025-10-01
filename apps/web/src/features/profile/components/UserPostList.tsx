@@ -18,7 +18,7 @@ const UserPostList: React.FC<UserPostListProps> = ({ userId }) => {
     setLoading(true);
     try {
       const response = await api.get(`/posts/user/${userId}`);
-      setPosts(response.data);
+      setPosts(response.data as Post[]);
     } catch (error) {
       console.error("Lỗi khi tải bài đăng của người dùng:", error);
     } finally {
@@ -39,14 +39,21 @@ const UserPostList: React.FC<UserPostListProps> = ({ userId }) => {
         <PostCard 
           key={post._id}
           post={post}
-          onReact={() => { } }
-          onRepost={() => { } } onPostDeleted={function (postId: string): void {
+          onReact={() => { }}
+          onRepost={() => { }}
+          onPostDeleted={function (postId: string): void {
             throw new Error('Function not implemented.');
-          } } onCommentAdded={function (postId: string): void {
+          }}
+          onCommentAdded={function (postId: string): void {
             throw new Error('Function not implemented.');
-          } } onCommentDeleted={function (postId: string): void {
+          }}
+          onCommentDeleted={function (postId: string): void {
             throw new Error('Function not implemented.');
-          } }        />
+          }}
+          onPostUpdated={function (updatedPost: Post): void {
+            throw new Error('Function not implemented.');
+          }}
+        />
       ))}
     </div>
   );
