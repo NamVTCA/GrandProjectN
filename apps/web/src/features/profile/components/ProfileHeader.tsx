@@ -17,24 +17,20 @@ const ReportModal: React.FC<{
   const [reason, setReason] = useState("");
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-content report-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
         <h3>🚩 Gửi báo cáo</h3>
-        
-        {/* Link to view the reported user's profile */}
+
         <p className="report-link">
-          <a 
-            href={`/profile/${username}`} 
-            target="_blank" 
+          <a
+            href={`/profile/${username}`}
+            target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
           >
             Xem hồ sơ người dùng được báo cáo
           </a>
         </p>
-        
+
         <textarea
           placeholder="Nhập lý do bạn muốn báo cáo..."
           value={reason}
@@ -84,7 +80,6 @@ const getUserLevelInfo = (xp: number, isAdmin: boolean): UserLevelInfo => {
       xpToNextLevel: "∞",
     };
   }
-
   if (xp >= 20000)
     return {
       level: "Bậc thầy mạng xã hội",
@@ -151,13 +146,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     navigate("/admin/dashboard");
   };
 
-  // Kiểm tra trạng thái tài khoản
-  const isAccountSuspendedOrBanned = 
-    userProfile.accountStatus === 'SUSPENDED' || 
-    userProfile.accountStatus === 'BANNED';
+  const isAccountSuspendedOrBanned =
+    userProfile.accountStatus === "SUSPENDED" || userProfile.accountStatus === "BANNED";
 
   if (isAccountSuspendedOrBanned && !isMyProfile) {
-    return null; // Đã xử lý hiển thị thông báo ở ProfilePage
+    return null; // Đã xử lý thông báo ở ProfilePage
   }
 
   return (
@@ -179,9 +172,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="profile-avatar">
             <AvatarWithFrame
               avatarUrl={
-                userProfile.avatar
-                  ? publicUrl(userProfile.avatar)
-                  : "https://via.placeholder.com/150"
+                userProfile.avatar ? publicUrl(userProfile.avatar) : "https://via.placeholder.com/150"
               }
               frameAssetUrl={userProfile.equippedAvatarFrame?.assetUrl}
               size={96}
@@ -197,15 +188,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <strong>
               {levelInfo.icon} {levelInfo.level}
             </strong>
-            <p className="xp">
-              {isAdmin ? "∞" : userProfile.xp} / {levelInfo.xpToNextLevel} XP
-            </p>
+            <p className="xp">{isAdmin ? "∞" : userProfile.xp} / {levelInfo.xpToNextLevel} XP</p>
             <p className="desc">{levelInfo.description}</p>
           </div>
         </div>
       </div>
 
-      <div className="stats-section">
+      {/* ⬇️ Nhích vào bằng CSS: thêm class profile-stats */}
+      <div className="stats-section profile-stats">
         <div className="stat">
           <strong>{userProfile.following.length}</strong>
           <span>Đang theo dõi</span>
@@ -216,16 +206,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      <div className="action-section">
+      {/* ⬇️ Nhích vào bằng CSS: thêm class profile-actions */}
+      <div className="action-section profile-actions">
         {isMyProfile ? (
-          <div className="profile-actions">
+          <div className="profile-actions-inner">
             <Button onClick={handleEditProfile} variant="secondary" size="small">
               Chỉnh sửa hồ sơ
             </Button>
             {isAdmin && (
-              <Button 
-                onClick={handleGoToAdminDashboard} 
-                variant="primary" 
+              <Button
+                onClick={handleGoToAdminDashboard}
+                variant="primary"
                 size="small"
                 className="admin-dashboard-btn"
               >
@@ -242,10 +233,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             >
               {isFollowing ? "Đang theo dõi" : "Theo dõi"}
             </Button>
-            <button
-              className="report-btn"
-              onClick={() => setReportModalOpen(true)}
-            >
+            <button className="report-btn" onClick={() => setReportModalOpen(true)}>
               🚩 Báo cáo
             </button>
           </>

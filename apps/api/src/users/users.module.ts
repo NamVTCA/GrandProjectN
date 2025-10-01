@@ -1,5 +1,3 @@
-// ❌ Sai: import { Module, Post } from '@nestjs/common';
-// ⬇️ Đúng:
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -9,14 +7,20 @@ import { User, UserSchema } from '../auth/schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
-// ⬇️ Import Post CLASS & Schema từ file schema của bạn (không phải Nest common)
+// Post schema (đúng như bạn đang làm)
 import { Post, PostSchema } from '../posts/schemas/post.schema';
+
+// ⬇️ THÊM Comment schema
+import { CommentSchema } from '../posts/schemas/comment.schema';
+import { GroupSchema } from 'src/groups/schemas/group.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
-      { name: Post.name, schema: PostSchema }, // đăng ký PostModel ở UsersModule
+      { name: User.name, schema: UserSchema },   // 'User'
+      { name: Post.name, schema: PostSchema },   // 'Post'
+      { name: 'Comment', schema: CommentSchema }, // ⬅️ ĐĂNG KÝ CommentModel với token 'Comment'
+      { name: 'Group', schema: GroupSchema },
     ]),
     AuthModule,
     NotificationsModule,

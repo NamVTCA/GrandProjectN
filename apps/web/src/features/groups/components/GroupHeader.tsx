@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { GroupDetail } from '../types/Group';
 import Button from '../../../components/common/Button';
-import { FaCog, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
+import { FaCog, FaSignInAlt, FaSignOutAlt, FaUserPlus } from 'react-icons/fa';
 import CoverAvatarEditMenu from './CoverAvatarEditMenu';
-// ✅ BƯỚC 1: Đổi import từ 'toAssetUrl' sang 'publicUrl' cho nhất quán
 import { publicUrl } from '../../../untils/publicUrl';
 import './GroupHeader.scss';
 
@@ -15,8 +14,8 @@ type GroupHeaderProps = {
   isProcessing: boolean;
   joinStatus: 'MEMBER' | 'PENDING' | 'NONE';
   onJoinLeaveClick: () => void;
-  /** Dùng lại header cho trang tạo nhóm */
   mode?: 'detail' | 'create';
+  onInviteFriends?: () => void;
 };
 
 const GroupHeader: React.FC<GroupHeaderProps> = ({
@@ -27,34 +26,48 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   isProcessing,
   joinStatus,
   mode = 'detail',
+  onInviteFriends,
 }) => {
   const [coverImage, setCoverImage] = useState<string | undefined>(group.coverImage);
   const [avatar, setAvatar] = useState<string | undefined>(group.avatar);
 
-  // đồng bộ khi group thay đổi
   useEffect(() => {
     setCoverImage(group.coverImage);
     setAvatar(group.avatar);
   }, [group._id, group.coverImage, group.avatar]);
 
   const renderActionButton = () => {
-    if (mode === 'create') return null; 
+    if (mode === 'create') return null;
 
     if (isOwner) {
       return (
-        <Link to={`/groups/${group._id}/manage`}>
-          <Button variant="secondary" disabled={isProcessing}>
-            <FaCog /> Quản lý nhóm
-          </Button>
-        </Link>
+        <>
+          <Link to={`/groups/${group._id}/manage`}>
+            <Button variant="secondary" disabled={isProcessing}>
+              <FaCog /> Quản lý nhóm
+            </Button>
+          </Link>
+          {onInviteFriends && (
+            <Button variant="primary" onClick={onInviteFriends}>
+              <FaUserPlus /> Mời bạn bè
+            </Button>
+          )}
+        </>
       );
     }
 
     if (joinStatus === 'MEMBER') {
       return (
-        <Button onClick={onJoinLeaveClick} disabled={isProcessing} variant="secondary">
-          {isProcessing ? 'Đang xử lý...' : (<><FaSignOutAlt /> Rời khỏi nhóm</>)}
-        </Button>
+        <>
+          {onInviteFriends && (
+            <Button variant="primary" onClick={onInviteFriends}>
+              <FaUserPlus /> Mời bạn bè
+            </Button>
+          )}
+          <Button onClick={onJoinLeaveClick} disabled={isProcessing} variant="secondary">
+            {isProcessing ? 'Đang xử lý...' : (<><FaSignOutAlt /> Rời khỏi nhóm</>)}
+          </Button>
+        </>
       );
     }
 
@@ -74,7 +87,6 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       <div
         className="group-cover-photo"
         style={{
-          // ✅ BƯỚC 2: Sử dụng hàm publicUrl cho ảnh bìa
           backgroundImage: `url(${publicUrl(coverImage) || 'https://placehold.co/1200x400/2a2a2a/404040?text=Cover'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -93,7 +105,6 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
         <div className="group-info-container">
           <div className="group-avatar">
             <img
-              // ✅ BƯỚC 3: Sử dụng hàm publicUrl cho avatar
               src={publicUrl(avatar) || 'https://placehold.co/150x150/2a2a2a/ffffff?text=G'}
               alt={`${group.name} avatar`}
             />
