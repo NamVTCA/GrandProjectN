@@ -263,7 +263,7 @@ const ChatPage: React.FC = () => {
     try {
       setLoadingRooms(true);
       const res = await api.get('/chat/rooms');
-      const normalized = (res.data || []).map(normalizeRoom);
+      const normalized = (Array.isArray(res.data) ? res.data : []).map(normalizeRoom);
       setRooms(normalized);
       return normalized as TChatRoom[];
     } catch (e) {
@@ -609,7 +609,12 @@ const ChatPage: React.FC = () => {
           showTempDM(friendId, fallback.username, fallback.avatar);
         }
         const res = await api.post('/chat/rooms', { memberIds: [friendId] });
-        let room: TChatRoom = normalizeRoom(res.data?.room ?? res.data);
+        let room: TChatRoom;
+        if (res.data && typeof res.data === 'object' && 'room' in res.data) {
+          room = normalizeRoom((res.data as { room: any }).room);
+        } else {
+          room = normalizeRoom(res.data);
+        }
 
         const hasPeerInfo =
           Array.isArray(room.members) &&
@@ -659,7 +664,9 @@ const ChatPage: React.FC = () => {
         res = await api.post('/chat/rooms', { name: name || undefined, memberIds: ids });
       }
 
-      const roomFromRes: TChatRoom = normalizeRoom(res.data?.room ?? res.data);
+      const roomFromRes: TChatRoom = typeof res.data === 'object' && res.data !== null && 'room' in res.data
+        ? normalizeRoom((res.data as { room: any }).room)
+        : normalizeRoom(res.data);
       if (roomFromRes?._id) {
         setRooms((prev) => (prev.some((r) => String(r._id) === String(roomFromRes._id)) ? prev : [roomFromRes, ...prev]));
         await handleSelectRoom(roomFromRes);

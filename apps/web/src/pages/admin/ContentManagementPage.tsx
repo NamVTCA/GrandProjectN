@@ -33,9 +33,10 @@ const ContentManagementPage: React.FC = () => {
         api.get('/admin/moderation-queue'),
         api.get('/reports/all')
       ]);
-      setPosts(queueRes.data.posts);
-      setComments(queueRes.data.comments);
-      setReports(reportsRes.data);
+      const queueData = queueRes.data as { posts: ModeratedPost[]; comments: ModeratedComment[] };
+      setPosts(queueData.posts);
+      setComments(queueData.comments);
+      setReports(reportsRes.data as Report[]);
     } catch (error) {
       addToast("Lỗi khi tải dữ liệu", 'error');
     } finally {

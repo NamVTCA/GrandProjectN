@@ -20,7 +20,7 @@
     const fetchUsers = useCallback(async () => {
       setLoading(true);
       try {
-        const response = await api.get('/admin/users');
+        const response = await api.get<AdminUserView[]>('/admin/users');
         setUsers(response.data);
       } catch (error) {
         console.error("Lỗi khi tải danh sách người dùng:", error);

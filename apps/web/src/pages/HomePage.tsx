@@ -50,7 +50,7 @@ const HomePage: React.FC = () => {
     try {
       const response = await api.post(`/posts/${postId}/react`, { type: reactionType });
       setPosts(currentPosts =>
-        currentPosts.map(p => (p._id === postId ? response.data : p))
+        currentPosts.map(p => (p._id === postId ? (response.data as Post) : p))
       );
     } catch (error) {
       console.error("Lỗi khi bày tỏ cảm xúc:", error);
@@ -60,7 +60,7 @@ const HomePage: React.FC = () => {
   const handleRepost = useCallback(async (postId: string, content: string, visibility: PostVisibility) => {
     try {
       const response = await api.post(`/posts/${postId}/repost`, { content, visibility });
-      handlePostCreated(response.data);
+      handlePostCreated(response.data as Post);
     } catch (error) {
       console.error("Lỗi khi chia sẻ bài viết:", error);
     }
@@ -79,7 +79,7 @@ const HomePage: React.FC = () => {
     try {
       const response = await api.get(`/posts/${postId}`);
       setPosts(currentPosts => currentPosts.map(p => 
-        p._id === postId ? response.data : p
+        p._id === postId ? (response.data as Post) : p
       ));
     } catch (error) {
       console.error("Lỗi khi cập nhật số bình luận:", error);
@@ -90,7 +90,7 @@ const HomePage: React.FC = () => {
     try {
       const response = await api.get(`/posts/${postId}`);
       setPosts(currentPosts => currentPosts.map(p => 
-        p._id === postId ? response.data : p
+        p._id === postId ? (response.data as Post) : p
       ));
     } catch (error) {
       console.error("Lỗi khi cập nhật số bình luận:", error);
@@ -132,7 +132,7 @@ const HomePage: React.FC = () => {
           <p className="page-status">Bảng tin của bạn chưa có gì. Hãy kết bạn để xem thêm nhé!</p>
         )}
       </div>
-      <ChatbotIcon />
+      {/* <ChatbotIcon /> */}
     </div>
   );
 };
