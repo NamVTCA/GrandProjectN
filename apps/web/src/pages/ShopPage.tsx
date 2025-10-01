@@ -19,7 +19,7 @@ const ShopPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await api.get("/shop/items");
-      setItems(response.data);
+      setItems(response.data as ShopItem[]);
     } catch (error) {
       toast.error("Lỗi khi tải vật phẩm cửa hàng");
     } finally {
@@ -33,13 +33,13 @@ const ShopPage: React.FC = () => {
 
   const handlePurchase = async (itemId: string) => {
   await toast.promise(
-    api.post("/shop/purchase", { itemId }),
+    (async () => await api.post("/shop/purchase", { itemId }))(),
     {
       pending: "Đang xử lý giao dịch...",
       success: {
         render({ data }) {
           fetchUser(); // cập nhật coin 1 lần là đủ
-          return data?.data?.message || "Mua thành công!";
+          return (data as { data?: { message?: string } })?.data?.message || "Mua thành công!";
         },
       },
       error: {

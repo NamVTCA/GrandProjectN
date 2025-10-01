@@ -19,9 +19,9 @@ const LoginPage: React.FC = () => {
       const response = await api.post('/auth/login', { email, password });
 
       // ✅ lưu token vào AuthContext + localStorage (key thống nhất: "token")
-      const token = response.data.accessToken;
-      login(token);
-      localStorage.setItem('token', token);
+      const { accessToken } = response.data as { accessToken: string };
+      login(accessToken);
+      localStorage.setItem('token', accessToken);
 
       toast.success('Đăng nhập thành công');
       navigate('/');
