@@ -8,6 +8,7 @@ import { User, UserDocument } from '../auth/schemas/user.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/schemas/notification.schema';
+import { Warning, WarningDocument } from '../users/schemas/warning.schema';
 
 import {
   Post as PostEntity,
@@ -272,6 +273,7 @@ export class UsersService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Warning.name) private warningModel: Model<WarningDocument>,
     @InjectModel(PostEntity.name) private postModel: Model<PostDocument>,
     private notificationsService: NotificationsService,
   ) {}
@@ -610,29 +612,7 @@ export class UsersService {
     return (user as any).friends;
   }
 
-  async getWarnings(userId: string) {
-    const user = await this.userModel
-      .findById(userId)
-      .select('warnings')
-      .populate([
-        { path: 'warnings.by', select: 'username avatar' },
-        { path: 'warnings.reason', select: 'reasonText' },
-      ]);
-    if (!user) throw new NotFoundException('Người dùng không tồn tại.');
-    return (user as any).warnings;
-  }
-
-  async deleteWarning(userId: string, warningId: string) {
-    const user: any = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('Người dùng không tồn tại.');
-    const warningIndex = user.warnings?.findIndex((w: any) => w._id?.toString() === warningId);
-    if (warningIndex === -1) throw new NotFoundException('Cảnh cáo không tồn tại.');
-    user.warnings.splice(warningIndex, 1);
-    await user.save();
-    return { message: 'Xoá cảnh cáo thành công.' };
-  }
-
-  async getMe(userId: string | Types.ObjectId) {
+    async getMe(userId: string | Types.ObjectId) {
     const me = await this.userModel
       .findById(userId)
       .select('username email avatar coins hasSelectedInterests globalRole friends currentGame coverImage equippedAvatarFrame')
@@ -641,5 +621,34 @@ export class UsersService {
       .exec();
     if (!me) throw new NotFoundException('Không tìm thấy người dùng');
     return me;
+  }
+
+ // ✅ Lấy toàn bộ warnings của user
+  async getWarnings(userId: string) {
+    return this.warningModel
+      .find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate('by', 'username avatar')
+      .lean()
+      .exec();
+  }
+
+  // ✅ Xóa toàn bộ warnings
+  async clearWarnings(userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    return this.warningModel.deleteMany({ user: userId });
+  }
+
+  // ✅ Xóa 1 warning cụ thể
+  async deleteWarning(userId: string, warningId: string) {
+    const warning = await this.warningModel.findOneAndDelete({
+      _id: warningId,
+      user: userId,
+    });
+
+    if (!warning) {
+      throw new NotFoundException('Không tìm thấy cảnh báo.');
+    }
+
+    return { message: 'Đã xóa cảnh báo.' };
   }
 }

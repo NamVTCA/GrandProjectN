@@ -1,4 +1,3 @@
-// notifications.controller.ts
 import {
   Controller,
   Get,
@@ -41,6 +40,14 @@ export class NotificationsController {
     return this.notificationsService.getAllNotification(user._id.toString());
   }
 
+  // ⚡ Đặt clear trước, tránh bị trùng với :id
+  @Delete('clear')
+  async clearAllNotifications(
+    @GetUser() user: UserDocument,
+  ): Promise<DeleteResult> {
+    return this.notificationsService.clearAllNotifications(user._id.toString());
+  }
+
   @Delete(':id')
   async deleteNotification(
     @Param('id') notificationId: string,
@@ -50,12 +57,5 @@ export class NotificationsController {
       notificationId,
       user._id.toString(),
     );
-  }
-
-  @Delete('/clear')
-  async clearAllNotifications(
-    @GetUser() user: UserDocument,
-  ): Promise<DeleteResult> {
-    return this.notificationsService.clearAllNotifications(user._id.toString());
   }
 }

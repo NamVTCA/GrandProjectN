@@ -3,14 +3,17 @@
 .notification-bell {
   position: relative;
 
-  button {
+  > button {
     background: none;
     border: none;
     font-size: 24px;
     cursor: pointer;
     color: $text-secondary;
     position: relative;
-    &:hover { color: $text-light; }
+
+    &:hover {
+      color: $text-light;
+    }
   }
 
   .badge {
@@ -29,40 +32,113 @@
     position: absolute;
     top: 120%;
     right: 0;
-    width: 350px;
-    background-color: $background-component-light;
+    width: 360px;
+    background-color: $background-component;
     border: 1px solid $surface-color;
     border-radius: $border-radius-lg;
     box-shadow: $card-shadow;
-    max-height: 400px;
+    max-height: 420px;
     overflow-y: auto;
+    z-index: 100;
+
+    .notification-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid $surface-color;
+      font-weight: 600;
+      color: $text-light;
+
+      .clear-btn {
+        background: transparent;
+        color: $error-color;
+        border: none;
+        font-size: 13px;
+        cursor: pointer;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: lighten($error-color, 10%);
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .notification-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid $surface-color;
+      gap: 8px;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .delete-btn {
+        background: transparent;
+        border: none;
+        font-size: 14px;
+        color: $text-secondary;
+        cursor: pointer;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: $error-color;
+        }
+      }
+    }
 
     .notification-item {
-      padding: 15px;
-      border-bottom: 1px solid $surface-color;
-      &:last-child { border-bottom: none; }
+      font-size: 14px;
+      color: $text-light;
+      line-height: 1.4;
+
+      .line a {
+        color: $primary-color;
+        text-decoration: underline;
+
+        &:hover {
+          color: lighten($primary-color, 10%);
+        }
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+
+        .btn-accept {
+          background: #2e7d32;
+          color: #fff;
+          border: none;
+          padding: 6px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+
+          &:hover {
+            background: darken(#2e7d32, 5%);
+          }
+        }
+
+        .btn-decline {
+          background: transparent;
+          color: $text-secondary;
+          border: 1px solid $surface-color;
+          padding: 6px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+
+          &:hover {
+            color: $text-light;
+            border-color: $text-light;
+          }
+        }
+      }
     }
   }
-}
-/* Buttons for group invite actions */
-.notification-bell .notification-dropdown .notification-item .actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.notification-bell .notification-dropdown .notification-item .btn-accept {
-  background: #2e7d32;
-  color: #fff;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.notification-bell .notification-dropdown .notification-item .btn-decline {
-  background: transparent;
-  color: #9aa0a6;
-  border: 1px solid #3a3f44;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
 }

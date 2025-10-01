@@ -14,10 +14,10 @@ import { PresenceService } from '../presence/presence.service';
 
 type CreateNotificationEvent = {
   recipientId: string;
-  actor?: UserDocument;                 // optional cho thông báo hệ thống
+  actor?: UserDocument;
   type: NotificationType;
   link?: string | null;
-  metadata?: Record<string, any>;       // ⬅️ thêm để giữ groupId, inviteId,...
+  metadata?: Record<string, any>;
 };
 
 @Injectable()
@@ -31,15 +31,14 @@ export class NotificationsService {
     private presenceService: PresenceService,
   ) {}
 
-  // Tạo + push realtime
+  // ✅ Tạo + push realtime
   async createNotification(
     recipient: UserDocument,
-    sender: UserDocument | null | undefined, // ⬅️ cho phép optional
+    sender: UserDocument | null | undefined,
     type: NotificationType,
     link: string | null,
     metadata?: any,
   ) {
-    // Không gửi cho chính mình (nếu có sender)
     if (sender && recipient._id.toString() === sender._id.toString()) return;
 
     const payload: any = {
@@ -51,14 +50,14 @@ export class NotificationsService {
     if (sender) payload.sender = sender._id;
 
     const notification = new this.notificationModel(payload);
-
     const savedNotification = await notification.save();
+
     const populatedNotification = await savedNotification.populate(
       'sender',
       'username avatar',
     );
 
-    // Gửi realtime nếu online
+    // realtime nếu user online
     if (await this.presenceService.isUserOnline(recipient._id.toString())) {
       const socketId = this.presenceService.getSocketId(
         recipient._id.toString(),
@@ -93,15 +92,14 @@ export class NotificationsService {
   }
 
   async getAllNotification(recivedId: string) {
-    const notifications = await this.notificationModel
+    return this.notificationModel
       .find({ recipient: recivedId })
       .sort({ createdAt: -1 })
       .populate('sender', 'username avatar')
       .exec();
-    return notifications;
   }
 
-  // Lắng nghe sự kiện tạo thông báo từ các module khác
+  // ⬇️ Lắng nghe sự kiện từ module khác
   @OnEvent('notification.create')
   async handleNotificationCreateEvent(payload: CreateNotificationEvent) {
     const recipient = await this.userModel.findById(payload.recipientId);
@@ -114,10 +112,10 @@ export class NotificationsService {
 
     await this.createNotification(
       recipient,
-      payload.actor ?? null, // ⬅️ giữ nguyên actor nếu có
+      payload.actor ?? null,
       payload.type,
       payload.link ?? null,
-      payload.metadata ?? undefined, // ⬅️ GHI metadata
+      payload.metadata ?? undefined,
     );
   }
 
