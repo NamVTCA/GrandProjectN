@@ -1,233 +1,285 @@
-.topup-page {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 1rem;
+/* TopUpPage.scss
+   Giao diện hiện đại, tối giản, responsive
+   - Sử dụng CSS variables cho dễ tùy chỉnh
+   - Card animation, hover, selected state
+*/
 
-  h2 {
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .coin-packages-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    justify-content: center;/* --- Cấu hình chung và Typography --- */
-body {
-  background-color: #121212;
-  color: #e0e0e0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+:root {
+  --bg: #0f1724; /* dark-navy */
+  --panel: #0b1220;
+  --muted: #9aa4b2;
+  --accent: #7c5cff; /* primary purple */
+  --accent-2: #00c2a8; /* secondary */
+  --card: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  --glass: rgba(255,255,255,0.03);
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(2,6,23,0.6);
+  --glass-border: rgba(255,255,255,0.04);
+  --max-width: 1100px;
 }
 
+/* Page container */
 .topup-page {
-  max-width: 900px;
-  margin: 3rem auto;
-  padding: 2rem;
-  background-color: #1e1e1e;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-
-  h2 {
-    text-align: center;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #4caf50;
-    margin-bottom: 2.5rem;
-    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-  }
-
-  /* --- Grid Gói Coin --- */
-  .coin-packages-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
-  }
-
-  /* --- Form Thanh toán --- */
-  .payment-form {
-    max-width: 550px;
-    margin: 0 auto;
-    padding: 2rem;
-    border: 1px solid #333;
-    border-radius: 12px;
-    background-color: #2a2a2a;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-
-    h3 {
-      text-align: center;
-      color: #fafafa;
-      margin-bottom: 1.5rem;
-      font-size: 1.5rem;
-      border-bottom: 2px solid #444;
-      padding-bottom: 0.5rem;
-    }
-
-    .card-element-container {
-      padding: 1rem;
-      border: 1px solid #444;
-      border-radius: 8px;
-      background-color: #333;
-      transition: border-color 0.3s ease;
-
-      &:focus-within {
-        border-color: #007bff;
-      }
-    }
-
-    .error-message {
-      color: #ff6b6b;
-      background-color: #3a1e1e;
-      padding: 0.75rem;
-      border-radius: 8px;
-      margin-top: 1rem;
-      text-align: center;
-    }
-
-    .button-group {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-top: 1.5rem;
-
-      button {
-        flex: 1;
-        padding: 1rem;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: transform 0.2s ease-in-out, background-color 0.2s ease;
-        text-transform: uppercase;
-
-        &:hover:not([disabled]) {
-          background-color: #0056b3;
-          transform: translateY(-2px);
-        }
-
-        &:disabled {
-          background-color: #4a4a4a;
-          cursor: not-allowed;
-          transform: none;
-        }
-      }
-    }
-  }
-
-  /* --- Trang thanh toán thành công --- */
-
-
-  /* --- Hiệu ứng loading --- */
-  .loading {
-    text-align: center;
-    margin-top: 2rem;
-    font-size: 1.2rem;
-  }
+  min-height: 72vh;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: radial-gradient(1200px 600px at 10% 10%, rgba(124,92,255,0.06), transparent 8%),
+              radial-gradient(900px 400px at 90% 90%, rgba(0,194,168,0.03), transparent 8%),
+              var(--bg);
+  color: #e6eef8;
+  box-sizing: border-box;
 }
-  }
 
-  .payment-form {
-    max-width: 500px;
-    margin: 0 auto;
-    margin-top: 2rem;
-    padding: 1rem;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    background-color: #fafafa;
+/* Page header */
+.topup-page > h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: #f8fbff;
+}
 
-    button {
-      margin-top: 1rem;
-      width: 100%;
-      padding: 0.75rem;
-      background-color: #007bff;
-      color: rgb(7, 7, 7);
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      
-      &:hover {
-        background-color: #0056b3;
-      }
-    }
-    
-  }
-  .error-message{
-    color:black
-  }
-  .payment-success-message {
+/* Grid + right panel layout */
+.coin-packages-grid {
+  width: 100%;
+  max-width: var(--max-width);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+
+/* Payment form wrapper (appear below grid on small screens) */
+.payment-panel {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-top: 18px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Card style for each coin-package (fallback if CoinPackageCard doesn't style itself) */
+.coin-package-card {
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.coin-package-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px rgba(2,6,23,0.7);
+  border-color: rgba(124,92,255,0.35);
+}
+
+.coin-package-card .pkg-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.coin-package-card .pkg-coins {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.coin-package-card .pkg-price {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* Selected state */
+.coin-package-card.selected,
+.coin-package-card.is-selected {
+  border: 1px solid rgba(124,92,255,0.9);
+  background: linear-gradient(180deg, rgba(124,92,255,0.06), rgba(0,0,0,0.04));
+  box-shadow: 0 20px 40px rgba(124,92,255,0.08), 0 10px 30px rgba(2,6,23,0.6);
+    transform: translateY(-8px) #{'scale(1.01)'};
+}
+
+.coin-package-card .badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.02);
+}
+
+/* Payment form (card) */
+.payment-form {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 40px rgba(2,6,23,0.6);
+  box-sizing: border-box;
+}
+
+.payment-form h3 {
+  margin: 0 0 12px 0;
+  color: #f8fbff;
+  font-size: 1.1rem;
+}
+
+.card-element-container {
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255,255,255,0.01);
+  border: 1px dashed rgba(255,255,255,0.03);
+  margin-bottom: 12px;
+}
+
+/* Stripe's CardElement will fill this container; style placeholders */
+.payment-form .StripeElement,
+.payment-form .card-element-container > .__PrivateStripeElement {
+  width: 100%;
+  padding: 6px 2px;
+}
+
+/* Error message */
+.error-message {
+  color: #ff8a8a;
+  font-size: 0.9rem;
+  margin: 8px 0;
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.button-group button {
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: white;
+  box-shadow: 0 8px 20px rgba(124,92,255,0.12);
+}
+
+.button-group button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.button-group button[type='button'] {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+/* Success message panel */
+.payment-success-message {
+  width: 100%;
+  max-width: var(--max-width);
+  background: linear-gradient(180deg, rgba(0,194,168,0.03), rgba(255,255,255,0.01));
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: 0 18px 36px rgba(2,6,23,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
   text-align: center;
-  padding: 3rem 2rem;
-  background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
-  border: 1px solid #444;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
 
-  h2 {
-    color: #4caf50;
-    font-size: 3rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    text-shadow: 0 0 15px rgba(76, 175, 80, 0.7);
+.payment-success-message h2 {
+  margin: 0;
+  color: #e9fff6;
+}
+
+/* Download and buy-more buttons in success */
+.download-button,
+.buy-more-button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.download-button {
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+.buy-more-button {
+  background: linear-gradient(90deg, #6b5bff, #2ec5a8);
+  color: #fff;
+}
+
+/* Loading / error blocks */
+.loading,
+.error-message {
+  padding: 18px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: var(--max-width);
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .coin-packages-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  p {
-    color: #b0b0b0;
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
+  .payment-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payment-form {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .coin-packages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topup-page {
+    padding: 18px;
   }
 
   .button-group {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+    justify-content: stretch;
   }
 
-  .download-button,
-  .buy-more-button {
-    padding: 1rem 2rem;
-    font-size: 1rem;
-    font-weight: bold;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.25s ease-in-out;
-    min-width: 160px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-
-    &:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
-    }
+  .button-group button {
+    flex: 1;
   }
-
-  .download-button {
-    background: linear-gradient(90deg, #4caf50, #45a049);
-    color: #fff;
-
-    &:hover {
-      background: linear-gradient(90deg, #45a049, #388e3c);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    }
-  }
-
-  .buy-more-button {
-    background: linear-gradient(90deg, #616161, #505050);
-    color: #fff;
-
-    &:hover {
-      background: linear-gradient(90deg, #505050, #3c3c3c);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-    }
-  }
-}
-
-  
 }

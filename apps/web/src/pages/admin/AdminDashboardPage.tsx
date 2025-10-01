@@ -55,10 +55,10 @@ const AdminDashboardPage: React.FC = () => {
       ]);
       
       setStats(statsRes.data);
-      setReports(reportsRes.data);
-      setExistingPackages(packagesRes.data.map((p: any) => p.packageId));
-      setInterests(interestsRes.data);
-      setShopItems(shopItemsRes.data);
+      setReports(reportsRes.data as any[]);
+      setExistingPackages((packagesRes.data as any[]).map((p: any) => p.packageId));
+      setInterests(interestsRes.data as Interest[]);
+      setShopItems(shopItemsRes.data as ShopItem[]);
     } catch (err) {
       console.error('Lỗi tải dữ liệu:', err);
     }
