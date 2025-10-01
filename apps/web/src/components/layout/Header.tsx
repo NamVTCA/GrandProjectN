@@ -1,28 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaBell } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
-import api from '../../services/api';
-import SearchResultItem from '../search/SearchResultItem';
-import { useAuth } from '../../features/auth/AuthContext';
-import UserAvatar from '../common/UserAvatar';
-import './Header.scss';
+import React, { useState, useEffect } from "react";
+import { FaSearch, FaBell } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import api from "../../services/api";
+import SearchResultItem from "../search/SearchResultItem";
+import { useAuth } from "../../features/auth/AuthContext";
+import UserAvatar from "../common/UserAvatar";
+import { useSocket } from "../../hooks/useSocket"; // ✅ thêm socket
+import "./Header.scss";
 
 // Kiểu tối giản cho các kết quả
-type BaseHit = { _id: string; name: string; type: 'user' | 'post' | 'group'; avatar?: string; username?: string };
-type SearchHit = BaseHit; // (API trả gì ta nhận vậy cho nhẹ)
+type BaseHit = {
+  _id: string;
+  name: string;
+  type: "user" | "post" | "group";
+  avatar?: string;
+  username?: string;
+};
+type SearchHit = BaseHit;
 
-function isUserResult(x: SearchHit): x is Required<Pick<SearchHit, '_id' | 'type' | 'name' | 'avatar' | 'username'>> {
-  return x.type === 'user' && typeof x.username === 'string' && x.username.length > 0;
+function isUserResult(
+  x: SearchHit
+): x is Required<
+  Pick<SearchHit, "_id" | "type" | "name" | "avatar" | "username">
+> {
+  return (
+    x.type === "user" && typeof x.username === "string" && x.username.length > 0
+  );
 }
 
 const Header: React.FC = () => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchHit[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
   const { user } = useAuth();
 
+  // ✅ Thêm state cho thông báo
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notificationSocket = useSocket("notifications");
+
+  // Search logic
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
@@ -30,19 +48,49 @@ const Header: React.FC = () => {
     }
     setIsSearching(true);
     const t = setTimeout(() => {
-      api.get<SearchHit[]>(`/search?q=${encodeURIComponent(query)}`)
-        .then(res => setResults(res.data || []))
-        .catch(err => console.error('Lỗi tìm kiếm:', err))
+      api
+        .get<SearchHit[]>(`/search?q=${encodeURIComponent(query)}`)
+        .then((res) => setResults(res.data || []))
+        .catch((err) => console.error("Lỗi tìm kiếm:", err))
         .then(() => setIsSearching(false));
     }, 500);
     return () => clearTimeout(t);
   }, [query]);
 
+  // ✅ Lấy số thông báo chưa đọc ban đầu
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get("/notifications"); // hoặc /notifications/all
+        const data = Array.isArray(res.data) ? res.data : [];
+        const unread = data.filter((n: any) => !n.isRead).length;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.error("Lỗi khi lấy thông báo:", err);
+      }
+    };
+    fetchUnread();
+  }, []);
+
+  // ✅ Lắng nghe realtime
+  useEffect(() => {
+    if (!notificationSocket || !user) return;
+
+    notificationSocket.on("newNotification", () => {
+      setUnreadCount((prev) => prev + 1); // mỗi khi có noti mới thì +1
+    });
+
+    return () => {
+      notificationSocket.off("newNotification");
+    };
+  }, [notificationSocket, user]);
+
   const getLinkForResult = (item: SearchHit) => {
-    if (item.type === 'user' && item.username) return `/profile/${item.username}`;
-    if (item.type === 'group') return `/groups/${item._id}`;
-    if (item.type === 'post') return `/posts/${item._id}`;
-    return '/';
+    if (item.type === "user" && item.username)
+      return `/profile/${item.username}`;
+    if (item.type === "group") return `/groups/${item._id}`;
+    if (item.type === "post") return `/posts/${item._id}`;
+    return "/";
   };
 
   return (
@@ -72,10 +120,8 @@ const Header: React.FC = () => {
             ) : results.length > 0 ? (
               results.map((item) => {
                 if (isUserResult(item)) {
-                  // item chắc chắn có username → truyền cho component user
                   return <SearchResultItem key={item._id} user={item} />;
                 }
-                // group / post
                 return (
                   <Link
                     to={getLinkForResult(item)}
@@ -95,22 +141,35 @@ const Header: React.FC = () => {
 
       {/* ACTIONS + CURRENT USER */}
       <div className="user-actions">
-        <Link to="/user-reports/:userId" className="warning-link" title="Báo cáo">
+        <Link
+          to="/user-reports/:userId"
+          className="warning-link"
+          title="Báo cáo"
+        >
           <span className="warning-icon">!</span>
         </Link>
-        <Link to="/notifications" className="notification-link" title="Thông báo">
+        <Link
+          to="/notifications"
+          className="notification-link"
+          title="Thông báo"
+        >
           <FaBell className="icon" />
+          {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
         </Link>
 
         {user && (
           <Link
-            to={user.username ? `/profile/${user.username}` : '/profile'}
+            to={user.username ? `/profile/${user.username}` : "/profile"}
             className="current-user"
             title={user.username}
           >
             <UserAvatar
               size={32}
-              src={(user as any)?.avatarUrl || (user as any)?.avatar || (user as any)?.avatar_url}
+              src={
+                (user as any)?.avatarUrl ||
+                (user as any)?.avatar ||
+                (user as any)?.avatar_url
+              }
             />
           </Link>
         )}

@@ -24,11 +24,12 @@ export class UpdateInterestsDto {
   interestIds: string[];
 }
 
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard)
+  // ===== PROFILE =====
   @Get('me')
   getMe(@GetUser() user: UserDocument) {
     return this.usersService.getMe(user._id.toString());
@@ -39,74 +40,45 @@ export class UsersController {
     return this.usersService.findPublicById(id);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('get/friends')
   getAllFriend(@GetUser() user: UserDocument) {
     return this.usersService.getAllFriend(user._id.toString());
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('get/dental/:id')
   getDental(@Param('id') id: string) {
     return this.usersService.GetUserDental(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // ===== WARNINGS =====
   @Get('warnings/get')
-  getWarnings(@GetUser() user: UserDocument) {
+  async getWarnings(@GetUser() user: UserDocument) {
     return this.usersService.getWarnings(user._id.toString());
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Delete('warnings/delete/:warningId')
-  deleteWarning(
+  @Delete('warnings/clear')
+  async clearWarnings(@GetUser() user: UserDocument): Promise<any> {
+    return this.usersService.clearWarnings(user._id.toString());
+  }
+
+  @Delete('warnings/:id')
+  async deleteWarning(
     @GetUser() user: UserDocument,
-    @Param('warningId') warningId: string,
+    @Param('id') warningId: string,
   ) {
     return this.usersService.deleteWarning(user._id.toString(), warningId);
   }
 
-  // ======= SEED QUICK VIA BROWSER =======
-
-  // GET /api/users/generate-fake?count=70
-  @Get('generate-fake')
-  async generateFakeUsersGet(@Query('count') count?: string) {
-    const n = Math.min(Math.max(Number(count) || 50, 1), 500);
-    return this.usersService.generateFakeUsers(n);
-  }
-
-  // GET /api/users/seed-posts?min=15&max=20&days=120
-  @Get('seed-posts')
-  async seedPosts(
-    @Query('min') min?: string,
-    @Query('max') max?: string,
-    @Query('days') days?: string,
+  // alias khớp FE cũ
+  @Delete('warnings/delete/:id')
+  async deleteWarningLegacy(
+    @GetUser() user: UserDocument,
+    @Param('id') warningId: string,
   ) {
-    const mi = Math.max(1, Number(min) || 15);
-    const ma = Math.max(mi, Number(max) || 20);
-    const d  = Math.max(1, Number(days) || 120);
-    return this.usersService.seedPostsForAllUsers(mi, ma, d);
+    return this.usersService.deleteWarning(user._id.toString(), warningId);
   }
 
-  // GET /api/users/seed-reactions?min=10&max=40
-  @Get('seed-reactions')
-  async seedReactions(
-    @Query('min') min?: string,
-    @Query('max') max?: string,
-  ) {
-    const mi = Math.max(0, Number(min) || 10);
-    const ma = Math.max(mi, Number(max) || 40);
-    return this.usersService.seedReactionsForAllPosts(mi, ma);
-  }
-
-  // ===== PUBLIC / DYNAMIC =====
-  @Get(':param')
-  findByUsernameOrId(@Param('param') param: string) {
-    return this.usersService.findByUsernameOrId(param);
-  }
-
-  // ===== PATCH / MUTATIONS =====
-  @UseGuards(JwtAuthGuard)
+  // ===== UPDATE PROFILE =====
   @Patch('me')
   updateMyProfile(
     @GetUser() user: UserDocument,
@@ -121,7 +93,6 @@ export class UsersController {
     return this.usersService.updateProfile(user._id.toString(), updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Patch('me/avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -142,7 +113,6 @@ export class UsersController {
     return this.usersService.updateAvatar(user._id.toString(), avatarPath);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Patch('me/cover')
   @UseInterceptors(
     FileInterceptor('cover', {
@@ -163,7 +133,7 @@ export class UsersController {
     return this.usersService.updateCover(user._id.toString(), coverPath);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // ===== FOLLOW =====
   @Post(':id/follow')
   followUser(
     @GetUser() currentUser: UserDocument,
@@ -175,7 +145,6 @@ export class UsersController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
   @Delete(':id/follow')
   unfollowUser(
     @GetUser() currentUser: UserDocument,
@@ -187,7 +156,7 @@ export class UsersController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  // ===== INTERESTS =====
   @Patch('me/interests')
   updateInterests(
     @GetUser() user: UserDocument,
@@ -199,10 +168,44 @@ export class UsersController {
     );
   }
 
-  // (seed qua POST nếu thích)
+  // ====== SEED DATA ======
+  @Get('generate-fake')
+  async generateFakeUsersGet(@Query('count') count?: string) {
+    const n = Math.min(Math.max(Number(count) || 50, 1), 500);
+    return this.usersService.generateFakeUsers(n);
+  }
+
   @Post('generate-fake')
   async generateFakeUsers(@Body() body: { count?: number }) {
     const n = Number(body?.count ?? 50);
     return this.usersService.generateFakeUsers(n);
+  }
+
+  @Get('seed-posts')
+  async seedPosts(
+    @Query('min') min?: string,
+    @Query('max') max?: string,
+    @Query('days') days?: string,
+  ) {
+    const mi = Math.max(1, Number(min) || 15);
+    const ma = Math.max(mi, Number(max) || 20);
+    const d = Math.max(1, Number(days) || 120);
+    return this.usersService.seedPostsForAllUsers(mi, ma, d);
+  }
+
+  @Get('seed-reactions')
+  async seedReactions(
+    @Query('min') min?: string,
+    @Query('max') max?: string,
+  ) {
+    const mi = Math.max(0, Number(min) || 10);
+    const ma = Math.max(mi, Number(max) || 40);
+    return this.usersService.seedReactionsForAllPosts(mi, ma);
+  }
+
+  // ===== PUBLIC / DYNAMIC =====
+  @Get(':param')
+  findByUsernameOrId(@Param('param') param: string) {
+    return this.usersService.findByUsernameOrId(param);
   }
 }
