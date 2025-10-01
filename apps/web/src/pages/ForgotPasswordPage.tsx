@@ -13,7 +13,8 @@ const ForgotPasswordPage: React.FC = () => {
     setMessage('');
     try {
       const response = await api.post('/auth/forgot-password', { email });
-      setMessage(response.data.message);
+      const data = response.data as { message?: string };
+      setMessage(data.message || 'Yêu cầu đã được gửi.');
     } catch (err) {
       setMessage('Có lỗi xảy ra, vui lòng thử lại.');
     }

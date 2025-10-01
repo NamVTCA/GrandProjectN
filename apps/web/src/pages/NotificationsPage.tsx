@@ -80,7 +80,7 @@ export default function Notifications() {
   const fetchFriendRequests = async () => {
     try {
       const res = await api.get('/friends/requests');
-      setFriendRequests(res.data);
+      setFriendRequests(res.data as FriendRequest[]);
     } catch {
       toast.error('Lỗi khi lấy lời mời kết bạn');
     }
@@ -90,7 +90,7 @@ export default function Notifications() {
     const fetchNotifications = async () => {
       try {
         const res = await api.get('/notifications/all');
-        setNotifications(res.data);
+        setNotifications(res.data as Notification[]);
       } catch {
         toast.error('Lỗi khi lấy thông báo');
       }
@@ -99,7 +99,8 @@ export default function Notifications() {
     const fetchWarnings = async () => {
       try {
         const res = await api.get('/users/warnings/get');
-        const warningsAsNoti = res.data.map((warn: Warning) => ({
+        const warningsData = res.data as Warning[];
+        const warningsAsNoti = warningsData.map((warn: Warning) => ({
           _id: `warn-${warn._id}`,
           type: 'WARN',
           isRead: false,

@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsArray } from 'class-validator';
 import { PostVisibility } from '../schemas/post.schema';
 
 export class UpdatePostDto {
@@ -9,4 +9,9 @@ export class UpdatePostDto {
   @IsOptional()
   @IsEnum(PostVisibility)
   visibility?: PostVisibility;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  mediaUrls?: string[];
 }

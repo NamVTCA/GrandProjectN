@@ -10,7 +10,10 @@ api.interceptors.request.use(
   (config) => {
     // ✅ đồng bộ key "token"
     const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
     const isFormData =
       typeof FormData !== 'undefined' && config.data instanceof FormData;
@@ -40,9 +43,9 @@ api.interceptors.response.use(
 
 // --- Example APIs ---
 export const chatWithBot = async (message: string): Promise<{ reply: string }> => {
-  const res = await api.post('/chatbot', { message });
+  const res = await api.post<{ reply: string } | string>('/chatbot', { message });
   if (typeof res.data === 'string') return { reply: res.data };
-  return res.data;
+  return res.data as { reply: string };
 };
 
 export const BlocksApi = {
@@ -56,7 +59,13 @@ export const BlocksApi = {
   },
   async list(): Promise<string[]> {
     try {
-      const { data } = await api.get('/friends/me');
+      type FriendsMeResponse = {
+        blockedUsers?: any[];
+        me?: {
+          blockedUsers?: any[];
+        };
+      };
+      const { data } = await api.get<FriendsMeResponse>('/friends/me');
       if (Array.isArray(data?.blockedUsers)) {
         return data.blockedUsers.map((u: any) => u._id || u.id || String(u));
       }

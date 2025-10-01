@@ -1,23 +1,29 @@
-@use '../../../styles/index' as *;
+@use "../../../styles/index" as *;
 @use "sass:color";
 
 .profile-header {
-  /* Lề chuẩn của nội dung trong card */
+  /* Lề chuẩn trong card */
   --side-pad: 20px;
 
   background-color: $background-component;
   border-radius: $border-radius-lg;
   margin-bottom: 20px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 
   .cover-image-container {
-    height: 250px;
-    background-color: $surface-color;
+    height: 220px;
+    background: linear-gradient(
+      135deg,
+      $primary-color,
+      color.adjust($primary-color, $lightness: -15%)
+    );
 
     .cover-image {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -26,8 +32,8 @@
     align-items: flex-end;
     padding: 0 var(--side-pad);
     position: relative;
-    margin-top: -50px;
-    gap: 15px;
+    margin-top: -60px;
+    gap: 20px;
     padding-bottom: 15px;
   }
 
@@ -35,113 +41,139 @@
     display: flex;
     align-items: flex-end;
     gap: 15px;
-    flex-shrink: 0;
 
     .profile-avatar {
       width: 120px;
       height: 120px;
       border-radius: 50%;
       border: 4px solid $background-component;
-      object-fit: cover;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
     }
 
     .name-section {
       h2 {
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 700;
+        margin-bottom: 4px;
       }
 
       p {
         color: $text-secondary;
-      }
-
-      .user-level {
-        margin-top: 4px;
+        font-size: 14px;
       }
     }
   }
 
-  /* ✅ NHÍCH VỪA PHẢI: canh giống lề phần tiểu sử (zzz) */
-  .stats-section,
-  .action-section {
-    padding-left: var(--side-pad);
-    padding-right: var(--side-pad);
-  }
-
-  .stats-section {
+  .stats-and-actions {
     display: flex;
-    gap: 20px;
-    margin-bottom: 10px;
-
-    .stat {
-      text-align: center;
-
-      strong {
-        font-size: 16px;
-        font-weight: 600;
-        display: block;
-      }
-
-      span {
-        font-size: 13px;
-        color: $text-secondary;
-      }
-    }
-  }
-
-  .action-section {
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+    padding: 0 var(--side-pad);
+    margin-top: 10px;
 
-    button {
-      padding: 6px 14px;
-      font-size: 13px;
-      border-radius: 6px;
+    .stats-section {
+      display: flex;
+      gap: 20px;
+
+      .stat {
+        text-align: center;
+
+        strong {
+          font-size: 17px;
+          font-weight: 600;
+          display: block;
+        }
+
+        span {
+          font-size: 13px;
+          color: $text-secondary;
+        }
+      }
     }
 
-    .report-btn {
-      padding: 6px 14px;
-      font-size: 13px;
-      background-color: #e0245e;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    .action-section {
+      display: flex;
+      gap: 10px;
 
-      &:hover {
-        background-color: color.adjust(#e0245e, $lightness: -5%);
+      .profile-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 6px;
+        transition:
+          background 0.2s ease,
+          transform 0.2s ease;
+
+        &:hover {
+          transform: translateY(-1px);
+        }
+      }
+
+      .report-btn {
+        background-color: #99274a;
+        color: white;
+        border: none;
+
+        &:hover {
+          background-color: color.adjust(#e0245e, $lightness: -5%);
+        }
       }
     }
   }
 
   .profile-bio {
-    /* lề chuẩn 20px – giữ nguyên để làm mốc */
-    padding: 0 var(--side-pad) 20px;
+    margin: 15px var(--side-pad) 20px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #d5e4c3;
+    font-size: 15px;
     line-height: 1.6;
-    color: $text-secondary;
+    white-space: pre-line; // giữ xuống dòng
+    word-break: break-word;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+    &:before {
+      content: "📝 Tiểu sử";
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #c1cd78;
+    }
   }
 
-  @media (max-width: 768px) {
+  /* Responsive */
+  @media (max-width: 640px) {
     .profile-info-bar {
-      flex-direction: column;
-      align-items: center;
-      margin-top: -70px;
-      text-align: center;
+      margin-top: -50px;
+      gap: 12px;
     }
 
-    .stats-section,
-    .action-section {
-      padding-left: var(--side-pad);
-      padding-right: var(--side-pad);
-      margin-bottom: 5px;
-      justify-content: center;
-      text-align: center;
+    .avatar-section .profile-avatar {
+      width: 96px;
+      height: 96px;
+    }
+
+    .stats-and-actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+
+      .action-section {
+        justify-content: flex-start;
+      }
     }
   }
 }
 
+/* Report Modal */
 .report-modal {
   textarea {
     width: 100%;
@@ -154,10 +186,12 @@
     border: none;
     resize: vertical;
   }
+
   .modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+
     button:last-child {
       background: #e0245e;
       color: white;

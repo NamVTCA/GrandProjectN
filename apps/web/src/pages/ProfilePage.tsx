@@ -1,4 +1,3 @@
-// File: src/pages/ProfilePage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import api from '../services/api';
@@ -14,7 +13,9 @@ type LocationState = {
   updatedProfile?: UserProfile;
 };
 
-// Helper chuẩn hoá mảng id (string | ObjectId | {_id})
+type FriendshipStatus = 'FRIENDS' | 'REQUEST_SENT' | 'REQUEST_RECEIVED' | 'NONE';
+
+// Chuẩn hoá id
 const normIds = (arr: any): string[] =>
   Array.isArray(arr)
     ? arr
@@ -36,6 +37,9 @@ const ProfilePage: React.FC = () => {
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(stateProfile);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('NONE');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const [loading, setLoading] = useState(!stateProfile);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,13 +53,6 @@ const ProfilePage: React.FC = () => {
   );
 
   const fetchProfile = useCallback(async () => {
-    if (stateProfile) {
-      setUserProfile(stateProfile);
-      setIsFollowing(computeIsFollowing(stateProfile));
-      setLoading(false);
-      return;
-    }
-
     if (!paramUsername) {
       setError('Không xác định username.');
       setLoading(false);
@@ -70,7 +67,6 @@ const ProfilePage: React.FC = () => {
         const res = await api.get<UserProfile>(`/users/${encodeURIComponent(paramUsername)}`);
         data = res.data;
       } catch (errFirst) {
-        // Fallback: nếu param là ObjectId thì thử by-id
         if (/^[a-f\d]{24}$/i.test(String(paramUsername))) {
           const res = await api.get<UserProfile>(`/users/by-id/${paramUsername}`);
           data = res.data;
@@ -81,13 +77,24 @@ const ProfilePage: React.FC = () => {
 
       setUserProfile(data);
       setIsFollowing(computeIsFollowing(data));
+
+      // ✅ Lấy trạng thái bạn bè
+      if (currentUser && data._id !== currentUser._id) {
+        try {
+          const resFriend = await api.get(`/friends/status/${data._id}`);
+          const friendData = resFriend.data as { status: FriendshipStatus };
+          setFriendshipStatus(friendData.status);
+        } catch (err) {
+          console.warn('Không lấy được trạng thái bạn bè', err);
+        }
+      }
     } catch (err) {
       console.error(err);
       setError('Không tìm thấy người dùng hoặc có lỗi xảy ra.');
     } finally {
       setLoading(false);
     }
-  }, [paramUsername, stateProfile, computeIsFollowing]);
+  }, [paramUsername, currentUser, computeIsFollowing]);
 
   useEffect(() => {
     if (!stateProfile) {
@@ -95,6 +102,7 @@ const ProfilePage: React.FC = () => {
     }
   }, [fetchProfile, stateProfile]);
 
+  // follow toggle
   const handleFollowToggle = async () => {
     if (!userProfile || !currentUser) return;
     const myId = String(currentUser._id);
@@ -118,22 +126,52 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // ✅ Friend actions
+  const handleAddFriend = async () => {
+    if (!userProfile) return;
+    setIsProcessing(true);
+    try {
+      await api.post(`/friends/request/${userProfile._id}`);
+      setFriendshipStatus('REQUEST_SENT');
+      toast.success('Đã gửi lời mời kết bạn');
+    } catch {
+      toast.error('Lỗi khi gửi lời mời');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAcceptFriend = async () => {
+    if (!userProfile) return;
+    setIsProcessing(true);
+    try {
+      await api.post(`/friends/accept/${userProfile._id}`);
+      setFriendshipStatus('FRIENDS');
+      toast.success('Đã chấp nhận kết bạn');
+    } catch {
+      toast.error('Lỗi khi chấp nhận lời mời');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUnfriend = async () => {
+    if (!userProfile) return;
+    setIsProcessing(true);
+    try {
+      await api.delete(`/friends/${userProfile._id}`);
+      setFriendshipStatus('NONE');
+      toast.success('Đã hủy kết bạn');
+    } catch {
+      toast.error('Lỗi khi hủy kết bạn');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (loading) return <div className="page-status">Đang tải hồ sơ...</div>;
   if (error) return <div className="page-status error">{error}</div>;
   if (!userProfile) return null;
-
-  // Kiểm tra trạng thái tài khoản (nếu có)
-  const status = (userProfile as any).accountStatus;
-  const isAccountSuspendedOrBanned = status === 'SUSPENDED' || status === 'BANNED';
-  const isCurrentUserProfile = String(currentUser?._id ?? '') === String(userProfile._id ?? '');
-
-  if (isAccountSuspendedOrBanned && !isCurrentUserProfile) {
-    return (
-      <div className="page-status error">
-        Tài khoản này hiện đang bị {status === 'SUSPENDED' ? 'tạm ngưng' : 'vô hiệu hóa'}
-      </div>
-    );
-  }
 
   return (
     <div className="profile-page">
@@ -141,6 +179,11 @@ const ProfilePage: React.FC = () => {
         userProfile={userProfile}
         isFollowing={isFollowing}
         onFollowToggle={handleFollowToggle}
+        friendshipStatus={friendshipStatus}
+        onAddFriend={handleAddFriend}
+        onAcceptFriend={handleAcceptFriend}
+        onUnfriend={handleUnfriend}
+        isProcessing={isProcessing}
       />
       <div className="profile-content">
         <UserPostList userId={String(userProfile._id)} />

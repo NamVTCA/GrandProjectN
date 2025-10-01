@@ -17,10 +17,10 @@ export class ModerationService {
   // --- FIX: Thêm danh sách từ bị cấm (blocklist) ---
   private readonly blocklist: string[] = [
     'địt mẹ', 'dit me', 'đmm', 'dmm',
-    'đéo', 'deo',
+    'đéo',
     'lồn', 'lon',
     'cặc', 'cac',
-    'chó đẻ', 'cho de',
+    'chó đẻ',
   ];
 
   constructor(

@@ -50,7 +50,7 @@ const Sidebar: React.FC = () => {
     <aside className="sidebar">
       <div className="sidebar-top">
         <div className="logo">
-          <h1>Grand</h1>
+          <h1>SocialMedia</h1>
         </div>
 
         <nav className="main-nav">

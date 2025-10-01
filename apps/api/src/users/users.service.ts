@@ -8,6 +8,7 @@ import { User, UserDocument } from '../auth/schemas/user.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/schemas/notification.schema';
+import { Warning, WarningDocument } from '../users/schemas/warning.schema';
 
 import {
   Post as PostEntity,
@@ -38,15 +39,24 @@ const makeBaseUsername = (fullName: string): string => {
 };
 
 const makeUniqueUsername = (base: string, used: Set<string>): string => {
-  if (!used.has(base)) { used.add(base); return base; }
+  if (!used.has(base)) {
+    used.add(base);
+    return base;
+  }
   for (let i = 0; i < 50; i++) {
     const room = Math.max(0, MAX_U - base.length);
     const suffixLen = room > 0 ? Math.min(room, 4) : 2;
     const prefixLen = MAX_U - suffixLen;
     const cand1 = (base + fakerVI.string.numeric(suffixLen)).slice(0, MAX_U);
-    if (!used.has(cand1)) { used.add(cand1); return cand1; }
+    if (!used.has(cand1)) {
+      used.add(cand1);
+      return cand1;
+    }
     const cand2 = base.slice(0, prefixLen) + fakerVI.string.numeric(suffixLen);
-    if (!used.has(cand2)) { used.add(cand2); return cand2; }
+    if (!used.has(cand2)) {
+      used.add(cand2);
+      return cand2;
+    }
   }
   const fallback = fakerVI.string.alphanumeric(MAX_U).toLowerCase();
   used.add(fallback);
@@ -94,19 +104,28 @@ const TAGS_VIDEO = ['#clip','#vlog','#citylife','#daily','#travel','#shotonphone
 const LAST_IMG_CAP = { val: '' };
 const LAST_VID_CAP = { val: '' };
 const nonRepeat = (gen: () => string, lastRef: { val: string }) => {
-  for (let i = 0; i < 8; i++) { const s = gen().trim(); if (s && s !== lastRef.val) { lastRef.val = s; return s; } }
-  const s = gen().trim(); lastRef.val = s; return s;
+  for (let i = 0; i < 8; i++) {
+    const s = gen().trim();
+    if (s && s !== lastRef.val) { lastRef.val = s; return s; }
+  }
+  const s = gen().trim();
+  lastRef.val = s;
+  return s;
 };
 
 const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 const pickN = <T,>(arr: T[], n: number) => {
   const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
   return a.slice(0, Math.max(0, Math.min(n, a.length)));
 };
 const cap = (s: string) => s.charAt(0) + s.slice(1);
-const sentence = (parts: string[]) => cap(parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()) + '.';
+const sentence = (parts: string[]) =>
+  cap(parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()) + '.';
 
 type GenPostResult = { content: string; mediaUrls: string[] };
 
@@ -127,7 +146,9 @@ const getLocalImage = (topic: Exclude<SeedTopic,'video'>) => getLocalFile(topic,
 const getLocalVideo = () => getLocalFile('video', /\.(mp4|webm|ogg)$/i);
 const picsum = (w = 1200, h = 800) => `https://picsum.photos/seed/${fakerVI.string.alphanumeric(8)}/${w}/${h}`;
 const topicImages = (topic: Exclude<SeedTopic,'video'>, count = 1): string[] => {
-  const out: string[] = []; for (let i = 0; i < count; i++) out.push(getLocalImage(topic) ?? picsum(1200, 800)); return out;
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) out.push(getLocalImage(topic) ?? picsum(1200, 800));
+  return out;
 };
 const topicVideo = () => getLocalVideo() ?? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
@@ -227,7 +248,11 @@ const weightedPickReaction = (): ReactionType => {
 };
 
 const sampleUnique = <T,>(arr: T[], k: number) => {
-  const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
   return a.slice(0, Math.max(0, Math.min(k, a.length)));
 };
 const chance = (p: number) => Math.random() < p;
@@ -250,11 +275,16 @@ const REPLY_BANK = ['Chuẩn luôn nè!','Đồng ý ghê','Haha đúng á','Th�
 const EMOJI_LIGHT = ['😄','✨','🔥','❤️','👍','👌','🙌','😌','👏'];
 
 const containsAny = (raw: string, list: string[]) => {
-  const s = (raw || '').toLowerCase(); return list.some((w) => s.includes(w.toLowerCase()));
+  const s = (raw || '').toLowerCase();
+  return list.some((w) => s.includes(w.toLowerCase()));
 };
 const getTimestampFromId = (id: Types.ObjectId | string): Date => {
-  try { const hex = typeof id === 'string' ? id : id.toString(); return new Types.ObjectId(hex).getTimestamp(); }
-  catch { return new Date(); }
+  try {
+    const hex = typeof id === 'string' ? id : id.toString();
+    return new Types.ObjectId(hex).getTimestamp();
+  } catch {
+    return new Date();
+  }
 };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
@@ -272,7 +302,9 @@ const detectTopic = (p: PostLite): CommentTopic => {
 };
 
 const genGenericComment = (topic: CommentTopic): string => {
-  const base = pick(COMMENT_BANK[topic]); const tail = chance(0.35) ? ' ' + pick(EMOJI_LIGHT) : ''; return base + tail;
+  const base = pick(COMMENT_BANK[topic]);
+  const tail = chance(0.35) ? ' ' + pick(EMOJI_LIGHT) : '';
+  return base + tail;
 };
 
 /* =========================================================
@@ -284,6 +316,7 @@ export class UsersService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Warning.name) private warningModel: Model<WarningDocument>,
     @InjectModel(PostEntity.name) private postModel: Model<PostDocument>,
     @InjectModel('Comment') private commentModel: Model<any>,
     @InjectModel('Group') private groupModel: Model<any>,
@@ -299,21 +332,30 @@ export class UsersService {
   /* ===== PUBLIC USERS ===== */
   async findPublicById(id: string | Types.ObjectId): Promise<UserDocument> {
     const idStr = String(id);
-    if (!Types.ObjectId.isValid(idStr)) throw new NotFoundException(`Không tìm thấy người dùng với id=${idStr}`);
+    if (!Types.ObjectId.isValid(idStr)) {
+      throw new NotFoundException(`Không tìm thấy người dùng với id=${idStr}`);
+    }
     const user = await this.userModel
       .findById(idStr)
       .select('-password -email')
       .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
       .exec();
-    if (!user) throw new NotFoundException(`Không tìm thấy người dùng với id=${idStr}`);
+    if (!user) {
+      throw new NotFoundException(`Không tìm thấy người dùng với id=${idStr}`);
+    }
     return user;
   }
 
   async findByUsernameOrId(param: string): Promise<UserDocument> {
     const isId = Types.ObjectId.isValid(param);
     const query = isId ? this.userModel.findById(param) : this.userModel.findOne({ username: param });
-    const user = await query.select('-password -email').populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' }).exec();
-    if (!user) throw new NotFoundException(isId ? `Không tìm thấy người dùng với id=${param}` : `Không tìm thấy người dùng ${param}`);
+    const user = await query
+      .select('-password -email')
+      .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
+      .exec();
+    if (!user) {
+      throw new NotFoundException(isId ? `Không tìm thấy người dùng với id=${param}` : `Không tìm thấy người dùng ${param}`);
+    }
     return user;
   }
 
@@ -805,40 +847,39 @@ export class UsersService {
   /* ========= PUBLIC GROUP QUERIES ========= */
 
   async listPublicGroups(page = 1, limit = 20, q?: string, interestId?: string) {
-  const filter: any = { privacy: 'public' };
-  if (q) filter.name = { $regex: q, $options: 'i' };
-  if (interestId && Types.ObjectId.isValid(interestId)) filter.interests = new Types.ObjectId(interestId);
+    const filter: any = { privacy: 'public' };
+    if (q) filter.name = { $regex: q, $options: 'i' };
+    if (interestId && Types.ObjectId.isValid(interestId)) filter.interests = new Types.ObjectId(interestId);
 
-  const [raw, total] = await Promise.all([
-    this.groupModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+    const [raw, total] = await Promise.all([
+      this.groupModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate({ path: 'owner', select: 'username avatar' })
+        .populate({ path: 'interests', select: 'name' })
+        .lean(),
+      this.groupModel.countDocuments(filter),
+    ]);
+
+    const items = this.attachMemberCount<any>(raw as any[]);
+    return { items, page, limit, total };
+  }
+
+  async getGroupPublic(id: string) {
+    if (!Types.ObjectId.isValid(id)) throw new NotFoundException('Nhóm không hợp lệ');
+    const g = await this.groupModel
+      .findById(id)
       .populate({ path: 'owner', select: 'username avatar' })
+      .populate({ path: 'members.user', select: 'username avatar' })
       .populate({ path: 'interests', select: 'name' })
-      .lean(),
-    this.groupModel.countDocuments(filter),
-  ]);
+      .lean();
+    if (!g) throw new NotFoundException('Không tìm thấy nhóm');
 
-  const items = this.attachMemberCount<any>(raw as any[]);
-  return { items, page, limit, total };
-}
-
-async getGroupPublic(id: string) {
-  if (!Types.ObjectId.isValid(id)) throw new NotFoundException('Nhóm không hợp lệ');
-  const g = await this.groupModel
-    .findById(id)
-    .populate({ path: 'owner', select: 'username avatar' })
-    .populate({ path: 'members.user', select: 'username avatar' })
-    .populate({ path: 'interests', select: 'name' })
-    .lean();
-  if (!g) throw new NotFoundException('Không tìm thấy nhóm');
-
-  const [item] = this.attachMemberCount<any>([g as any]);
-  return item;
-}
-
+    const [item] = this.attachMemberCount<any>([g as any]);
+    return item;
+  }
 
   async getGroupPostsPublic(groupId: string, page = 1, limit = 20) {
     if (!Types.ObjectId.isValid(groupId)) {
@@ -879,190 +920,198 @@ async getGroupPublic(id: string) {
   }
 
   private inferTopicFromGroupNameDesc(name?: string, desc?: string) {
-  const text = this.normalize(`${name || ''} ${desc || ''}`);
-  for (const key in this.TOPIC_KEYWORDS) {
-    if (text.includes(key)) return this.TOPIC_KEYWORDS[key];
+    const text = this.normalize(`${name || ''} ${desc || ''}`);
+    for (const key in this.TOPIC_KEYWORDS) {
+      if (text.includes(key)) return this.TOPIC_KEYWORDS[key];
+    }
+    return 'travel';
   }
-  return 'travel';
-}
 
-// ✅ Backfill MEMBERS cho nhóm trống (đảm bảo có owner + đủ N thành viên)
-async fixGroupMembersForAll(membersPerGroup = 20) {
-  const users = await this.userModel.find().select('_id').lean();
-  const all = users.map(u => String(u._id));
-  if (!all.length) return { updated: 0, note: 'Chưa có user.' };
+  // ✅ Backfill MEMBERS cho nhóm trống (đảm bảo có owner + đủ N thành viên)
+  async fixGroupMembersForAll(membersPerGroup = 20) {
+    const users = await this.userModel.find().select('_id').lean();
+    const all = users.map(u => String(u._id));
+    if (!all.length) return { updated: 0, note: 'Chưa có user.' };
 
-  const empties = await this.groupModel
-    .find({ $or: [{ members: { $exists: false } }, { members: { $size: 0 } }] })
-    .select('_id owner createdAt')
-    .lean();
+    const empties = await this.groupModel
+      .find({ $or: [{ members: { $exists: false } }, { members: { $size: 0 } }] })
+      .select('_id owner createdAt')
+      .lean();
 
-  let updated = 0;
-  for (const g of empties) {
-    const owner = String((g as any).owner);
-    const need = clamp(membersPerGroup, 1, all.length);
-    let picked = sampleUnique(all, need);
-    // đảm bảo owner nằm trong danh sách
-    if (!picked.includes(owner)) {
-      picked[0] = owner; // overwrite 1 slot
+    let updated = 0;
+    for (const g of empties) {
+      const owner = String((g as any).owner);
+      const need = clamp(membersPerGroup, 1, all.length);
+      let picked = sampleUnique(all, need);
+      // đảm bảo owner nằm trong danh sách
+      if (!picked.includes(owner)) {
+        picked[0] = owner; // overwrite 1 slot
+      }
+
+      const base = (g as any).createdAt ? new Date((g as any).createdAt) : new Date();
+      const members = picked.map(uid => ({
+        user: new Types.ObjectId(uid),
+        role: uid === owner ? 'OWNER' : 'MEMBER',
+        joinedAt: randomDateAfter(base),
+      }));
+
+      await this.groupModel.updateOne({ _id: g._id }, { $set: { members, privacy: 'public' } });
+      updated++;
+    }
+    return { updated };
+  }
+
+  // Cho user hiện tại join ngẫu nhiên X nhóm public
+  async joinRandomPublicGroupsForUser(userId: string | Types.ObjectId, take = 10) {
+    const uid = new Types.ObjectId(String(userId));
+
+    const candidates = await this.groupModel
+      .find({ privacy: 'public', 'members.user': { $ne: uid } })
+      .select('_id name')
+      .limit(200)
+      .lean();
+
+    if (!candidates.length) return { joined: 0, tried: 0 };
+
+    const picked = candidates.sort(() => Math.random() - 0.5).slice(0, Math.max(1, take));
+    const ops = picked.map((g: any) => ({
+      updateOne: {
+        filter: { _id: g._id, 'members.user': { $ne: uid } },
+        update: { $push: { members: { user: uid, role: 'MEMBER', joinedAt: new Date() } } },
+      },
+    }));
+    await this.groupModel.bulkWrite(ops);
+    return { joined: ops.length, tried: picked.length };
+  }
+
+  // Gán 1 interest ngẫu nhiên cho nhóm nào chưa có (nếu có bảng interests)
+  async fixGroupInterestsIfEmpty() {
+    if (!this.interestModel) return { updated: 0, note: 'Không có model Interest.' };
+
+    const interests = await this.interestModel.find().select('_id name').lean();
+    if (!interests.length) return { updated: 0, note: 'Chưa có interest nào trong DB.' };
+
+    const emptyGroups = await this.groupModel
+      .find({ $or: [{ interests: { $exists: false } }, { interests: { $size: 0 } }] })
+      .select('_id')
+      .lean();
+
+    if (!emptyGroups.length) return { updated: 0 };
+
+    const ops = emptyGroups.map((g: any) => ({
+      updateOne: {
+        filter: { _id: g._id },
+        update: { $set: { interests: [interests[Math.floor(Math.random() * interests.length)]._id] } },
+      },
+    }));
+    await this.groupModel.bulkWrite(ops);
+    return { updated: ops.length };
+  }
+
+  // Ép 1 nhóm có đủ N thành viên (giữ owner & thành viên sẵn có)
+  async forceFillGroupMembers(groupId: string, targetMembers = 20) {
+    if (!Types.ObjectId.isValid(groupId)) {
+      throw new NotFoundException('Nhóm không hợp lệ');
     }
 
-    const base = (g as any).createdAt ? new Date((g as any).createdAt) : new Date();
-    const members = picked.map(uid => ({
+    // Lấy nhóm dạng lean, rồi ép về any để TS không phàn nàn
+    const gRaw = await this.groupModel
+      .findById(groupId)
+      .select('_id owner members createdAt')
+      .lean();
+
+    if (!gRaw) throw new NotFoundException('Không tìm thấy nhóm');
+
+    const g: any = gRaw; // <-- ép kiểu
+
+    const users = await this.userModel.find().select('_id').lean();
+    const all = users.map((u) => String(u._id));
+
+    const currentMembers = Array.isArray(g.members) ? g.members : [];
+    if (!all.length) {
+      return { added: 0, total: currentMembers.length, note: 'Chưa có user.' };
+    }
+
+    const existing = new Set<string>(currentMembers.map((m: any) => String(m.user)));
+    const ownerId = String(g.owner);
+    existing.add(ownerId);
+
+    const target = Math.max(1, Math.min(targetMembers, all.length));
+    const need = Math.max(0, target - existing.size);
+    if (need === 0) {
+      return { added: 0, total: existing.size };
+    }
+
+    const pool = all.filter((u) => !existing.has(u));
+    const toAdd = sampleUnique(pool, need);
+    const base = g.createdAt ? new Date(g.createdAt) : new Date();
+
+    const newMembers = toAdd.map((uid) => ({
       user: new Types.ObjectId(uid),
-      role: uid === owner ? 'OWNER' : 'MEMBER',
+      role: 'MEMBER',
       joinedAt: randomDateAfter(base),
     }));
 
-    await this.groupModel.updateOne({ _id: g._id }, { $set: { members, privacy: 'public' } });
-    updated++;
-  }
-  return { updated };
-}
+    await this.groupModel.updateOne(
+      { _id: new Types.ObjectId(String(g._id)) },
+      { $push: { members: { $each: newMembers } }, $set: { privacy: 'public' } },
+    );
 
-// Cho user hiện tại join ngẫu nhiên X nhóm public
-async joinRandomPublicGroupsForUser(userId: string | Types.ObjectId, take = 10) {
-  const uid = new Types.ObjectId(String(userId));
-
-  const candidates = await this.groupModel
-    .find({ privacy: 'public', 'members.user': { $ne: uid } })
-    .select('_id name')
-    .limit(200)
-    .lean();
-
-  if (!candidates.length) return { joined: 0, tried: 0 };
-
-  const picked = candidates.sort(() => Math.random() - 0.5).slice(0, Math.max(1, take));
-  const ops = picked.map((g: any) => ({
-    updateOne: {
-      filter: { _id: g._id, 'members.user': { $ne: uid } },
-      update: { $push: { members: { user: uid, role: 'MEMBER', joinedAt: new Date() } } },
-    },
-  }));
-  await this.groupModel.bulkWrite(ops);
-  return { joined: ops.length, tried: picked.length };
-}
-
-// Gán 1 interest ngẫu nhiên cho nhóm nào chưa có (nếu có bảng interests)
-async fixGroupInterestsIfEmpty() {
-  if (!this.interestModel) return { updated: 0, note: 'Không có model Interest.' };
-
-  const interests = await this.interestModel.find().select('_id name').lean();
-  if (!interests.length) return { updated: 0, note: 'Chưa có interest nào trong DB.' };
-
-  const emptyGroups = await this.groupModel
-    .find({ $or: [{ interests: { $exists: false } }, { interests: { $size: 0 } }] })
-    .select('_id')
-    .lean();
-
-  if (!emptyGroups.length) return { updated: 0 };
-
-  const ops = emptyGroups.map((g: any) => ({
-    updateOne: {
-      filter: { _id: g._id },
-      update: { $set: { interests: [interests[Math.floor(Math.random() * interests.length)]._id] } },
-    },
-  }));
-  await this.groupModel.bulkWrite(ops);
-  return { updated: ops.length };
-}
-
-// Ép 1 nhóm có đủ N thành viên (giữ owner & thành viên sẵn có)
-async forceFillGroupMembers(groupId: string, targetMembers = 20) {
-  if (!Types.ObjectId.isValid(groupId)) {
-    throw new NotFoundException('Nhóm không hợp lệ');
+    return { added: newMembers.length, total: existing.size + newMembers.length };
   }
 
-  // Lấy nhóm dạng lean, rồi ép về any để TS không phàn nàn
-  const gRaw = await this.groupModel
-    .findById(groupId)
-    .select('_id owner members createdAt')
-    .lean();
+  // ✅ Sửa avatar/cover thiếu dựa trên chủ đề đoán từ tên/mô tả
+  async fixGroupVisualsForAll() {
+    const groups = await this.groupModel
+      .find()
+      .select('_id name description avatar coverImage')
+      .lean();
 
-  if (!gRaw) throw new NotFoundException('Không tìm thấy nhóm');
+    let updated = 0;
+    for (const g of groups) {
+      const needAv = !g.avatar || !g.avatar.trim();
+      const needCv = !g.coverImage || !g.coverImage.trim();
+      if (!needAv && !needCv) continue;
 
-  const g: any = gRaw; // <-- ép kiểu
+      const topic = this.inferTopicFromGroupNameDesc(g.name, g.description);
+      const kw = pick(this.TOPIC_DISPLAY[topic].keywords);
+      const avatar = needAv ? this.themedImage(kw) : g.avatar;
+      const cover = needCv ? this.themedImage(kw) : g.coverImage;
 
-  const users = await this.userModel.find().select('_id').lean();
-  const all = users.map((u) => String(u._id));
-
-  const currentMembers = Array.isArray(g.members) ? g.members : [];
-  if (!all.length) {
-    return { added: 0, total: currentMembers.length, note: 'Chưa có user.' };
+      await this.groupModel.updateOne({ _id: g._id }, { $set: { avatar, coverImage: cover } });
+      updated++;
+    }
+    return { updated };
   }
 
-  const existing = new Set<string>(currentMembers.map((m: any) => String(m.user)));
-  const ownerId = String(g.owner);
-  existing.add(ownerId);
-
-  const target = Math.max(1, Math.min(targetMembers, all.length));
-  const need = Math.max(0, target - existing.size);
-  if (need === 0) {
-    return { added: 0, total: existing.size };
+  // ✅ (phòng hờ) Khi trả về list/chi tiết nhóm mà vẫn .lean(), tự nhét memberCount
+  private attachMemberCount<T extends { members?: any[] }>(items: T[]): T[] {
+    return items.map(i => ({ ...i, memberCount: i.members?.length || 0 })) as T[];
   }
-
-  const pool = all.filter((u) => !existing.has(u));
-  const toAdd = sampleUnique(pool, need);
-  const base = g.createdAt ? new Date(g.createdAt) : new Date();
-
-  const newMembers = toAdd.map((uid) => ({
-    user: new Types.ObjectId(uid),
-    role: 'MEMBER',
-    joinedAt: randomDateAfter(base),
-  }));
-
-  await this.groupModel.updateOne(
-    { _id: new Types.ObjectId(String(g._id)) },
-    { $push: { members: { $each: newMembers } }, $set: { privacy: 'public' } },
-  );
-
-  return { added: newMembers.length, total: existing.size + newMembers.length };
-}
-
-
-// ✅ Sửa avatar/cover thiếu dựa trên chủ đề đoán từ tên/mô tả
-async fixGroupVisualsForAll() {
-  const groups = await this.groupModel
-    .find()
-    .select('_id name description avatar coverImage')
-    .lean();
-
-  let updated = 0;
-  for (const g of groups) {
-    const needAv = !g.avatar || !g.avatar.trim();
-    const needCv = !g.coverImage || !g.coverImage.trim();
-    if (!needAv && !needCv) continue;
-
-    const topic = this.inferTopicFromGroupNameDesc(g.name, g.description);
-    const kw = pick(this.TOPIC_DISPLAY[topic].keywords);
-    const avatar = needAv ? this.themedImage(kw) : g.avatar;
-    const cover = needCv ? this.themedImage(kw) : g.coverImage;
-
-    await this.groupModel.updateOne({ _id: g._id }, { $set: { avatar, coverImage: cover } });
-    updated++;
-  }
-  return { updated };
-}
-
-// ✅ (phòng hờ) Khi trả về list/chi tiết nhóm mà vẫn .lean(), tự nhét memberCount
-private attachMemberCount<T extends { members?: any[] }>(items: T[]): T[] {
-  return items.map(i => ({ ...i, memberCount: i.members?.length || 0 })) as T[];
-}
 
   /* ===== MUTATIONS & OTHERS ===== */
   async updateProfile(userId: string | Types.ObjectId, updateUserDto: UpdateUserDto): Promise<UserDocument> {
     const updated = await this.userModel.findByIdAndUpdate(userId, updateUserDto, { new: true }).select('-password').exec();
-    if (!updated) throw new NotFoundException('Không tìm thấy người dùng'); return updated;
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    return updated;
   }
 
   async updateAvatar(userId: string | Types.ObjectId, avatarPath: string): Promise<UserDocument> {
     const updated = await this.userModel.findByIdAndUpdate(userId, { avatar: avatarPath }, { new: true }).select('-password').exec();
-    if (!updated) throw new NotFoundException('Không tìm thấy người dùng khi cập nhật avatar'); return updated;
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy người dùng khi cập nhật avatar');
+    }
+    return updated;
   }
 
   async updateCover(userId: string | Types.ObjectId, coverPath: string): Promise<UserDocument> {
     const updated = await this.userModel.findByIdAndUpdate(userId, { coverImage: coverPath }, { new: true }).select('-password').exec();
-    if (!updated) throw new NotFoundException('Không tìm thấy người dùng khi cập nhật cover'); return updated;
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy người dùng khi cập nhật cover');
+    }
+    return updated;
   }
 
   async followUser(currentUserId: string | Types.ObjectId, userIdToFollow: string) {
@@ -1071,7 +1120,9 @@ private attachMemberCount<T extends { members?: any[] }>(items: T[]): T[] {
     await this.userModel.findByIdAndUpdate(userIdToFollow, { $addToSet: { followers: currentUserId } });
     const userToFollowDoc = await this.userModel.findById(userIdToFollow);
     const currentUserDoc = await this.userModel.findById(currentUserId);
-    if (!userToFollowDoc || !currentUserDoc) throw new NotFoundException('Không tìm thấy người dùng để tạo thông báo.');
+    if (!userToFollowDoc || !currentUserDoc) {
+      throw new NotFoundException('Không tìm thấy người dùng để tạo thông báo.');
+    }
     await this.receiveXP(2, 'follow', currentUserId.toString(), userIdToFollow.toString());
     await this.notificationsService.createNotification(userToFollowDoc, currentUserDoc, NotificationType.NEW_FOLLOWER, `/profile/${currentUserDoc.username}`);
     return { message: 'Theo dõi thành công.' };
@@ -1084,17 +1135,28 @@ private attachMemberCount<T extends { members?: any[] }>(items: T[]): T[] {
   }
 
   async updateUserInterests(userId: string, interestIds: string[]): Promise<UserDocument> {
-    const updated = await this.userModel.findByIdAndUpdate(userId, { $set: { interests: interestIds, hasSelectedInterests: true } }, { new: true }).populate('interests').exec();
-    if (!updated) throw new NotFoundException('Không tìm thấy người dùng'); return updated;
+    const updated = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: { interests: interestIds, hasSelectedInterests: true } },
+      { new: true }
+    ).populate('interests').exec();
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    return updated;
   }
 
   async receiveXP(xp: number, kind: string, userId: string, _follow?: string): Promise<void> {
     const user = await this.userModel.findById(userId);
-    if (!user) { this.logger.warn(`User with ID ${userId} not found.`); return; }
+    if (!user) {
+      this.logger.warn(`User with ID ${userId} not found.`);
+      return;
+    }
     if (kind === 'follow') await this.handleUserFollowed(userId);
     if ((user as any).xp_per_day >= 250) {
       await this.notificationsService.createNotification(user, user, NotificationType.NEW_NOTIFICATION, null);
-      this.logger.log(`User ${user.username} reached daily XP limit.`); return;
+      this.logger.log(`User ${user.username} reached daily XP limit.`);
+      return;
     }
     const allowedXP = Math.max(0, 250 - ((user as any).xp_per_day ?? 0));
     const add = Math.min(xp, allowedXP);
@@ -1105,26 +1167,40 @@ private attachMemberCount<T extends { members?: any[] }>(items: T[]): T[] {
 
   async handleUserFollowed(followedUserId: string): Promise<void> {
     const user: any = await this.userModel.findById(followedUserId);
-    if (!user) { this.logger.warn(`User with ID ${followedUserId} not found.`); return; }
+    if (!user) {
+      this.logger.warn(`User with ID ${followedUserId} not found.`);
+      return;
+    }
     const baseXP = 20;
     const canAddBase = Math.max(0, 250 - (user.xp_per_day ?? 0));
     const baseAdded = Math.min(baseXP, canAddBase);
-    user.xp_per_day = (user.xp_per_day ?? 0) + baseAdded; user.xp = (user.xp ?? 0) + baseAdded;
+    user.xp_per_day = (user.xp_per_day ?? 0) + baseAdded;
+    user.xp = (user.xp ?? 0) + baseAdded;
     const currentFollowers = user.followers?.length || 0;
-    const milestones = [{ count: 10, bonusXP: 100 },{ count: 50, bonusXP: 300 },{ count: 100, bonusXP: 800 },{ count: 500, bonusXP: 3000 },{ count: 1000, bonusXP: 7000 }];
+    const milestones = [
+      { count: 10, bonusXP: 100 },
+      { count: 50, bonusXP: 300 },
+      { count: 100, bonusXP: 800 },
+      { count: 500, bonusXP: 3000 },
+      { count: 1000, bonusXP: 7000 },
+    ];
     user.milestonesReached ??= [];
     for (const m of milestones) {
       if (currentFollowers >= m.count && !user.milestonesReached.includes(m.count)) {
         const canAddBonus = Math.max(0, 250 - (user.xp_per_day ?? 0));
         const bonusAdded = Math.min(canAddBonus, m.bonusXP);
-        user.xp_per_day += bonusAdded; user.xp += bonusAdded; user.milestonesReached.push(m.count);
+        user.xp_per_day += bonusAdded;
+        user.xp += bonusAdded;
+        user.milestonesReached.push(m.count);
         this.logger.log(`User ${user.username} đạt mốc ${m.count}. Bonus ${bonusAdded} XP.`);
       }
     }
     await user.save();
   }
 
-  async GetUserDental(id: string) { return this.userModel.findById(id).exec(); }
+  async GetUserDental(id: string) {
+    return this.userModel.findById(id).exec();
+  }
 
   async getAllFriend(id: string) {
     const user = await this.userModel.findById(id).populate('friends').exec();
@@ -1132,32 +1208,47 @@ private attachMemberCount<T extends { members?: any[] }>(items: T[]): T[] {
     return (user as any).friends;
   }
 
-  async getWarnings(userId: string) {
-    const user = await this.userModel.findById(userId).select('warnings').populate([
-      { path: 'warnings.by', select: 'username avatar' },
-      { path: 'warnings.reason', select: 'reasonText' },
-    ]);
-    if (!user) throw new NotFoundException('Người dùng không tồn tại.');
-    return (user as any).warnings;
-  }
-
-  async deleteWarning(userId: string, warningId: string) {
-    const user: any = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('Người dùng không tồn tại.');
-    if (!Array.isArray(user.warnings)) user.warnings = [];
-    const warningIndex = user.warnings.findIndex((w: any) => w._id?.toString() === warningId);
-    if (warningIndex < 0) throw new NotFoundException('Cảnh cáo không tồn tại.');
-    user.warnings.splice(warningIndex, 1);
-    await user.save();
-    return { message: 'Xoá cảnh cáo thành công.' };
-  }
-
   async getMe(userId: string | Types.ObjectId) {
-    const me = await this.userModel.findById(userId)
+    const me = await this.userModel
+      .findById(userId)
       .select('username email avatar coins hasSelectedInterests globalRole friends currentGame coverImage equippedAvatarFrame')
       .populate({ path: 'equippedAvatarFrame', select: 'assetUrl type' })
-      .lean().exec();
-    if (!me) throw new NotFoundException('Không tìm thấy người dùng');
+      .lean()
+      .exec();
+    if (!me) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
     return me;
+  }
+
+  // ===== Warnings APIs (dùng Warning collection riêng) =====
+
+  // ✅ Lấy toàn bộ warnings của user
+  async getWarnings(userId: string) {
+    return this.warningModel
+      .find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate('by', 'username avatar')
+      .lean()
+      .exec();
+  }
+
+  // ✅ Xóa toàn bộ warnings
+  async clearWarnings(userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    return this.warningModel.deleteMany({ user: userId });
+  }
+
+  // ✅ Xóa 1 warning cụ thể
+  async deleteWarning(userId: string, warningId: string) {
+    const warning = await this.warningModel.findOneAndDelete({
+      _id: warningId,
+      user: userId,
+    });
+
+    if (!warning) {
+      throw new NotFoundException('Không tìm thấy cảnh báo.');
+    }
+
+    return { message: 'Đã xóa cảnh báo.' };
   }
 }

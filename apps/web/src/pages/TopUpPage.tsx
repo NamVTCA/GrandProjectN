@@ -30,7 +30,14 @@ interface FulfillPaymentResponse {
   orderId: string;
 }
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// --- Stripe init ---
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+if (!stripeKey) {
+  console.error("⚠️ Stripe publishable key chưa được cấu hình trong .env");
+}
+const stripePromise = loadStripe(stripeKey!);
+
+// --- API base url ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888/api';
 
 /* -------------------------------------------------------
@@ -69,12 +76,14 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)!,
-          billing_details: {},
+          billing_details: {
+            name: "Khách hàng",
+          },
         },
       });
 
       if (result.error) {
-        setError(result.error.message || 'Thanh toán thất bại');
+        toast.error(result.error.message || 'Thanh toán thất bại');
       } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
         const fulfillRes = await fetch(`${API_BASE_URL}/payments/fulfill-payment`, {
           method: 'PATCH',
@@ -91,10 +100,9 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
         const fulfillData: FulfillPaymentResponse = await fulfillRes.json();
         onSuccess(fulfillData.orderId);
       } else {
-        setError('Thanh toán không thành công.');
+        toast.error('Thanh toán không thành công.');
       }
     } catch (err: any) {
-      setError(err.message || 'Đã xảy ra lỗi trong quá trình thanh toán.');
       toast.error(err.message || 'Đã xảy ra lỗi trong quá trình thanh toán.');
     } finally {
       setProcessing(false);
@@ -123,7 +131,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ selectedPackage, onSuccess,
           Hủy
         </button>
         <button type="submit" disabled={!stripe || processing}>
-          {processing ? 'Đang xử lý...' : `Thanh toán $${selectedPackage.price}`}
+          {processing ? 'Đang xử lý...' : `Thanh toán ${selectedPackage.price.toLocaleString()} ${selectedPackage.currency}`}
         </button>
       </div>
     </form>
@@ -204,12 +212,12 @@ const TopUpPage: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Vui lòng đăng nhập lại.');
 
-      const res = await axios.get(`${API_BASE_URL}/payments/receipt/${lastOrderId}`, {
-        responseType: 'blob',
+      const res = await axios.get<ArrayBuffer>(`${API_BASE_URL}/payments/receipt/${lastOrderId}`, {
+        responseType: 'arraybuffer',
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const blob = new Blob([res.data as ArrayBuffer], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

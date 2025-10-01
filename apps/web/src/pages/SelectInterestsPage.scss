@@ -26,8 +26,8 @@
   .interest-tag {
     padding: 10px 20px;
     border: 1px solid $surface-color;
-    background-color: $background-component;
-    color: $text-secondary;
+    background-color: #7ceca1;
+    color: white;
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -39,7 +39,7 @@
     }
 
     &.selected {
-      background-color: $primary-accent;
+      background-color: #0e4420;
       color: $primary-dark;
       border-color: $primary-accent;
       font-weight: 600;
