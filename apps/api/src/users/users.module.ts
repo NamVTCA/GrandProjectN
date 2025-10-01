@@ -1,19 +1,25 @@
-// apps/api/src/users/users.module.ts
+// ❌ Sai: import { Module, Post } from '@nestjs/common';
+// ⬇️ Đúng:
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+// ⬇️ Import Post CLASS & Schema từ file schema của bạn (không phải Nest common)
+import { Post, PostSchema } from '../posts/schemas/post.schema';
+
 @Module({
   imports: [
-    // Cho phép module này inject UserModel
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    // Import AuthModule để có thể dùng JwtAuthGuard
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Post.name, schema: PostSchema }, // đăng ký PostModel ở UsersModule
+    ]),
     AuthModule,
-    NotificationsModule, // Import NotificationsModule để gửi thông báo khi có người theo dõi
+    NotificationsModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],
