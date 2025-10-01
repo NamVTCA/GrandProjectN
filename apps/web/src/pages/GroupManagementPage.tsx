@@ -145,9 +145,7 @@ const GroupManagementPage: React.FC = () => {
 
   // ✅ THÊM: xác nhận trước khi kick
   const confirmKick = (memberUserId: string, username: string) => {
-    const ok = window.confirm(
-      `Bạn có chắc muốn kick ${username} khỏi nhóm?`
-    );
+    const ok = window.confirm(`Bạn có chắc muốn kick ${username} khỏi nhóm?`);
     if (!ok) return;
     kickMutation.mutate(memberUserId);
   };
@@ -346,11 +344,12 @@ const GroupManagementPage: React.FC = () => {
           <div className="danger-zone">
             <h3>Xóa nhóm</h3>
             <p>
-              Hành động này không thể hoàn tác. Tất cả bài viết và dữ liệu liên quan sẽ bị xóa vĩnh
-              viễn.
+              Hành động này không thể hoàn tác. Tất cả bài viết và dữ liệu liên quan sẽ bị xóa vĩnh viễn.
             </p>
             <Button
               variant="danger"
+              className="delete-cta"           // ⬅️ làm nổi bật riêng chữ "Xóa nhóm này"
+              aria-label="Xóa nhóm này"
               onClick={() => {
                 if (window.confirm('Bạn có chắc chắn muốn xóa nhóm này?')) {
                   deleteMutation.mutate();

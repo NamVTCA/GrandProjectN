@@ -59,3 +59,6 @@ export const GroupSchema = SchemaFactory.createForClass(Group);
 GroupSchema.virtual('memberCount').get(function(this: GroupDocument) {
   return this.members.length;
 });
+
+GroupSchema.set('toJSON', { virtuals: true });
+GroupSchema.set('toObject', { virtuals: true });

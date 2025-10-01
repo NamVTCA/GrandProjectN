@@ -60,11 +60,26 @@
       font-weight: 700;
       margin: 0 0 4px;
     }
+
+    /* Badge rõ cho "Công khai · X thành viên" */
     p {
       margin: 0;
       font-size: 1rem;
-      font-weight: 500;
-      color: $text-secondary;
+      font-weight: 600 !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(0, 0, 0, .55) !important;
+      color: #fff !important;
+      border: 1px solid rgba(255, 255, 255, .18);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
+
+      /* ⬇️ FIX: escape hàm CSS để tránh Sass color function */
+      -webkit-backdrop-filter: #{'saturate(150%)'} blur(2px);
+      backdrop-filter: #{'saturate(150%)'} blur(2px);
+      /* (Cũng có thể dùng: backdrop-filter: unquote("saturate(150%) blur(2px)");) */
     }
   }
 
@@ -72,5 +87,25 @@
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
+
+    /* Nút "Quản lý nhóm" luôn nổi bật */
+    .btn {
+      background: rgba(20, 25, 32, .80) !important; /* nền tối rõ */
+      color: #fff !important;
+      border: 1px solid rgba(255, 255, 255, .18);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
+
+      &:hover,
+      &:focus {
+        background: rgba(20, 25, 32, .92) !important; /* đậm hơn khi hover */
+        color: #fff !important;
+        border-color: rgba(255, 255, 255, .25);
+      }
+
+      svg {
+        color: #fff;
+        fill: #fff;
+      }
+    }
   }
 }

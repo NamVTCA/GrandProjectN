@@ -1,4 +1,3 @@
-// File: src/pages/GroupDetailPage.tsx
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -122,10 +121,19 @@ const GroupDetailPage: React.FC = () => {
         joinStatus={joinStatus}
         isProcessing={joinLeaveMutation.isPending}
         onJoinLeaveClick={() => joinLeaveMutation.mutate()}
+        onInviteFriends={() => setInviteModalOpen(true)}
       />
 
       <div className="group-content-layout">
         <div className="main-content">
+          {/* KHUNG GIỚI THIỆU (đặt TRÊN CreatePost) */}
+          {Boolean((group as any).description) && (
+            <section className="group-intro-card">
+              <h3>Giới thiệu</h3>
+              <p>{(group as any).description}</p>
+            </section>
+          )}
+
           {isMember ? (
             <>
               <CreatePost
@@ -148,7 +156,6 @@ const GroupDetailPage: React.FC = () => {
                     onPostDeleted={handlePostDeleted}
                     onCommentAdded={(id?: string) => handleCommentChange(id ?? post._id, 1)}
                     onCommentDeleted={(id?: string) => handleCommentChange(id ?? post._id, -1)}
-                    // ✅ Để TS suy luận visibility = PostVisibility (có FRIENDS_ONLY)
                     onRepost={(postId, content, visibility) => {
                       console.debug('repost', { postId, content, visibility });
                     }}
@@ -173,15 +180,8 @@ const GroupDetailPage: React.FC = () => {
           )}
         </div>
 
-        <div className="sidebar-content">
-          <h3>Giới thiệu</h3>
-          <p>{(group as any).description}</p>
-          {isMember && (
-            <Button variant="secondary" onClick={() => setInviteModalOpen(true)}>
-              Mời bạn bè
-            </Button>
-          )}
-        </div>
+        {/* Nếu không có widget nào ở sidebar, có thể xoá khối này hoàn toàn */}
+        {/* <div className="sidebar-content"></div> */}
       </div>
 
       <InviteFriendsModal
