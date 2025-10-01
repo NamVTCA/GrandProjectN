@@ -31,7 +31,8 @@ const FriendsListPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await api.get('/friends/list');
-      const friendsData = response.data.friends || response.data;
+      const data = response.data as any;
+      const friendsData = data.friends || data;
       
       // Transform data to match our interface
       const formattedFriends = friendsData.map((friend: any) => ({

@@ -73,4 +73,12 @@ export class FriendsController {
   getFriendRequests(@GetUser() user: UserDocument) {
     return this.friendsService.getAllRequests(user);
   }
+
+  @Get('status/:userId')
+  getFriendStatus(
+    @GetUser() me: UserDocument,
+    @Param('userId') otherUserId: string,
+  ) {
+    return this.friendsService.getFriendStatus(me._id.toString(), otherUserId);
+  }
 }

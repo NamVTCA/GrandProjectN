@@ -13,43 +13,42 @@ export class SearchService {
     @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
   ) {}
 
-  // ✅ HÀM NÀY ĐÃ ĐƯỢC NÂNG CẤP HOÀN CHỈNH
+  // ✅ HÀM NÂNG CẤP HOÀN CHỈNH
   async searchAll(query: string) {
     if (!query || query.trim().length < 2) {
-      return []; // Vẫn giữ: chỉ tìm khi có ít nhất 2 ký tự
+      return []; // chỉ tìm khi có ít nhất 2 ký tự
     }
 
     // --- BƯỚC 1: Xử lý chuỗi tìm kiếm an toàn ---
-    // Chuyển các ký tự đặc biệt của regex thành ký tự thường
     const escapeRegex = (text: string) => {
       return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
     };
     const safeQuery = escapeRegex(query.trim());
-    const regex = new RegExp(safeQuery, 'i'); // 'i' để không phân biệt hoa thường
+    const regex = new RegExp(safeQuery, 'i'); // không phân biệt hoa/thường
 
     // --- BƯỚC 2: Tìm kiếm song song trên cả 3 bảng ---
     const [users, posts, groups] = await Promise.all([
-      // Tìm người dùng
+      // Người dùng
       this.userModel.find({ username: regex })
         .limit(5)
         .select('username avatar')
         .lean(),
-      
-      // Tìm bài viết (chỉ bài công khai, không thuộc nhóm)
+
+      // Bài viết công khai (không thuộc nhóm)
       this.postModel.find({ content: regex, group: { $exists: false }, visibility: 'PUBLIC' })
         .limit(5)
         .select('content author')
         .populate('author', 'username avatar')
         .lean(),
-        
-      // Tìm nhóm (chỉ nhóm công khai)
+
+      // Nhóm công khai
       this.groupModel.find({ name: regex, privacy: 'public' })
         .limit(5)
-        .select('name avatar memberCount')
+        .select('name avatar coverImage memberCount') // ✅ thêm coverImage
         .lean(),
     ]);
 
-    // --- BƯỚC 3: Chuẩn hóa và gộp kết quả ---
+    // --- BƯỚC 3: Chuẩn hóa kết quả ---
     const formattedUsers = users.map(user => ({
       _id: user._id,
       name: user.username,
@@ -68,7 +67,7 @@ export class SearchService {
     const formattedGroups = groups.map(group => ({
       _id: group._id,
       name: group.name,
-      avatar: group.avatar,
+      avatar: group.avatar || group.coverImage, // ✅ fallback nếu không có avatar
       type: 'group' as const,
     }));
 
